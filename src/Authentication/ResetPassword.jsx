@@ -230,7 +230,7 @@ export default function ResetLogin({ email = "email not fetched correctly" }) {
           </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-2 gap-3">
+        {/* <div className="mt-6 grid grid-cols-2 gap-3">
           <button
             type="button"
             className="w-full inline-flex justify-center py-2.5 px-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm bg-white dark:bg-gray-700 text-lg font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
@@ -239,7 +239,7 @@ export default function ResetLogin({ email = "email not fetched correctly" }) {
             Login with mobile
             <Outlet/>
           </button>
-        </div>
+        </div> */}
       </div>
 
       <p className="mt-8 text-center text-sm text-gray-600 dark:text-gray-400">
