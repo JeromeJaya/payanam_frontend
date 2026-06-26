@@ -5,17 +5,13 @@ import bgImage from "../assets/bg3.png";
 import Nav from "../NavComponent.jsx";
 import {Link,Outlet} from "react-router-dom";
 import {useNavigate} from "react-router-dom";
-import axios from "axios";
 import api from "../api/axios.js"
-import PasswordInput from "./PasswordInput.jsx";
 
 export default function ForgotPassword() {
     const [show, setShow] = useState(false);
     const [showMobileLogin, setShowMobileLogin] = useState(false);
     const navigate = useNavigate();
     const [email, setEmail] = useState("");
-  const [otp, setOTP] = useState("");
-  const [newPassword, setNewPassword] = useState("");
   const [step, setStep] = useState("request"); // 'request' or 'verify'
 
 
@@ -30,30 +26,13 @@ export default function ForgotPassword() {
       const res = await api.post("/api/auth/forgot-password", { email });
       if (res?.data?.success) {
         alert(res.data.message || "OTP sent");
-        setStep("verify");
+        navigate("/resetpassword", {state:{email}})
       }
     } catch (err) {
       alert(err.response?.data?.message || "Failed to send OTP");
     }
   }
 
-  async function handleVerify(event) {
-    event.preventDefault();
-    try {
-      const res = await api.post("/api/auth/reset-password", {
-        email,
-        otpCode: otp,
-        newPassword,
-      });
-
-      if (res?.data?.success) {
-        alert(res.data.message || "Password reset successful");
-        navigate("/login");
-      }
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to reset password");
-    }
-  }
   return (
     <>
     <Nav/>
@@ -100,7 +79,7 @@ export default function ForgotPassword() {
             className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg 
             focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-400 focus:border-lime-500 dark:focus:border-lime-400 outline-none
              transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
-            placeholder="example@jero.web.id"
+            placeholder="example@gmail.com"
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
@@ -113,49 +92,6 @@ export default function ForgotPassword() {
         </div>
 
       </form>
-      {step === "verify" && (
-        <form className="space-y-6 mt-5" onSubmit={handleVerify}>
-          <div>
-            <label htmlFor="otp" className="block text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
-              ENTER YOUR OTP
-            </label>
-            <input
-              id="otp"
-              name="OTP"
-              type="text"
-              required
-              className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg 
-            focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-400 focus:border-lime-500 dark:focus:border-lime-400 outline-none
-            transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
-              value={otp}
-              onChange={(e) => setOTP(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="newPassword" className="block text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
-              New Password
-            </label>
-            <PasswordInput
-              id="newPassword"
-              name="newPassword"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              required
-              className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-400 focus:border-lime-500 dark:focus:border-lime-400 outline-none transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
-            />
-          </div>
-
-          <div className="flex justify-center w-full">
-            <But3
-              type="submit"
-              text="Verify & Reset"
-              className="w-fit block mx-auto bg-lime-600 dark:bg-lime-300 text-white dark:text-gray-900 py-3 px-4 rounded-lg font-medium hover:bg-lime-700 dark:hover:bg-lime-400 justify-center transition-colors"
-            />
-          </div>
-        </form>
-      )}
-
       <div className="mt-6">
         <div className="relative">
           <div className="absolute inset-0 flex items-center">

@@ -4,51 +4,93 @@ import {But3} from "../Buttons/But3.jsx";
 import bgImage from "../assets/bg3.png";
 import Nav from "../NavComponent.jsx";
 import {Link,Outlet} from "react-router-dom";
-import {useNavigate} from "react-router-dom";
+import {useNavigate, useLocation} from "react-router-dom";
 import api from "../api/axios";
 import PasswordInput from "./PasswordInput.jsx";
 import { useAuth } from "../context/AuthContext";
 
-export default function ResetLogin() {
+export default function ResetLogin({ email = "email not fetched correctly" }) {
     const [show, setShow] = useState(false);
     const [showMobileLogin, setShowMobileLogin] = useState(false);
     const navigate = useNavigate();
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
+    const location = useLocation();
+    const [otp, setOTP] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPass, setConfirmPass] = useState("");
+    const [resendCountdown, setResendCountdown] = useState(300);
     const { login } = useAuth();
 
+    const strongRe = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
+
+    const handleOTPChange = (event) => {
+      const digitsOnly = event.target.value.replace(/\D/g, "").slice(0, 6);
+      setOTP(digitsOnly);
+    };
+
+    const isOTPValid = otp.length === 6;
+
+    useEffect(() => {
+      setShow(true);
+    }, []);
+
+    useEffect(() => {
+      if (resendCountdown <= 0) return;
+      const timer = setInterval(() => {
+        setResendCountdown((prev) => prev - 1);
+      }, 1000);
+      return () => clearInterval(timer);
+    }, [resendCountdown]);
+
+    if (showMobileLogin) return <MobileLogin />;
+
+    const formatTime = (seconds) => {
+      const mins = Math.floor(seconds / 60)
+        .toString()
+        .padStart(2, "0");
+      const secs = (seconds % 60).toString().padStart(2, "0");
+      return `${mins}:${secs}`;
+    };
+
+    const isResendDisabled = resendCountdown > 0;
+
     async function handleSubmit(event) {
-    event.preventDefault();
-
-    let response= await api.post("http://localhost:3000/api/auth/reset-password",{
-      email, password,
-    })
-    .catch((err) => alert(err.response.data.message))
-  
-  if (response && response.data && response.data.success) navigate("/login");
-  }
-
-  useEffect(() => {
-    setShow(true);
-  }, []);
-  if (showMobileLogin) return <MobileLogin />; 
-
-  async function handleSubmit(event) {
-    event.preventDefault();
-    try {
-      const response = await api.post("/api/auth/reset-password", { email, password });
-      if (response?.data?.success) {
-        login(response.data.user);
-        navigate("/login");
+      event.preventDefault();
+      if (!isOTPValid) {
+        alert("Please enter a 6-digit OTP.");
+        return;
       }
-    } catch (err) {
-      alert(err.response?.data?.message || "Password Reset failed");
+      if (newPassword !== confirmPass) {
+        alert("Passwords do not match");
+        return;
+      }
+
+      try {
+        const response = await api.post("/api/auth/reset-password", {
+          email,
+          otpCode: otp,
+          newPassword,
+        });
+        if (response?.data?.success) {
+          alert(response.data.message || "Password reset successful");
+          navigate("/login");
+        }
+      } catch (err) {
+        alert(err.response?.data?.message || "Password Reset failed");
+      }
     }
 
-
-  }
+    async function handleResendOTP() {
+      if (isResendDisabled) return;
+      try {
+        const res = await api.post("/api/auth/forgot-password", { email });
+        if (res?.data?.success) {
+          alert(res.data.message || "OTP resent");
+          setResendCountdown(300);
+        }
+      } catch (err) {
+        alert(err.response?.data?.message || "Failed to resend OTP");
+      }
+    }
   return (
     <>
     <Nav/>
@@ -77,46 +119,57 @@ export default function ResetLogin() {
             d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
           </svg>
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome back</h2>
-        <p className="text-gray-600 dark:text-gray-400 mt-2">Sign in to your account</p>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Reset Password</h2>
+        <p className="text-gray-600 dark:text-gray-400 mt-2">Enter the OTP with in 5 minutes</p>
       </div>
 
       <form className="space-y-6" onSubmit={handleSubmit}>
         <div>
-          <label htmlFor="email" className="block text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Email address
+          <div className = "flex flex-row justify-around">
+            <label htmlFor="email" className="block text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Email address
+            </label>
+            <button htmlFor="email" className="block  font-medium text-gray-700 dark:text-gray-300 mb-2"
+            onClick ={ ()=> navigate("/forgotpassword")}>
+             Change email
+            </button>
+          </div>
+          <label htmlFor="email" className="block text-md font-medium text-gray-500 ml-5 dark:text-gray-300 mb-2">
+            {location.state.email}
           </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg 
-            focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-400 focus:border-lime-500 dark:focus:border-lime-400 outline-none
-             transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
-            placeholder="example@jero.web.id"
-            onChange={(e) => setEmail(e.target.value)}
-          />
+          
         </div>
 
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <label htmlFor="password" className="block text-lg font-medium text-gray-700 dark:text-gray-300">
-              Currunt Password
+        <div className="flex items-center justify-between mb-2">
+            <label htmlFor="OTP" className="block text-lg font-medium text-gray-700 dark:text-gray-300">
+              Enter OTP 
             </label>
           </div>
-          <PasswordInput
-            id="old-password"
-            name="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
+          <input
+            id="OTP"
+            name="OTP"
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={6}
+            pattern="\d{6}"
+            value={otp}
+            onChange={handleOTPChange}
             required
-            placeholder="••••••••"
+            placeholder="Enter 6-digit OTP"
             className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-400 focus:border-lime-500 dark:focus:border-lime-400 outline-none transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
           />
-        </div>
+          {!isOTPValid && otp.length > 0 && (
+            <p className="text-red-500 text-sm mt-1">OTP must be exactly 6 digits.</p>
+          )}
+        <But3
+          type="button"
+          onClick={handleResendOTP}
+          disabled={resendCountdown > 0}
+          text={`Resend OTP${resendCountdown > 0 ? ` (${formatTime(resendCountdown)})` : ""}`}
+          className={`w-fit block mx-auto py-3 px-4 rounded-lg font-medium justify-center transition-colors ${resendCountdown > 0 ? "bg-gray-400 dark:bg-gray-600 cursor-not-allowed opacity-70 hover:bg-gray-400 dark:hover:bg-gray-600" : "bg-lime-100 dark:bg-lime-100 text-white dark:text-gray-900 hover:bg-lime-200 dark:hover:bg-lime-400"}`}
+        />
+
         {/* ...new pass */}
         <div>
           <div className="flex items-center justify-between mb-2">
@@ -131,7 +184,6 @@ export default function ResetLogin() {
             onChange={(e) => setNewPassword(e.target.value)}
             autoComplete="current-password"
             required
-            placeholder="••••••••"
             className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-400 focus:border-lime-500 dark:focus:border-lime-400 outline-none transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
           />
           {newPassword && strongRe.test(newPassword) === false &&(
@@ -152,15 +204,15 @@ export default function ResetLogin() {
             placeholder="••••••••"
             className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-400 focus:border-lime-500 dark:focus:border-lime-400 outline-none transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
           />
-          {confirmPass && password !== confirmPass && (
+          {confirmPass && newPassword !== confirmPass && (
             <p className="text-red-500 text-sm mt-1">Passwords do not match</p>
           )}
         </div>
 
         <div className="flex justify-center w-full">
         <But3
-          type = " Submit"
-          text ="Sign in"
+          type="submit"
+          text="Sign in"
           className="w-fit block mx-auto bg-lime-600 dark:bg-lime-300 text-white dark:text-gray-900 py-3 px-4 rounded-lg font-medium hover:bg-lime-700 dark:hover:bg-lime-400  justify-center transition-colors"
         />
         </div>

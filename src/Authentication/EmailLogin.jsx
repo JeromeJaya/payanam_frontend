@@ -95,8 +95,7 @@ export function EmailLogin() {
               Password
             </label>
             <div className = "flex flex-rows gap-1">
-              <Link to="/forgotpassword" className="text-sm font-medium text-lime-600 dark:text-lime-400 hover:text-lime-500 dark:hover:text-lime-300">Forgot password?</Link> |
-              <Link to="/resetpassword" className="text-sm font-medium text-lime-600 dark:text-lime-400 hover:text-lime-500 dark:hover:text-lime-300">Reset Password</Link>
+              <Link to="/forgotpassword" className="text-sm font-medium text-lime-600 dark:text-lime-400 hover:text-lime-500 dark:hover:text-lime-300">Forgot password?</Link>
             </div>
           </div>
           <PasswordInput
