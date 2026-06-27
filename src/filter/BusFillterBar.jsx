@@ -1,16 +1,33 @@
 import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
 
-export default function BusFilterBar({ NoOfBus = 0 }) {
-  const dates = [
-    "23 Jun, Tue",
-    "24 Jun, Wed",
-    "25 Jun, Thu",
-    "26 Jun, Fri",
-    "27 Jun, Sat",
-    "28 Jun, Sun",
-    "29 Jun, Mon",
-    "30 Jun, Tue",
+export default function BusFilterBar({ NoOfBus = 0, selectedDate, onDateSelect }) {
+  const monthNames = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
   ];
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  const base = selectedDate ? new Date(selectedDate) : new Date();
+  base.setHours(0, 0, 0, 0);
+
+  const dates = Array.from({ length: 8 }, (_, index) => {
+    const current = new Date(base);
+    current.setDate(base.getDate() + index);
+    return {
+      label: `${String(current.getDate()).padStart(2, "0")} ${monthNames[current.getMonth()]}, ${dayNames[current.getDay()]}`,
+      value: current.toISOString().slice(0, 10),
+    };
+  });
 
   const sortOptions = [
     "Relevance",
@@ -30,14 +47,19 @@ export default function BusFilterBar({ NoOfBus = 0 }) {
         </button>
 
         <div className="flex flex-1 justify-around">
-          {dates.map((date) => (
-            <div
-              key={date}
-              className="px-6 py-5 text-center whitespace-nowrap"
-            >
-              {date}
-            </div>
-          ))}
+          {dates.map((item) => {
+            const active = item.value === selectedDate;
+            return (
+              <button
+                key={item.value}
+                type="button"
+                onClick={() => onDateSelect?.(item.value)}
+                className={`px-6 py-5 text-center whitespace-nowrap transition ${active ? "bg-sky-100 text-blue-700 rounded-3xl" : "hover:text-blue-600"}`}
+              >
+                {item.label}
+              </button>
+            );
+          })}
         </div>
 
         <button className="p-6">

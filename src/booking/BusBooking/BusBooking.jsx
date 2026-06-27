@@ -23,6 +23,7 @@ export default function BusBooking(){
   const [dropTimeFilter, setDropTimeFilter] = useState("ALL");
   const [selectedPickupPoints, setSelectedPickupPoints] = useState([]);
   const [selectedDropPoints, setSelectedDropPoints] = useState([]);
+  const [selectedOperators, setSelectedOperators] = useState([]);
   const [buses, setBuses] = useState([]);
   const [date, setDate] = useState(searchData.date || (() => {
     const d = new Date();
@@ -58,10 +59,12 @@ export default function BusBooking(){
     selectedPickupTime = pickupTimeFilter,
     selectedDropTime = dropTimeFilter,
     selectedBoardingPoints = selectedPickupPoints,
-    selectedDroppingPoints = selectedDropPoints
+    selectedDroppingPoints = selectedDropPoints,
+    selectedOperatorNames = selectedOperators,
+    selectedDate = date
   ) => {
     try {
-      const params = { from, to, date };
+      const params = { from, to, date: selectedDate };
       if (selectedAc === "AC") params.isAC = "true";
       if (selectedAc === "NON-AC") params.isAC = "false";
 
@@ -104,11 +107,31 @@ export default function BusBooking(){
         );
       }
 
+      if (Array.isArray(selectedOperatorNames) && selectedOperatorNames.length > 0) {
+        results = results.filter((schedule) =>
+          selectedOperatorNames.includes(schedule.busId?.operatorName)
+        );
+      }
+
       setBuses(results);
     } catch (err) {
       console.error(err);
       setBuses([]);
     }
+  };
+
+  const handleDateSelect = (selectedDate) => {
+    setDate(selectedDate);
+    handleFetchBus(
+      acFilter,
+      seatType,
+      pickupTimeFilter,
+      dropTimeFilter,
+      selectedPickupPoints,
+      selectedDropPoints,
+      selectedOperators,
+      selectedDate
+    );
   };
 
   useEffect(() => {
@@ -150,6 +173,18 @@ export default function BusBooking(){
           buses.flatMap((schedule) =>
             (schedule.droppingPoints || []).map((point) => point.name)
           )
+        )
+      ),
+    [buses]
+  );
+
+  const operatorOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          buses
+            .map((schedule) => schedule.busId?.operatorName)
+            .filter(Boolean)
         )
       ),
     [buses]
@@ -229,7 +264,19 @@ export default function BusBooking(){
                     />
                     <SearchheckBox
                       title={"Operators"}
-                      text={["FlixBus", "Bmcc Travels", "IntrCity SmartBus", "Jabbar Travels", "National travels","BigBus","Tranzindia Travels"]}
+                      text={operatorOptions}
+                      selectedPoints={selectedOperators}
+                      onChange={(point) => {
+                        const next = selectedOperators.includes(point)
+                          ? selectedOperators.filter((name) => name !== point)
+                          : [...selectedOperators, point];
+                        setSelectedOperators(next);
+                        handleFetchBus(acFilter, seatType, pickupTimeFilter, dropTimeFilter, selectedPickupPoints, selectedDropPoints, next);
+                      }}
+                      onClear={() => {
+                        setSelectedOperators([]);
+                        handleFetchBus(acFilter, seatType, pickupTimeFilter, dropTimeFilter, selectedPickupPoints, selectedDropPoints, []);
+                      }}
                     />
                     <SearchheckBox
                       title={`Drop point - ${to || "Destination"}`}
@@ -240,17 +287,21 @@ export default function BusBooking(){
                           ? selectedDropPoints.filter((name) => name !== point)
                           : [...selectedDropPoints, point];
                         setSelectedDropPoints(next);
-                        handleFetchBus(acFilter, seatType, pickupTimeFilter, dropTimeFilter, selectedPickupPoints, next);
+                        handleFetchBus(acFilter, seatType, pickupTimeFilter, dropTimeFilter, selectedPickupPoints, next, selectedOperators);
                       }}
                       onClear={() => {
                         setSelectedDropPoints([]);
-                        handleFetchBus(acFilter, seatType, pickupTimeFilter, dropTimeFilter, selectedPickupPoints, []);
+                        handleFetchBus(acFilter, seatType, pickupTimeFilter, dropTimeFilter, selectedPickupPoints, [], selectedOperators);
                       }}
                     />
                 </div>
                 <div className = "bg-neutral-200 w-[80%] ml-[2%] px-5 rounded-lg shadow-xl flex flex-col">
                     <div className = "bg-white w-full h-auto my-5 rounded-3xl shadow-xl">
-                        <BusFillterBar />
+                        <BusFillterBar
+                      NoOfBus={buses.length}
+                      selectedDate={date}
+                      onDateSelect={handleDateSelect}
+                    />
                     </div>
                     {Array.isArray(buses) && buses.length > 0 ? (
                       buses.map((schedule) => (
