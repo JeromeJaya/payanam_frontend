@@ -2,6 +2,7 @@ import { useState } from "react";
 
 export default function SingleSeaterFilter({ title, text }) {
   const [checkedItems, setCheckedItems] = useState({});
+  const items = Array.isArray(text) ? text : typeof text === "string" ? [text] : [];
 
   const handleToggle = (item) => {
     setCheckedItems((prev) => ({
@@ -16,7 +17,7 @@ export default function SingleSeaterFilter({ title, text }) {
         {title}
       </h2>
 
-      {text.map((txt, index) => (
+      {items.map((txt, index) => (
         <div
           key={index}
           onClick={() => handleToggle(txt)}
