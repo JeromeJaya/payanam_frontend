@@ -6,13 +6,56 @@ import BusFillterBar from "../../filter/BusFillterBar.jsx"
 import SearchheckBox from "../../filter/SearchheckBox.jsx"
 import SelectBox from "../../filter/SelectBox.jsx"
 import Checkbox from "../../filter/Checkbox.jsx"
+import {useState, useEffect} from "react";
+import { useLocation} from "react-router-dom";
+import api from "../../api/axios.js"
 
 
 export default function BusBooking(){
-    return(
+
+  const location = useLocation();
+  const searchData = location.state?.searchData || {};
+  const [from, setFrom] = useState(searchData.from || "");
+  const [to, setTo] = useState(searchData.to || "");
+  const [buses, setBuses] = useState([])
+  const [date, setDate] = useState(searchData.date || (() => {
+    const d = new Date();
+    return d.toISOString().slice(0, 10);
+  })());
+
+
+  const handleFetchBus = async ()=>{
+    try{
+      const res = await api.get("/api/v1/buses/search", {params:{from, to, date}})
+      setBuses(res)
+    }
+    catch(err){err}
+  
+    }
+
+    useEffect(()=>{
+        // perform a one-time initial fetch using the initial navigation params (snapshot)
+        const fetchInitial = async () => {
+            try{
+                const initialFrom = searchData.from || from;
+                const initialTo = searchData.to || to;
+                const initialDate = searchData.date || date;
+                const res = await api.get("/api/v1/buses/search", {params:{from: initialFrom, to: initialTo, date: initialDate}})
+                setBuses(res?.data?.data)
+            }
+            catch(err){
+                console.error(err)
+            }
+        }
+
+        fetchInitial()
+
+    },[])
+  console.log(buses)
+  return(
         <>
             <Nav/>
-                <WhereToWhere className= " shadow-xl sticky top-20 "/>
+                <WhereToWhere className= " shadow-xl sticky top-20 " from={from} setFrom={setFrom} to={to} setTo={setTo} date={date} setDate={setDate} searchData={searchData} handleFetchBus={handleFetchBus} />
             <div className = "bg-mist-50 h-auto my-5 mx-[100px] flex">
                 <div className = "filter bg-white-200 w-[25%] h-auto rounded-lg shadow-xl">
                     <div className = "flex justify-center mt-5 font-bold">FILTERS</div>
@@ -30,26 +73,17 @@ export default function BusBooking(){
                     <div className = "bg-white w-full h-auto my-5 rounded-3xl shadow-xl">
                         <BusFillterBar/>
                     </div>
-                    <div className = "bg-white w-full h-auto mb-3 rounded-3xl shadow-xl">
-                        <BusCard/>
-                    </div>
-                    <div className = "bg-white w-full h-auto mb-3 rounded-3xl shadow-xl">
-                        <BusCard/>
-                    </div>
-                    <div className = "bg-white w-full h-auto mb-3 rounded-3xl shadow-xl">
-                        <BusCard/>
-                    </div>
-                    <div className = "bg-white w-full h-auto mb-3 rounded-3xl shadow-xl">
-                        <BusCard/>
-                    </div>
-                    <div className = "bg-white w-full h-auto mb-3 rounded-3xl shadow-xl">
-                        <BusCard/>
-                    </div>
-                    <div className = "bg-white w-full h-auto mb-3 rounded-3xl shadow-xl">
-                        <BusCard/>
-                    </div>
-                    <div className = "bg-white w-full h-auto mb-3 rounded-3xl shadow-xl">
-                        <BusCard/>
+                    {buses?.data?.data?.map((schedule) => <div key = {schedule._id} className = "bg-white w-full h-auto mb-3 rounded-3xl shadow-xl">
+                    <BusCard  busName={schedule.busId?.busName}
+                        busType={schedule.busId?.busType}
+                        departureTime={schedule.departureTime}
+                        arrivalTime={schedule.arrivalTime}
+                        availableSeats={schedule.availableSeats}
+                        calculatedFare={schedule.calculatedFare}
+                        operatorName={schedule.busId?.operatorName}/>
+                    </div>)}
+                     <div className = "bg-white w-full h-auto mb-3 rounded-3xl shadow-xl">
+                        <BusCard  />
                     </div>
                 </div>
             </div>

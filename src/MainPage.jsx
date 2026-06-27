@@ -60,6 +60,9 @@ export default function App() {
 }, [service])
         let serv = formFields[service]
         // console.log(serv)
+
+  
+
   return (
     <div className="min-h-screen bg-slate-100">
       <NavComponent />

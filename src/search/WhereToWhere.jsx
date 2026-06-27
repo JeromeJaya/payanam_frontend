@@ -1,19 +1,11 @@
 import { ArrowRightLeft } from "lucide-react";
 import {useState, useEffect} from "react";
 import { useLocation } from "react-router-dom";
-import axios from "axios";
+import api from "../api/axios.js"
 
-export default function SearchBar() {
-  const location = useLocation();
-  const searchData = location.state?.searchData || {};
+export default function SearchBar({from, setFrom, to, setTo, date, setDate, searchData, handleFetchBus}) {
 
-  const [from, setFrom] = useState(searchData.from || "");
-  const [to, setTo] = useState(searchData.to || "");
-  const [date, setDate] = useState(searchData.date || (() => {
-    const d = new Date();
-    return d.toISOString().slice(0, 10);
-  })());
-  function swap(){
+  const swap = () =>{
     const temp = from;
     setFrom(to)
     setTo(temp)
@@ -26,6 +18,8 @@ export default function SearchBar() {
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     return `${days[d.getDay()]}, ${String(d.getDate()).padStart(2,'0')} ${months[d.getMonth()]} ${d.getFullYear()}`;
   }
+//  console.log("hi")
+
 
   return (
 
@@ -86,7 +80,8 @@ export default function SearchBar() {
       )}
 
       {/* Search Button */}
-      <button className="w-64 py-4 rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 text-white font-bold text-2xl hover:opacity-90 transition">
+      <button className="w-64 py-4 rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 text-white font-bold text-2xl hover:opacity-90 transition"
+      onClick= {handleFetchBus}>
         SEARCH
       </button>
 
