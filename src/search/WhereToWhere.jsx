@@ -1,14 +1,18 @@
 import { ArrowRightLeft } from "lucide-react";
 import {useState, useEffect} from "react";
+import { useLocation } from "react-router-dom";
 import axios from "axios";
 
 export default function SearchBar() {
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState ("");
-  const [date, setDate] = useState(() => {
+  const location = useLocation();
+  const searchData = location.state?.searchData || {};
+
+  const [from, setFrom] = useState(searchData.from || "");
+  const [to, setTo] = useState(searchData.to || "");
+  const [date, setDate] = useState(searchData.date || (() => {
     const d = new Date();
     return d.toISOString().slice(0, 10);
-  });
+  })());
   function swap(){
     const temp = from;
     setFrom(to)
@@ -70,6 +74,16 @@ export default function SearchBar() {
         />
         
       </div>
+
+      {/* Passengers (if available) */}
+      {searchData.NoOfSeats && (
+        <div className="w-52 border rounded-2xl px-4 py-1.5">
+          <p className="text-gray-500 text-sm uppercase">
+            Passengers
+          </p>
+          <p className="text-2xl font-semibold">{searchData.NoOfSeats}</p>
+        </div>
+      )}
 
       {/* Search Button */}
       <button className="w-64 py-4 rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 text-white font-bold text-2xl hover:opacity-90 transition">

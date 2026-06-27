@@ -110,7 +110,7 @@ export default function App() {
         </div>
 
         {/* Search Fields */}
-        <div className="mt-6 opacity-60 hover:opacity-100 ">
+        <div className="mt-6 ">
           <SearchBar input={serv} service={service} />
         </div>
       </div>
