@@ -6,8 +6,8 @@ import BusFillterBar from "../../filter/BusFillterBar.jsx"
 import SearchheckBox from "../../filter/SearchheckBox.jsx"
 import SelectBox from "../../filter/SelectBox.jsx"
 import Checkbox from "../../filter/Checkbox.jsx"
-import {useState, useEffect} from "react";
-import { useLocation} from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { useLocation } from "react-router-dom";
 import api from "../../api/axios.js"
 
 
@@ -21,6 +21,8 @@ export default function BusBooking(){
   const [seatType, setSeatType] = useState("ALL");
   const [pickupTimeFilter, setPickupTimeFilter] = useState("ALL");
   const [dropTimeFilter, setDropTimeFilter] = useState("ALL");
+  const [selectedPickupPoints, setSelectedPickupPoints] = useState([]);
+  const [selectedDropPoints, setSelectedDropPoints] = useState([]);
   const [buses, setBuses] = useState([]);
   const [date, setDate] = useState(searchData.date || (() => {
     const d = new Date();
@@ -54,7 +56,9 @@ export default function BusBooking(){
     selectedAc = acFilter,
     selectedSeatType = seatType,
     selectedPickupTime = pickupTimeFilter,
-    selectedDropTime = dropTimeFilter
+    selectedDropTime = dropTimeFilter,
+    selectedBoardingPoints = selectedPickupPoints,
+    selectedDroppingPoints = selectedDropPoints
   ) => {
     try {
       const params = { from, to, date };
@@ -86,6 +90,20 @@ export default function BusBooking(){
         );
       }
 
+      if (Array.isArray(selectedBoardingPoints) && selectedBoardingPoints.length > 0) {
+        results = results.filter((schedule) =>
+          Array.isArray(schedule.boardingPoints) &&
+          schedule.boardingPoints.some((bp) => selectedBoardingPoints.includes(bp.name))
+        );
+      }
+
+      if (Array.isArray(selectedDroppingPoints) && selectedDroppingPoints.length > 0) {
+        results = results.filter((schedule) =>
+          Array.isArray(schedule.droppingPoints) &&
+          schedule.droppingPoints.some((dp) => selectedDroppingPoints.includes(dp.name))
+        );
+      }
+
       setBuses(results);
     } catch (err) {
       console.error(err);
@@ -103,8 +121,6 @@ export default function BusBooking(){
           params: { from: initialFrom, to: initialTo, date: initialDate },
         });
         setBuses(res?.data?.data || []);
-        console.log(res)
-
       } catch (err) {
         console.error(err);
         setBuses([]);
@@ -114,6 +130,30 @@ export default function BusBooking(){
     fetchInitial();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const pickupPointOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          buses.flatMap((schedule) =>
+            (schedule.boardingPoints || []).map((point) => point.name)
+          )
+        )
+      ),
+    [buses]
+  );
+
+  const dropPointOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          buses.flatMap((schedule) =>
+            (schedule.droppingPoints || []).map((point) => point.name)
+          )
+        )
+      ),
+    [buses]
+  );
 
   console.log(buses);
   return (
@@ -140,7 +180,7 @@ export default function BusBooking(){
                       value={acFilter}
                       onChange={(option) => {
                         setAcFilter(option);
-                        handleFetchBus(option, seatType, pickupTimeFilter, dropTimeFilter);
+                        handleFetchBus(option, seatType, pickupTimeFilter, dropTimeFilter, selectedPickupPoints, selectedDropPoints);
                       }}
                     />
                     <SelectBox
@@ -149,7 +189,7 @@ export default function BusBooking(){
                       value={seatType}
                       onChange={(option) => {
                         setSeatType(option);
-                        handleFetchBus(acFilter, option, pickupTimeFilter, dropTimeFilter);
+                        handleFetchBus(acFilter, option, pickupTimeFilter, dropTimeFilter, selectedPickupPoints, selectedDropPoints);
                       }}
                     />
                     <SelectBox
@@ -158,7 +198,7 @@ export default function BusBooking(){
                       value={pickupTimeFilter}
                       onChange={(option) => {
                         setPickupTimeFilter(option);
-                        handleFetchBus(acFilter, seatType, option, dropTimeFilter);
+                        handleFetchBus(acFilter, seatType, option, dropTimeFilter, selectedPickupPoints, selectedDropPoints);
                       }}
                     />
                     <SelectBox
@@ -167,13 +207,46 @@ export default function BusBooking(){
                       value={dropTimeFilter}
                       onChange={(option) => {
                         setDropTimeFilter(option);
-                        handleFetchBus(acFilter, seatType, pickupTimeFilter, option);
+                        handleFetchBus(acFilter, seatType, pickupTimeFilter, option, selectedPickupPoints, selectedDropPoints);
                       }}
                     />
-                    <Checkbox title = {"Single Seater/Sleeper"} text = {"Single Seats"}/>
-                    <SearchheckBox title = {"Pick up point - Hyderabad, Telangana"} text= {["Lakdikapul", "Khairatabad", "Punjagutta", "Ameerpet"," SR Nagar"]}/>
-                    <SearchheckBox title = {"Operators"} text ={["FlixBus", "Bmcc Travels", "IntrCity SmartBus", "Jabbar Travels", "National travels","BigBus","Tranzindia Travels" ]}/>
-                    <SearchheckBox title = {"Drop point - Bangalore, Karnataka"} text ={["Kempegowda International Airport Be", "Yelahanka", "Hebbal", "Hennur Cross"]}/>
+                    <Checkbox title={"Single Seater/Sleeper"} text={"Single Seats"} />
+                    <SearchheckBox
+                      title={`Pick up point - ${from || "Source"}`}
+                      text={pickupPointOptions}
+                      selectedPoints={selectedPickupPoints}
+                      onChange={(point) => {
+                        const next = selectedPickupPoints.includes(point)
+                          ? selectedPickupPoints.filter((name) => name !== point)
+                          : [...selectedPickupPoints, point];
+                        setSelectedPickupPoints(next);
+                        handleFetchBus(acFilter, seatType, pickupTimeFilter, dropTimeFilter, next, selectedDropPoints);
+                      }}
+                      onClear={() => {
+                        setSelectedPickupPoints([]);
+                        handleFetchBus(acFilter, seatType, pickupTimeFilter, dropTimeFilter, [], selectedDropPoints);
+                      }}
+                    />
+                    <SearchheckBox
+                      title={"Operators"}
+                      text={["FlixBus", "Bmcc Travels", "IntrCity SmartBus", "Jabbar Travels", "National travels","BigBus","Tranzindia Travels"]}
+                    />
+                    <SearchheckBox
+                      title={`Drop point - ${to || "Destination"}`}
+                      text={dropPointOptions}
+                      selectedPoints={selectedDropPoints}
+                      onChange={(point) => {
+                        const next = selectedDropPoints.includes(point)
+                          ? selectedDropPoints.filter((name) => name !== point)
+                          : [...selectedDropPoints, point];
+                        setSelectedDropPoints(next);
+                        handleFetchBus(acFilter, seatType, pickupTimeFilter, dropTimeFilter, selectedPickupPoints, next);
+                      }}
+                      onClear={() => {
+                        setSelectedDropPoints([]);
+                        handleFetchBus(acFilter, seatType, pickupTimeFilter, dropTimeFilter, selectedPickupPoints, []);
+                      }}
+                    />
                 </div>
                 <div className = "bg-neutral-200 w-[80%] ml-[2%] px-5 rounded-lg shadow-xl flex flex-col">
                     <div className = "bg-white w-full h-auto my-5 rounded-3xl shadow-xl">

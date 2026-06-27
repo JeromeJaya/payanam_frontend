@@ -1,17 +1,23 @@
 import { useState } from "react";
 import { Search, ChevronUp, ChevronDown } from "lucide-react";
 
-export default function PickupPointFilter({title, text}) {
+export default function PickupPointFilter({ title, text = [], selectedPoints, onChange, onClear }) {
   const [open, setOpen] = useState(true);
   const [search, setSearch] = useState("");
-  const [selectedPoints, setSelectedPoints] = useState([]);
+  const [selectedPointsLocal, setSelectedPointsLocal] = useState([]);
+
+  const activePoints = selectedPoints ?? selectedPointsLocal;
 
   const togglePoint = (point) => {
-    setSelectedPoints((prev) =>
-      prev.includes(point)
-        ? prev.filter((p) => p !== point)
-        : [...prev, point]
-    );
+    const next = activePoints.includes(point)
+      ? activePoints.filter((p) => p !== point)
+      : [...activePoints, point];
+
+    if (onChange) {
+      onChange(point);
+    } else {
+      setSelectedPointsLocal(next);
+    }
   };
 
   const filteredPoints = text.filter((point) =>
@@ -28,7 +34,13 @@ export default function PickupPointFilter({title, text}) {
 
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setSelectedPoints([])}
+            onClick={() => {
+              if (onClear) {
+                onClear();
+              } else {
+                setSelectedPointsLocal([]);
+              }
+            }}
             className="text-sm font-semibold text-gray-400 hover:text-gray-600"
           >
             CLEAR
@@ -71,7 +83,7 @@ export default function PickupPointFilter({title, text}) {
               >
                 <input
                   type="checkbox"
-                  checked={selectedPoints.includes(point)}
+                  checked={activePoints.includes(point)}
                   onChange={() => togglePoint(point)}
                   className="h-5 w-5 rounded accent-blue-600"
                 />
