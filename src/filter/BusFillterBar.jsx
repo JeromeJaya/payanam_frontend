@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
 
-export default function BusFilterBar({ NoOfBus = 0, selectedDate, onDateSelect }) {
+export default function BusFilterBar({ NoOfBus = 0, selectedDate, onDateSelect, selectedSort, onSortSelect }) {
   const monthNames = [
     "Jan",
     "Feb",
@@ -125,18 +125,23 @@ export default function BusFilterBar({ NoOfBus = 0, selectedDate, onDateSelect }
         </span>
 
         <div className="flex gap-8 items-center">
-          {sortOptions.map((option, index) => (
-            <button
-              key={option}
-              className={`px-4 py-2 rounded-xl transition ${
-                index === 0
-                  ? "bg-blue-50 text-blue-600"
-                  : "text-gray-700 hover:text-blue-600"
-              }`}
-            >
-              {option}
-            </button>
-          ))}
+          {sortOptions.map((option) => {
+            const active = option === selectedSort;
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => onSortSelect?.(option)}
+                className={`px-4 py-2 rounded-xl transition ${
+                  active
+                    ? "bg-blue-50 text-blue-600"
+                    : "text-gray-700 hover:text-blue-600"
+                }`}
+              >
+                {option}
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

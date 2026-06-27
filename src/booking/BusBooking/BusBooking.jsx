@@ -25,6 +25,7 @@ export default function BusBooking(){
   const [selectedDropPoints, setSelectedDropPoints] = useState([]);
   const [selectedOperators, setSelectedOperators] = useState([]);
   const [buses, setBuses] = useState([]);
+  const [sortBy, setSortBy] = useState("Relevance");
   const [date, setDate] = useState(searchData.date || (() => {
     const d = new Date();
     return d.toISOString().slice(0, 10);
@@ -190,6 +191,32 @@ export default function BusBooking(){
     [buses]
   );
 
+  const sortedBuses = useMemo(() => {
+    const sorted = [...buses];
+
+    if (sortBy === "Rating") {
+      sorted.sort((a, b) => (b.busId?.averageRating || 0) - (a.busId?.averageRating || 0));
+    } else if (sortBy === "Price") {
+      sorted.sort((a, b) => (a.calculatedFare || a.baseFare) - (b.calculatedFare || b.baseFare));
+    } else if (sortBy === "Fastest") {
+      sorted.sort((a, b) => {
+        const durationA = getTimeMinutes(a.arrivalTime) - getTimeMinutes(a.departureTime);
+        const durationB = getTimeMinutes(b.arrivalTime) - getTimeMinutes(b.departureTime);
+        return durationA - durationB;
+      });
+    } else if (sortBy === "Departure") {
+      sorted.sort((a, b) => a.departureTime.localeCompare(b.departureTime));
+    } else if (sortBy === "Arrival") {
+      sorted.sort((a, b) => a.arrivalTime.localeCompare(b.arrivalTime));
+    }
+
+    return sorted;
+  }, [buses, sortBy]);
+
+  const handleSortSelect = (option) => {
+    setSortBy(option);
+  };
+
   console.log(buses);
   return (
     <>
@@ -298,13 +325,15 @@ export default function BusBooking(){
                 <div className = "bg-neutral-200 w-[80%] ml-[2%] px-5 rounded-lg shadow-xl flex flex-col">
                     <div className = "bg-white w-full h-auto my-5 rounded-3xl shadow-xl">
                         <BusFillterBar
-                      NoOfBus={buses.length}
-                      selectedDate={date}
-                      onDateSelect={handleDateSelect}
-                    />
+                          NoOfBus={sortedBuses.length}
+                          selectedDate={date}
+                          onDateSelect={handleDateSelect}
+                          selectedSort={sortBy}
+                          onSortSelect={handleSortSelect}
+                        />
                     </div>
-                    {Array.isArray(buses) && buses.length > 0 ? (
-                      buses.map((schedule) => (
+                    {Array.isArray(sortedBuses) && sortedBuses.length > 0 ? (
+                      sortedBuses.map((schedule) => (
                         <div key={schedule._id} className="bg-white w-full h-auto mb-3 rounded-3xl shadow-xl">
                           <BusCard
                             busName={schedule.busId?.busName}
