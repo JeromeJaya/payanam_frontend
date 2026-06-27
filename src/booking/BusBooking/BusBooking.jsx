@@ -74,13 +74,16 @@ export default function BusBooking(){
                         <BusFillterBar/>
                     </div>
                     {buses?.data?.data?.map((schedule) => <div key = {schedule._id} className = "bg-white w-full h-auto mb-3 rounded-3xl shadow-xl">
-                    <BusCard  busName={schedule.busId?.busName}
-                        busType={schedule.busId?.busType}
-                        departureTime={schedule.departureTime}
-                        arrivalTime={schedule.arrivalTime}
-                        availableSeats={schedule.availableSeats}
-                        calculatedFare={schedule.calculatedFare}
-                        operatorName={schedule.busId?.operatorName}/>
+<BusCard  busName={schedule.busId?.busName}
+    busType={schedule.busId?.busType}
+    departureTime={schedule.departureTime}
+    arrivalTime={schedule.arrivalTime}
+    availableSeats={schedule.availableSeats}
+    calculatedFare={schedule.calculatedFare}
+    operatorName={schedule.busId?.operatorName}
+    averageRating={schedule.busId?.averageRating}
+    totalRatings={schedule.busId?.totalRatings}
+    amenities={schedule.busId?.amenities}/>
                     </div>)}
                      <div className = "bg-white w-full h-auto mb-3 rounded-3xl shadow-xl">
                         <BusCard  />

@@ -1,61 +1,69 @@
-import {useState, useRef} from "react";
-import {useNavigate} from "react-router-dom"
+import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+
 export default function SearchBar({ input, service }) {
-    console.log(service)
-
   const navigate = useNavigate();
-
-  let s = input?.length || 0;
-  const cols = Math.min(Math.max(s, 1), 4);
-  let inputRef = useRef({});
+  const s = input?.length || 0;
+  const inputRef = useRef({});
   const today = new Date().toISOString().split("T")[0];
-  const day =  String(new Date()).slice(0,3)
-  console.log(day)
+  const day = String(new Date()).slice(0, 3);
 
   const handleSearch = () => {
     const formData = {};
     Object.keys(inputRef.current).forEach((key) => {
       formData[key] = inputRef.current[key]?.value || "";
     });
-    
-    // Pass data through navigation state
     navigate("/busbooking", { state: { searchData: formData } });
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
+    <div className="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
       <div
         className="grid gap-0"
-        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))` }}
+        style={{
+          gridTemplateColumns: s <= 2 ? "1fr" : "repeat(2, minmax(0, 1fr))",
+        }}
       >
-
         {input.map((field, idx) => {
           const inputValue = field.type === "date" ? today : field.mid;
           const todayDay = field.type === "date" ? day : field.below;
+          const isLast = idx === s - 1;
+          const isOdd = idx % 2 !== 0;
           return (
             <div
               key={idx}
-              className={`p-4 ${idx < s - 1 ? 'border-r border-gray-200' : ''}`}
+              className={`
+                p-4 sm:p-5
+                ${!isLast && s > 2 && !isOdd ? "border-r border-slate-200" : ""}
+                ${idx >= 2 && s > 2 ? "border-t border-slate-200" : ""}
+              `}
             >
-              <p className="text-gray-500 text-sm">{field.label}</p>
+              <label className="block text-slate-500 text-sm font-medium mb-1.5" htmlFor={field.name}>
+                {field.label}
+              </label>
               <input
-                className="w-full mt-2 text-2xl font-semibold bg-transparent outline-none"
+                id={field.name}
+                className="w-full text-lg sm:text-xl font-semibold bg-transparent outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-lg px-1"
                 placeholder={field.mid}
-                type={field.type || 'text'}
+                type={field.type || "text"}
                 defaultValue={inputValue}
-                ref = {(el)=> {inputRef.current[field.name] = el}}
+                ref={(el) => { inputRef.current[field.name] = el; }}
+                aria-label={field.label}
               />
-              <p className="text-gray-600 mt-1 text-sm">{todayDay}</p>
+              <p className="text-slate-500 mt-1 text-xs sm:text-sm">{todayDay}</p>
             </div>
           );
         })}
       </div>
 
-      <div className="flex justify-end py-6 px-4 bg-gray-50">
-        <button className="bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-700 hover:to-sky-600
-         text-white px-6 py-3 rounded-full text-lg font-semibold transition transform hover:-translate-y-0.5"
-         onClick={handleSearch}>
-          {`Search ${service ? service.charAt(0).toUpperCase() + service.slice(1) : 'Search'}`}
+      <div className="flex justify-end py-4 sm:py-6 px-4 sm:px-6 bg-slate-50 border-t border-slate-200">
+        <button
+          className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-700 hover:to-sky-600
+           text-white px-6 py-3 sm:px-8 sm:py-4 rounded-full text-base sm:text-lg font-semibold transition-all duration-200
+           hover:-translate-y-0.5 hover:shadow-lg focus:ring-4 focus:ring-blue-500/30"
+          onClick={handleSearch}
+        >
+          {`Search ${service ? service.charAt(0).toUpperCase() + service.slice(1) : "Search"}`}
         </button>
       </div>
     </div>
