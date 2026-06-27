@@ -17,49 +17,79 @@ export default function BusBooking(){
   const searchData = location.state?.searchData || {};
   const [from, setFrom] = useState(searchData.from || "");
   const [to, setTo] = useState(searchData.to || "");
-  const [buses, setBuses] = useState([])
+  const [acFilter, setAcFilter] = useState("ALL");
+  const [buses, setBuses] = useState([]);
   const [date, setDate] = useState(searchData.date || (() => {
     const d = new Date();
     return d.toISOString().slice(0, 10);
   })());
 
 
-  const handleFetchBus = async ()=>{
-    try{
-      const res = await api.get("/api/v1/buses/search", {params:{from, to, date}})
-      setBuses(res)
+  const handleFetchBus = async (selectedAc = acFilter) => {
+    try {
+      const params = { from, to, date };
+      if (selectedAc === "AC") params.isAC = "true";
+      if (selectedAc === "NON-AC") params.isAC = "false";
+
+      const res = await api.get("/api/v1/buses/search", { params });
+      setBuses(res?.data?.data || []);
+    } catch (err) {
+      console.error(err);
+      setBuses([]);
     }
-    catch(err){err}
-  
-    }
+  };
 
-    useEffect(()=>{
-        // perform a one-time initial fetch using the initial navigation params (snapshot)
-        const fetchInitial = async () => {
-            try{
-                const initialFrom = searchData.from || from;
-                const initialTo = searchData.to || to;
-                const initialDate = searchData.date || date;
-                const res = await api.get("/api/v1/buses/search", {params:{from: initialFrom, to: initialTo, date: initialDate}})
-                setBuses(res?.data?.data)
-            }
-            catch(err){
-                console.error(err)
-            }
-        }
+  useEffect(() => {
+    const fetchInitial = async () => {
+      try {
+        const initialFrom = searchData.from || from;
+        const initialTo = searchData.to || to;
+        const initialDate = searchData.date || date;
+        const res = await api.get("/api/v1/buses/search", {
+          params: { from: initialFrom, to: initialTo, date: initialDate },
+        });
+        setBuses(res?.data?.data || []);
+        console.log(res)
 
-        fetchInitial()
+      } catch (err) {
+        console.error(err);
+        setBuses([]);
+      }
+    };
 
-    },[])
-  console.log(buses)
-  return(
-        <>
-            <Nav/>
-                <WhereToWhere className= " shadow-xl sticky top-20 " from={from} setFrom={setFrom} to={to} setTo={setTo} date={date} setDate={setDate} searchData={searchData} handleFetchBus={handleFetchBus} />
-            <div className = "bg-mist-50 h-auto my-5 mx-[100px] flex">
+    fetchInitial();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  console.log(buses);
+//   console.log(NoOfbus);
+  return (
+    <>
+      <Nav />
+      <div className="pt-16">
+        <WhereToWhere
+          className="shadow-xl sticky top-20"
+          from={from}
+          setFrom={setFrom}
+          to={to}
+          setTo={setTo}
+          date={date}
+          setDate={setDate}
+          searchData={searchData}
+          handleFetchBus={handleFetchBus}
+        />
+        <div className="bg-mist-50 h-auto my-5 mx-[100px] flex">
                 <div className = "filter bg-white-200 w-[25%] h-auto rounded-lg shadow-xl">
                     <div className = "flex justify-center mt-5 font-bold">FILTERS</div>
-                    <SelectBox title={"AC type"} text = {["AC", "NON-AC"]}/>
+                    <SelectBox
+                      title={"AC type"}
+                      text={['ALL', 'AC', 'NON-AC']}
+                      value={acFilter}
+                      onChange={(option) => {
+                        setAcFilter(option);
+                        handleFetchBus(option);
+                      }}
+                    />
                     <SelectBox title ="Seat type" text = {["seater", "sleeper"]}/>
                     <Checkbox title = {"Single Seater/Sleeper"} text = {["Single Seats"]}/>
                     <SearchheckBox title = {"Pick up point - Hyderabad, Telangana"} text= {["Lakdikapul", "Khairatabad", "Punjagutta", "Ameerpet"," SR Nagar"]}/>
@@ -71,25 +101,31 @@ export default function BusBooking(){
                 </div>
                 <div className = "bg-neutral-200 w-[80%] ml-[2%] px-5 rounded-lg shadow-xl flex flex-col">
                     <div className = "bg-white w-full h-auto my-5 rounded-3xl shadow-xl">
-                        <BusFillterBar/>
+                        <BusFillterBar />
                     </div>
-                    {buses?.data?.data?.map((schedule) => <div key = {schedule._id} className = "bg-white w-full h-auto mb-3 rounded-3xl shadow-xl">
-<BusCard  busName={schedule.busId?.busName}
-    busType={schedule.busId?.busType}
-    departureTime={schedule.departureTime}
-    arrivalTime={schedule.arrivalTime}
-    availableSeats={schedule.availableSeats}
-    calculatedFare={schedule.calculatedFare}
-    operatorName={schedule.busId?.operatorName}
-    averageRating={schedule.busId?.averageRating}
-    totalRatings={schedule.busId?.totalRatings}
-    amenities={schedule.busId?.amenities}/>
-                    </div>)}
-                     <div className = "bg-white w-full h-auto mb-3 rounded-3xl shadow-xl">
-                        <BusCard  />
-                    </div>
+                    {Array.isArray(buses) && buses.length > 0 ? (
+                      buses.map((schedule) => (
+                        <div key={schedule._id} className="bg-white w-full h-auto mb-3 rounded-3xl shadow-xl">
+                          <BusCard
+                            busName={schedule.busId?.busName}
+                            busType={schedule.busId?.busType}
+                            departureTime={schedule.departureTime}
+                            arrivalTime={schedule.arrivalTime}
+                            availableSeats={schedule.availableSeats}
+                            calculatedFare={schedule.calculatedFare}
+                            operatorName={schedule.busId?.operatorName}
+                            averageRating={schedule.busId?.averageRating}
+                            totalRatings={schedule.busId?.totalRatings}
+                            amenities={schedule.busId?.amenities}
+                          />
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-8 text-center text-gray-600">No buses found for the selected route and date.</div>
+                    )}
                 </div>
             </div>
-        </>
-);
+        </div>
+      </>
+  );
 }

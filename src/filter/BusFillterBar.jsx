@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
 
-export default function BusFilterBar() {
+export default function BusFilterBar({ NoOfBus = 0 }) {
   const dates = [
     "23 Jun, Tue",
     "24 Jun, Wed",
@@ -95,7 +95,7 @@ export default function BusFilterBar() {
       {/* Sort Section */}
       <div className="flex items-center px-6 py-1">
         <h3 className="font-semibold text-2xl mr-10">
-          13 buses found
+          {NoOfBus} buses found
         </h3>
 
         <span className="font-semibold text-sm mr-4">
