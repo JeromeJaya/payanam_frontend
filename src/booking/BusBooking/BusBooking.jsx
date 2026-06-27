@@ -18,6 +18,7 @@ export default function BusBooking(){
   const [from, setFrom] = useState(searchData.from || "");
   const [to, setTo] = useState(searchData.to || "");
   const [acFilter, setAcFilter] = useState("ALL");
+  const [seatType, setSeatType] = useState("ALL");
   const [buses, setBuses] = useState([]);
   const [date, setDate] = useState(searchData.date || (() => {
     const d = new Date();
@@ -25,14 +26,26 @@ export default function BusBooking(){
   })());
 
 
-  const handleFetchBus = async (selectedAc = acFilter) => {
+  const handleFetchBus = async (selectedAc = acFilter, selectedSeatType = seatType) => {
     try {
       const params = { from, to, date };
       if (selectedAc === "AC") params.isAC = "true";
       if (selectedAc === "NON-AC") params.isAC = "false";
 
       const res = await api.get("/api/v1/buses/search", { params });
-      setBuses(res?.data?.data || []);
+      let results = res?.data?.data || [];
+
+      if (selectedSeatType === "seater") {
+        results = results.filter((schedule) =>
+          schedule.busId?.busType?.toLowerCase().includes("seater")
+        );
+      } else if (selectedSeatType === "sleeper") {
+        results = results.filter((schedule) =>
+          schedule.busId?.busType?.toLowerCase().includes("sleeper")
+        );
+      }
+
+      setBuses(results);
     } catch (err) {
       console.error(err);
       setBuses([]);
@@ -87,10 +100,18 @@ export default function BusBooking(){
                       value={acFilter}
                       onChange={(option) => {
                         setAcFilter(option);
-                        handleFetchBus(option);
+                        handleFetchBus(option, seatType);
                       }}
                     />
-                    <SelectBox title ="Seat type" text = {["seater", "sleeper"]}/>
+                    <SelectBox
+                      title ="Seat type"
+                      text = {["ALL", "seater", "sleeper"]}
+                      value={seatType}
+                      onChange={(option) => {
+                        setSeatType(option);
+                        handleFetchBus(acFilter, option);
+                      }}
+                    />
                     <Checkbox title = {"Single Seater/Sleeper"} text = {["Single Seats"]}/>
                     <SearchheckBox title = {"Pick up point - Hyderabad, Telangana"} text= {["Lakdikapul", "Khairatabad", "Punjagutta", "Ameerpet"," SR Nagar"]}/>
                     <SelectBox text={["12 AM - 6AM", "6 AM - 12 PM","12 PM - 6 PM","6 PM - 12 AM"]} title = {"Pick up time - Hyderabad, Telangana"}/>
