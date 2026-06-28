@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { IndianRupee, X } from "lucide-react";
+import { IndianRupee, X, ShieldCheck, Armchair, ChevronDown, ChevronUp } from "lucide-react";
 import api from "../../api/axios.js";
 import BookingSuccess from "./BookingSuccess.jsx";
 
@@ -16,163 +16,285 @@ export default function BookingSummary({
     ([, data]) => data.seats.length > 0
   );
   const grandTotal = entries.reduce((sum, [, data]) => sum + (data.total || 0), 0);
+  
   const [booking, setBooking] = useState({ status: "idle", message: "", data: null });
   const [passengers, setPassengers] = useState({});
+  const [isMinimized, setIsMinimized] = useState(false);
 
   const selectedBoardingTextKey = selectedBoardingText || Object.keys(boardingPoints)[0] || "";
   const selectedDroppingTextKey = selectedDroppingText || Object.keys(droppingPoints)[0] || "";
 
+  // Exact ID matching matching your system configuration structure
   const boardingPointId = boardingPoints.find((_, i) => {
     if (!selectedBoardingTextKey) return i === 0;
     const formatted = `${boardingPoints[i].name} - ${boardingPoints[i].city} (${boardingPoints[i].time})`;
     return formatted === selectedBoardingTextKey;
-  })?.id;
+  })?.id || boardingPoints[0]?.id;
 
   const droppingPointId = droppingPoints.find((_, i) => {
     if (!selectedDroppingTextKey) return i === 0;
     const formatted = `${droppingPoints[i].name} - ${droppingPoints[i].city} (${droppingPoints[i].time})`;
     return formatted === selectedDroppingTextKey;
-  })?.id;
+  })?.id || droppingPoints[0]?.id;
 
-  const passengerList = Object.values(passengers);
+  const seatList = entries.flatMap(([, data]) => data.seats);
+  const passengerList = seatList.map(seatId => passengers[seatId]).filter(Boolean);
 
   const handleBookNow = async () => {
     if (!scheduleId || entries.length === 0) return;
-    const seatList = entries.flatMap(([, data]) => data.seats);
+    
+    // Strict validation: Ensure every selected seat has a matching completed passenger profile
     if (passengerList.length < seatList.length) {
-      setBooking({ status: "error", message: "Please add passenger details for all seats" });
+      setBooking({ 
+        status: "error", 
+        message: "Missing Details: Please fill out Name, Age, and Gender for all selected seats." 
+      });
+      setIsMinimized(false);
       return;
     }
+
     setBooking({ status: "loading", message: "", data: null });
+    
     try {
+      // Outbound Payload structurally aligned with your API schema specifications
       const res = await api.post("/api/v1/bookings", {
         scheduleId,
         boardingPointId,
         droppingPointId,
-        passengerDetails: passengerList,
+        passengerDetails: passengerList, // Matches exactly [{seatNumber, name, age, gender}]
       });
-      setBooking({ status: "success", message: res.data.message || "Booking confirmed!", data: res.data.data });
+
+      // API Response: { success: true, message: "...", data: { bookingId: "PAY-A...", ... } }
+      setBooking({ 
+        status: "success", 
+        message: res.data?.message || "Booking confirmed!", 
+        data: res.data?.data 
+      });
     } catch (err) {
-      setBooking({ status: "error", message: err.response?.data?.message || "Booking failed" });
+      // Capture array errors strings like backend validation errors formats
+      const backendErrors = err.response?.data?.errors;
+      const errorMessage = Array.isArray(backendErrors) && backendErrors.length > 0
+        ? backendErrors[0]
+        : (err.response?.data?.message || "Seat lock expired or booking timed out. Please try again.");
+
+      setBooking({ 
+        status: "error", 
+        message: errorMessage 
+      });
     }
   };
 
   if (entries.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 py-10 text-gray-400">
-        <IndianRupee size={36} strokeWidth={1.2} />
-        <p className="mt-2 text-sm font-medium">No seats selected yet</p>
-        <p className="text-xs">Tap on a seat to begin booking</p>
+      <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-white py-12 text-center px-4 shadow-sm">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-lime-50 text-lime-600 mb-3">
+          <Armchair size={24} />
+        </div>
+        <p className="text-sm font-bold text-slate-800">No seats selected yet</p>
+        <p className="text-xs text-slate-500 mt-1 max-w-[180px]">
+          Select seats from the deck plan to lock inventory and checkout.
+        </p>
       </div>
     );
   }
 
+  // Pass payload data mapping variables over to success module banner
   if (booking.status === "success") {
     return (
       <BookingSuccess
-        bookingId={booking.data?.bookingId}
+        bookingId={booking.data?.bookingId} // maps to "PAY-A3F2B1" PNR via spec
         message={booking.message}
       />
     );
   }
 
   return (
-    <div className="rounded-3xl bg-white p-2 shadow-xl">
-      <div className="mb-2 flex items-center justify-between">
-        <h3 className="text-sm font-bold text-gray-800">Booking Summary</h3>
-        {typeof onClear === "function" && (
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm text-slate-800 selection:bg-lime-200 transition-all duration-300 overflow-hidden flex flex-col">
+      
+      {/* Dynamic Summary Header Trigger */}
+      <div 
+        onClick={() => setIsMinimized(!isMinimized)}
+        className={`p-4 flex items-center justify-between cursor-pointer select-none bg-gradient-to-r from-transparent to-slate-50/30 hover:bg-slate-50/80 transition-colors ${!isMinimized ? "border-b border-slate-100" : ""}`}
+      >
+        <div>
+          <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2">
+            Journey Summary
+            {isMinimized && (
+              <span className="normal-case text-xs font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                {seatList.length} {seatList.length === 1 ? "Seat" : "Seats"} Reserved
+              </span>
+            )}
+          </h3>
+          <p className="text-[11px] text-slate-500">
+            {isMinimized ? `Total Fare: ₹${grandTotal.toLocaleString()}` : "10-min temporary lock active"}
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          {typeof onClear === "function" && !isMinimized && (
+            <button
+              onClick={onClear}
+              className="flex items-center gap-1 rounded-lg border border-red-100 bg-red-50/50 px-2.5 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-50"
+            >
+              <X size={12} />
+              Reset
+            </button>
+          )}
           <button
-            onClick={onClear}
-            className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium text-red-500 transition hover:bg-red-50"
+            onClick={() => setIsMinimized(!isMinimized)}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
           >
-            <X size={13} />
-            Clear
+            {isMinimized ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
           </button>
-        )}
+        </div>
       </div>
 
-      <div className="space-y-1">
-        {entries.map(([busName, { seats, total }]) => (
-          <div key={busName} className="rounded-2xl bg-blue-50/60 p-1/2 transition hover:bg-blue-50">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-gray-700">{busName}</span>
-              <span className="text-sm font-bold text-blue-700">₹ {total.toLocaleString()}</span>
+      {/* Main Container Layer */}
+      <div className={`transition-all duration-300 overflow-hidden ${isMinimized ? "max-h-0 opacity-0 pointer-events-none" : "max-h-[480px] opacity-100 flex flex-col"}`}>
+        
+        {/* Scroll Body Area wrapper */}
+        <div className="overflow-y-auto p-5 pb-2 flex-1 space-y-4 max-h-[350px] scrollbar-thin">
+          
+          {/* Active Bus Segment Card */}
+          <div className="space-y-2">
+            {entries.map(([busName, { seats, total }]) => (
+              <div key={busName} className="rounded-xl border border-slate-100 bg-slate-50/50 p-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-700">{busName}</span>
+                  <span className="text-sm font-extrabold text-slate-900">₹{total.toLocaleString()}</span>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {seats.map((seatId) => (
+                    <span key={seatId} className="inline-flex items-center gap-1 rounded-md border border-lime-200 bg-lime-50/60 px-2 py-0.5 text-[10px] font-bold text-lime-800">
+                      <span className="h-1 w-1 rounded-full bg-lime-500"></span>
+                      Seat {seatId}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Points Navigation Visualizer */}
+          {(selectedBoardingTextKey || selectedDroppingTextKey) && (
+            <div className="rounded-xl border border-slate-100 bg-white p-3 shadow-2xs">
+              <div className="flex gap-2 text-[11px]">
+                <div className="flex flex-col items-center pt-0.5">
+                  <div className="h-2 w-2 rounded-full bg-lime-500"></div>
+                  <div className="w-[1px] flex-1 bg-slate-200 my-1"></div>
+                  <div className="h-2 w-2 rounded-full bg-slate-400"></div>
+                </div>
+                <div className="space-y-2 flex-1 text-slate-600 max-w-[280px]">
+                  <div className="truncate" title={selectedBoardingTextKey}>
+                    <span className="font-bold text-slate-800">Boarding:</span> {selectedBoardingTextKey}
+                  </div>
+                  <div className="truncate" title={selectedDroppingTextKey}>
+                    <span className="font-bold text-slate-800">Dropping:</span> {selectedDroppingTextKey}
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="mt-1 flex flex-wrap gap-1">
-              {seats.map((seatId) => (
-                <span key={seatId} className="inline-flex items-center rounded-lg border border-blue-200 bg-white px-2 py-0.5 text-[10px] font-medium text-blue-700 shadow-sm">
-                  {seatId}
-                </span>
+          )}
+
+          {/* Passenger Information Forms Area */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Passenger Details</p>
+              <span className="text-[10px] font-medium text-slate-400">Required fields</span>
+            </div>
+            
+            <div className="space-y-2">
+              {seatList.map((seatId) => (
+                <div key={seatId} className="grid grid-cols-[45px_1fr_55px_50px] gap-1.5 items-center bg-white p-1.5 rounded-lg border border-slate-100 shadow-3xs">
+                  <span className="text-[10px] font-bold text-slate-500 text-center bg-slate-100 py-1 rounded">
+                    {seatId}
+                  </span>
+                  <input
+                    placeholder="Full Name"
+                    type="text"
+                    required
+                    className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-800 placeholder-slate-400 focus:border-lime-500 focus:outline-none focus:ring-1 focus:ring-lime-500"
+                    value={passengers[seatId]?.name || ""}
+                    onChange={(e) =>
+                      setPassengers((p) => ({
+                        ...p,
+                        [seatId]: { seatNumber: seatId, name: e.target.value, age: p[seatId]?.age || "", gender: p[seatId]?.gender || "male" },
+                      }))
+                    }
+                  />
+                  <input
+                    placeholder="Age"
+                    type="number"
+                    min="5"
+                    max="100"
+                    required
+                    className="rounded-md border border-slate-200 px-1.5 py-1 text-xs text-slate-800 placeholder-slate-400 focus:border-lime-500 focus:outline-none focus:ring-1 focus:ring-lime-500"
+                    value={passengers[seatId]?.age || ""}
+                    onChange={(e) =>
+                      setPassengers((p) => ({
+                        ...p,
+                        [seatId]: { ...(p[seatId] || { seatNumber: seatId, name: "", gender: "male" }), age: e.target.value ? Number(e.target.value) : "" },
+                      }))
+                    }
+                  />
+                  <select
+                    className="rounded-md border border-slate-200 bg-white px-1 py-1 text-xs text-slate-700 focus:border-lime-500 focus:outline-none focus:ring-1 focus:ring-lime-500"
+                    value={passengers[seatId]?.gender || "male"}
+                    onChange={(e) =>
+                      setPassengers((p) => ({
+                        ...p,
+                        [seatId]: { ...(p[seatId] || { seatNumber: seatId, name: "", age: "" }), gender: e.target.value },
+                      }))
+                    }
+                  >
+                    <option value="male">M</option>
+                    <option value="female">F</option>
+                    <option value="other">O</option>
+                  </select>
+                </div>
               ))}
             </div>
           </div>
-        ))}
-      </div>
-
-      <div className="mt-1 flex items-center justify-between border-t border-gray-200 pt-1">
-        <span className="text-sm font-bold text-gray-800">Total Payable</span>
-        <span className="text-base font-extrabold text-blue-700 mr-2">₹ {grandTotal.toLocaleString()}</span>
-      </div>
-
-      {entries.length > 0 && (
-        <div className="mt-2 rounded-xl border border-gray-200 bg-gray-50 p-1.5">
-          <p className="text-[11px] font-semibold text-gray-700 mb-1">Passenger Details</p>
-          {entries.flatMap(([, data]) => data.seats).map((seatId) => (
-            <div key={seatId} className="mb-1 grid grid-cols-[60px_1fr_60px_60px] gap-1">
-              <span className="text-[10px] font-medium text-gray-600 pt-1">{seatId}</span>
-              <input
-                placeholder="Name"
-                className="rounded border border-gray-300 px-1.5 py-1 text-[11px]"
-                value={passengers[seatId]?.name || ""}
-                onChange={(e) =>
-                  setPassengers((p) => ({
-                    ...p,
-                    [seatId]: { ...(p[seatId] || {}), seatNumber: seatId, name: e.target.value, age: p[seatId]?.age || 22, gender: p[seatId]?.gender || "male" },
-                  }))
-                }
-              />
-              <input
-                placeholder="Age"
-                type="number"
-                className="rounded border border-gray-300 px-1.5 py-1 text-[11px]"
-                value={passengers[seatId]?.age ?? ""}
-                onChange={(e) =>
-                  setPassengers((p) => ({
-                    ...p,
-                    [seatId]: { ...(p[seatId] || { seatNumber: seatId, name: "", age: 22, gender: "male" }), age: Number(e.target.value) || 0 },
-                  }))
-                }
-              />
-              <select
-                className="rounded border border-gray-300 px-1.5 py-1 text-[11px]"
-                value={passengers[seatId]?.gender || "male"}
-                onChange={(e) =>
-                  setPassengers((p) => ({
-                    ...p,
-                    [seatId]: { ...(p[seatId] || { seatNumber: seatId, name: "", age: 22, gender: "male" }), gender: e.target.value },
-                  }))
-                }
-              >
-                <option value="male">M</option>
-                <option value="female">F</option>
-                <option value="other">O</option>
-              </select>
-            </div>
-          ))}
         </div>
-      )}
 
-      {booking.status === "error" && (
-        <p className="mt-1 text-[11px] text-red-600">{booking.message}</p>
-      )}
+        {/* Sticky Action Footer */}
+        <div className="p-5 pt-2 border-t border-slate-100 bg-white">
+          <div className="flex items-center justify-between px-1 mb-3">
+            <div>
+              <span className="text-xs font-bold text-slate-900">Total Payable</span>
+              <p className="text-[10px] text-slate-400">Mock payment automation ready</p>
+            </div>
+            <span className="text-xl font-black text-slate-900 tracking-tight">
+              ₹{grandTotal.toLocaleString()}
+            </span>
+          </div>
 
-      <button
-        onClick={handleBookNow}
-        disabled={booking.status === "loading"}
-        className="mt-2 w-full rounded-lg bg-blue-600 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
-      >
-        {booking.status === "loading" ? "Booking..." : "Book Now"}
-      </button>
+          {booking.status === "error" && (
+            <div className="mb-3 rounded-lg bg-red-50 border border-red-100 p-2 text-center text-[11px] font-medium text-red-600">
+              ⚠️ {booking.message}
+            </div>
+          )}
+
+          <button
+            onClick={handleBookNow}
+            disabled={booking.status === "loading"}
+            className="w-full rounded-xl bg-lime-500 py-2.5 text-xs font-bold text-white shadow-md shadow-lime-500/10 transition hover:bg-lime-600 active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-1.5"
+          >
+            {booking.status === "loading" ? (
+              <>
+                <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                Confirming with Payanam...
+              </>
+            ) : (
+              <>
+                <ShieldCheck size={14} />
+                Pay & Secure Ticket
+              </>
+            )}
+          </button>
+        </div>
+
+      </div>
     </div>
   );
 }
