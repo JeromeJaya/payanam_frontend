@@ -22,6 +22,7 @@ export default function BusCard({
   averageRating = "N/A",
   totalRatings = 0,
   amenities = [],
+  scheduleId,
   boardingPoints = [],
   droppingPoints = [],
 }) {
@@ -161,6 +162,7 @@ export default function BusCard({
       </div>
 
       {showLayout && <SeatSelection
+        scheduleId={scheduleId}
         boardingPoints={boardingPoints}
         droppingPoints={droppingPoints}
       />}

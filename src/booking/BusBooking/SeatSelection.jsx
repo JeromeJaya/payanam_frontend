@@ -1,15 +1,36 @@
 import SeatArrange from "./SeatArrange.jsx"
 import Checkbox from "../../filter/Checkbox.jsx"
 import BookingSummary from "./BookingSummary.jsx"
-import {useState} from "react";
+import api from "../../api/axios.js"
+import {useState, useEffect} from "react";
 
 // Tracks selections reported by each SeatArrange instance
 
 export default function SeatSelection ({
+  scheduleId,
   boardingPoints = [],
   droppingPoints = [],
 }){
     const [busSelections, setBusSelections] = useState({});
+    const [seatData, setSeatData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [selectedBoarding, setSelectedBoarding] = useState({});
+    const [selectedDropping, setSelectedDropping] = useState({});
+
+    // Fetch seat layout from API
+    useEffect(() => {
+        if (!scheduleId) return;
+        setLoading(true);
+        api.get(`/api/v1/buses/schedules/${scheduleId}/seats`)
+          .then((res) => {
+            setSeatData(res.data.data);
+            setLoading(false);
+          })
+          .catch((err) => {
+            console.error("Failed to fetch seat layout:", err);
+            setLoading(false);
+          });
+    }, [scheduleId]);
 
     const handleSelectionChange = ({ busName, seats, total }) => {
         setBusSelections(prev => ({ ...prev, [busName]: { seats, total } }));
@@ -19,13 +40,15 @@ export default function SeatSelection ({
         setBusSelections({});
     };
 
-    /* Format a point object -> display string like "Koyambedu - Chennai (06:30)" */
+    /* Format a point object -> display string with name, city, time, address & landmark */
     const formatPoint = (pt) => {
         if (!pt) return "";
-        const parts = [pt.name];
-        if (pt.city) parts.push(pt.city);
-        if (pt.time) parts.push(`(${pt.time})`);
-        return parts.join(" - ");
+        let str = pt.name;
+        if (pt.city) str += ` - ${pt.city}`;
+        if (pt.time) str += ` (${pt.time})`;
+        if (pt.address) str += `\n${pt.address}`;
+        if (pt.landmark) str += `, ${pt.landmark}`;
+        return str;
     };
 
     /* Derive title city from the first point */
@@ -35,18 +58,36 @@ export default function SeatSelection ({
     const pickupNames  = boardingPoints.map(formatPoint);
     const dropNames    = droppingPoints.map(formatPoint);
 
+    // Split seats by deck
+    const lowerSeats = seatData?.seats?.filter((s) => s.deck === "lower") || [];
+    const upperSeats = seatData?.seats?.filter((s) => s.deck === "upper") || [];
+    const seatLayoutType = seatData?.bus?.seatLayoutType;
+
+    if (loading) {
+        return <div className="flex items-center justify-center h-60 text-gray-400">Loading seat layout...</div>;
+    }
+
     return(
         <>
 
         <div className = "w-full flex h-180">
 
             <div className = "w-auto flex flex-row gap-2">
-                <div className= "bg-blue-50 w-auto h-auto rounded-3xl shadow-3xl ">
-                    <SeatArrange busName={"Upper layer"} onChange={handleSelectionChange} />
+                {lowerSeats.length > 0 && (
+                <div className= "w-60 h-auto rounded-3xl shadow-3xl ">
+                    <SeatArrange busName={"Lower Deck"} seats={lowerSeats} seatLayoutType={seatLayoutType} onChange={handleSelectionChange} />
                 </div>
-                <div className="bg-blue-200 w-auto h-auto rounded-3xl shadow-3xl ">
-                    <SeatArrange busName={"down layer"} onChange={handleSelectionChange} />
+                )}
+                {upperSeats.length > 0 && (
+                <div className="w-60 h-auto rounded-3xl shadow-3xl ">
+                    <SeatArrange busName={"Upper Deck"} seats={upperSeats} seatLayoutType={seatLayoutType} onChange={handleSelectionChange} />
                 </div>
+                )}
+                {lowerSeats.length === 0 && upperSeats.length === 0 && (
+                <div className="flex items-center justify-center h-60 w-60 bg-gray-100 rounded-3xl shadow-3xl text-gray-400 text-sm">
+                    No seats available
+                </div>
+                )}
             </div>
 
 
@@ -56,10 +97,20 @@ export default function SeatSelection ({
 
                 <div className = "flex flex-row flex-1 min-h-0 gap-2 px-4 py-3">
                     <div className = "w-1/2 overflow-y-auto rounded-3xl shadow-xl">
-                        <Checkbox title = {`Pick up point - ${pickupCity}`} text={pickupNames} />
+                        <Checkbox
+                          title={`Pick up point - ${pickupCity}`}
+                          text={pickupNames}
+                          value={selectedBoarding}
+                          onChange={setSelectedBoarding}
+                        />
                     </div>
                     <div className = "w-1/2 overflow-y-auto rounded-3xl shadow-xl">
-                        <Checkbox title = {`Drop point - ${dropCity}`} text={dropNames} />
+                        <Checkbox
+                          title={`Drop point - ${dropCity}`}
+                          text={dropNames}
+                          value={selectedDropping}
+                          onChange={setSelectedDropping}
+                        />
                     </div>
                 </div>
 
@@ -68,6 +119,11 @@ export default function SeatSelection ({
                   <BookingSummary
                     busSelections={busSelections}
                     onClear={handleClearAll}
+                    scheduleId={scheduleId}
+                    boardingPoints={boardingPoints}
+                    droppingPoints={droppingPoints}
+                    selectedBoardingText={Object.keys(selectedBoarding).find((k) => selectedBoarding[k])}
+                    selectedDroppingText={Object.keys(selectedDropping).find((k) => selectedDropping[k])}
                   />
                 </div>
 

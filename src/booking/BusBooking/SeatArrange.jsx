@@ -1,119 +1,117 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
-// Sample Layout Configuration data based on the provided image
-// 'S' = Seating, 'L' = Sleeper (Longer aspect ratio)
-// Status: 'available', 'male_booked', 'female_booked', 'selected'
-const INITIAL_LAYOUT = {
-  berthType: "LOWER BERTH",
-  columns: 3, // 1 row on left, aisle, 2 rows on right
-  grid: [
-    // Row 1
-    [
-      { id: 'L1', type: 'L', price: 1539, status: 'male_booked', gender: 'male' },
-      { id: 'L2', type: 'L', price: 1339, status: 'available' },
-      { id: 'L3', type: 'L', price: 1339, status: 'female_booked', gender: 'female' }
-    ],
-    // Row 2
-    [
-      { id: 'L4', type: 'L', price: 1619, status: 'female_booked', gender: 'female' },
-      { id: 'S1', type: 'S', price: 899, status: 'available' },
-      { id: 'S2', type: 'S', price: 899, status: 'available' }
-    ],
-    // Row 3
-    [
-      { id: 'L5', type: 'L', price: 1619, status: 'available' },
-      { id: 'S3', type: 'S', price: 899, status: 'available' },
-      { id: 'S4', type: 'S', price: 899, status: 'available' }
-    ],
-    // Row 4
-    [
-      { id: 'L6', type: 'L', price: 1619, status: 'available' },
-      { id: 'S5', type: 'S', price: 899, status: 'available' },
-      { id: 'S6', type: 'S', price: 899, status: 'female_booked', gender: 'female', isSleeperWindow: false }
-    ],
-    // Row 5
-    [
-      { id: 'L7', type: 'L', price: 1539, status: 'available' },
-      { id: 'L8', type: 'L', price: 1339, status: 'available' },
-      { id: 'L9', type: 'L', price: 1339, status: 'available' }
-    ],
-    // Row 6
-    [
-      { id: 'L10', type: 'L', price: 1379, status: 'available' },
-      { id: 'L11', type: 'L', price: 1149, status: 'available' },
-      { id: 'L12', type: 'L', price: 1149, status: 'available' }
-    ]
-  ]
-};
+function buildGrid(seats, seatLayoutType) {
+  if (!Array.isArray(seats) || seats.length === 0)
+    return { columns: 3, grid: [] };
+  const typeColMap = {
+    "2+1_SLEEPER": 3, "2+2_SEATER": 4,
+    "1+1_SLEEPER": 2, "2+1_SEATER": 3,
+  };
+  let columns = typeColMap[seatLayoutType] || 3;
+  const maxCol = Math.max(...seats.map((s) => s.column || 0));
+  if (maxCol > 0) columns = maxCol;
+  const rowMap = {};
+  seats.forEach((seat) => {
+    const r = seat.row || 1;
+    if (!rowMap[r]) rowMap[r] = [];
+    rowMap[r].push(seat);
+  });
+  const sortedRows = Object.keys(rowMap)
+    .sort((a, b) => Number(a) - Number(b))
+    .map((r) => rowMap[r].sort((a, b) => (a.column || 0) - (b.column || 0)));
+  return { columns, grid: sortedRows };
+}
 
-export default function BusSeatLayout({ busName = 'Bus', onChange}) {
-  const [layout, setLayout] = useState(INITIAL_LAYOUT);
-    const [selectedSeats, setSelectedSeats] = useState([]);
+function getSeatSize(columns) {
+  if (columns >= 4) return { w: 22, h: 40, sleeperH: 50, gap: 1, rowGap: 3, price: "text-[9px]" };
+  if (columns === 3) return { w: 30, h: 46, sleeperH: 56, gap: 2, rowGap: 4, price: "text-[10px]" };
+  return { w: 40, h: 52, sleeperH: 62, gap: 3, rowGap: 5, price: "text-[11px]" };
+}
+
+function mapStatus(seat) {
+  if (seat.status === "AVAILABLE") return "available";
+  if (seat.status === "BOOKED")
+    return seat.passengerGender === "F" ? "female_booked" : "male_booked";
+  return "BLOCKED";
+}
+
+const PersonIcon = ({ className }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+  </svg>
+);
+
+const SteeringWheel = () => (
+  <svg className="w-6 h-6 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" />
+    <path d="M12 2v7M12 15v7M2 12h7M15 12h7" />
+  </svg>
+);
+
+export default function BusSeatLayout({ busName = "Bus", seats = [], seatLayoutType, onChange }) {
+  const [selectedSeats, setSelectedSeats] = useState([]);
+  const { columns, grid } = buildGrid(seats, seatLayoutType);
+  const size = getSeatSize(columns);
+
+  // Deduplicate by seatNumber in case API returns duplicates
+  const uniqueSeats = Array.from(new Map(seats.map(s => [s.seatNumber, s])).values());
+
+  const seatMap = {};
+  uniqueSeats.forEach((s) => {
+    seatMap[s.seatNumber] = {
+      id: s.seatNumber,
+      type: s.isSleeper ? "L" : "S",
+      price: s.fare,
+      status: mapStatus(s),
+      gender: s.passengerGender === "F" ? "female" : s.passengerGender === "M" ? "male" : null,
+      row: s.row, column: s.column,
+    };
+  });
 
   const handleSeatClick = (seat) => {
-    if (seat.status === 'male_booked' || seat.status === 'female_booked') return;
-
-    if (selectedSeats.includes(seat.id)) {
-      setSelectedSeats(selectedSeats.filter(id => id !== seat.id));
-    } else {
-      setSelectedSeats([...selectedSeats, seat.id]);
-    }
+    if (seat.status === "male_booked" || seat.status === "female_booked") return;
+    setSelectedSeats((prev) =>
+      prev.includes(seat.id) ? prev.filter((id) => id !== seat.id) : [...prev, seat.id]
+    );
   };
 
   useEffect(() => {
-    const allSeats = layout.grid.flat();
-    const selectedDetails = allSeats.filter(s => selectedSeats.includes(s.id));
-    const total = selectedDetails.reduce((sum, s) => sum + (s.price || 0), 0);
-    if (typeof onChange === 'function') {
-      onChange({ busName, seats: selectedSeats, total });
-    }
-  }, [selectedSeats, layout]);
+    const selectedDetails = uniqueSeats.filter((s) => selectedSeats.includes(s.seatNumber));
+    const total = selectedDetails.reduce((sum, s) => sum + (s.fare || 0), 0);
+    if (typeof onChange === "function") onChange({ busName, seats: [...selectedSeats], total });
+  }, [selectedSeats]);
 
-  // Helper icons to closely match your image structure
-  const PersonIcon = ({ className }) => (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-    </svg>
-  );
-
-  const SteeringWheel = () => (
-    <svg className="w-6 h-6 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="12" r="10" />
-      <circle cx="12" cy="12" r="3" />
-      <path d="M12 2v7M12 15v7M2 12h7M15 12h7" />
-    </svg>
-  );
+  if (!seats.length) {
+    return <div className="flex items-center justify-center h-60 text-gray-400 text-sm">No seats available</div>;
+  }
 
   return (
-    <div className="flex flex-col items-center justify-center h-180 w-60 bg-gray-100 p-4 font-sans text-gray-700">
-      <div className="">
-        
-        {/* Berth Title */}
-        <div className="text-center font-bold text-gray-500 tracking-wider text-sm mb-4">
-          {layout.berthType}(2)
+    <div className="flex flex-col items-center bg-gray-100 rounded-3xl shadow-3xl p-3 h-175 overflow-y-auto">
+      <div className="flex flex-col items-center w-full">
+        <div className="mb-1 text-center">
+          <h2 className="text-xs font-bold text-gray-700">{busName}</h2>
         </div>
+        <div className="flex justify-start w-full mb-2"><SteeringWheel /></div>
+        <div className="flex flex-col gap-1">
+          {grid.map((row, rowIndex) => (
+            <div key={rowIndex} className="grid items-center"
+              style={{ gap: `${size.gap+35}px`, gridTemplateColumns: `repeat(${columns}, ${size.w}px)` }}>
+              {(() => {
+                const rowByCol = {};
+                row.forEach((seat) => { rowByCol[seat.column || 1] = seat; });
+                return Array.from({ length: columns }, (_, colIdx) => {
+                  const col = colIdx + 1;
+                  const apiSeat = rowByCol[col];
+                  if (!apiSeat) return <div key={`e-${col}`} className="rounded" style={{ width: size.w, height: size.sleeperH }} />;
+                  const mapped = seatMap[apiSeat.seatNumber];
+                  if (!mapped) return <div key={`x-${col}`} className="rounded" style={{ width: size.w, height: size.sleeperH }} />;
 
-        {/* Bus Container Canvas */}
-        <div className="border border-gray-200 rounded-2xl p-4 relative bg-white">
-          
-          {/* Driver Cabin Indicator */}
-          <div className="flex justify-end mb-6 pr-1">
-            <SteeringWheel />
-          </div>
+                  const isSelected = selectedSeats.includes(mapped.id);
+                  const isMale = mapped.status === "male_booked";
+                  const isFemale = mapped.status === "female_booked";
 
-          {/* Dynamic Grid System */}
-          <div className="flex flex-col gap-5">
-            {layout.grid.map((row, rowIndex) => (
-              <div key={rowIndex} className="grid grid-cols-3 gap-x-2 items-center">
-                {row.map((seat, colIndex) => {
-                  const isSelected = selectedSeats.includes(seat.id);
-                  const isMale = seat.status === 'male_booked';
-                  const isFemale = seat.status === 'female_booked';
-                  
-                  // Style configurations matching the UI states
                   let cardStyles = "border border-gray-200 bg-gray-50/30 text-gray-400";
                   let iconStyles = "text-gray-300";
-                  
                   if (isSelected) {
                     cardStyles = "border-2 border-blue-500 bg-blue-50/20 text-blue-600";
                     iconStyles = "text-blue-500";
@@ -126,49 +124,33 @@ export default function BusSeatLayout({ busName = 'Bus', onChange}) {
                   }
 
                   return (
-                    <div 
-                      key={seat.id} 
-                      className={`flex flex-col
-                        
-                        
-                        
-                        gap-0 items-center justify-between cursor-pointer group transition-all select-none
-                        ${colIndex === 0 ? 'mr-4' : ''} /* Creates the walk-aisle spacing after the left column */
-                      `}
-                      onClick={() => handleSeatClick(seat)}
-                    >
-                      {/* Seat Shape Layer */}
-                      {seat.type === 'L' ? (
-                        /* Sleeper Berth Layout Shape */
-                        <div className={`w-7 h-15 rounded flex flex-col items-center justify-between p-2 relative shadow-sm ${cardStyles}`}>
-                          <PersonIcon className={`w-7 h-7 mt-1 ${iconStyles}`} />
-                          <div className={`w-6 h-1.5 rounded-full bg-current opacity-40 mb-1`} />
+                    <div key={mapped.id}
+                      className="flex flex-col gap-0 items-center justify-between cursor-pointer group transition-all select-none"
+                      onClick={() => handleSeatClick(mapped)}>
+                      {mapped.type === "L" ? (
+                        <div className={"rounded flex flex-col items-center justify-between p-1 relative shadow-sm " + cardStyles}
+                          style={{ width: size.w, height: size.sleeperH }}>
+                          <PersonIcon className={"mt-0.5 " + iconStyles} style={{ width: size.w - 8, height: size.w - 8 }} />
+                          <div className={"rounded-full bg-current opacity-40"} style={{ width: size.w - 10, height: 2 }} />
                         </div>
                       ) : (
-                        /* Classic Seating Layout Shape */
-                        <div className={`w-6 h-10 rounded-xl flex items-center justify-center p-1 relative shadow-sm border-2 ${cardStyles}`}>
-                          {/* Inner chair-like border framing matching the mock */}
+                        <div className={"rounded-xl flex items-center justify-center p-0.5 relative shadow-sm border-2 " + cardStyles}
+                          style={{ width: size.w, height: size.h }}>
                           <div className="w-full h-full border border-dashed border-gray-300/60 rounded-md flex items-center justify-center">
-                            <PersonIcon className={`w-5 h-5 ${iconStyles}`} />
+                            <PersonIcon className={iconStyles} style={{ width: size.w - 10, height: size.w - 10 }} />
                           </div>
                         </div>
                       )}
-
-                      {/* Seat Price Display */}
-                      <span className={`text-xs mt-1 font-medium transition-colors
-                        ${isSelected ? 'text-black font-bold' : 'text-gray-400'}
-                        ${isFemale ? 'text-black font-semibold' : ''}
-                      `}>
-                        ₹{seat.price}
+                      <span className={"mt-1 font-medium transition-colors " + size.price + (isSelected ? " text-black font-bold" : " text-gray-400") + (isFemale ? " text-black font-semibold" : "")}>
+                        ₹{mapped.price}
                       </span>
                     </div>
                   );
-                })}
-              </div>
-            ))}
-          </div>
+                });
+              })()}
+            </div>
+          ))}
         </div>
-
       </div>
     </div>
   );

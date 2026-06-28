@@ -5,7 +5,7 @@ import api from "./api/axios";
 
 export default function Nav() {
   const navigate = useNavigate();
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout, user } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
@@ -84,9 +84,12 @@ export default function Nav() {
 
             <span aria-hidden="true" className="hidden h-6 w-px rounded-full bg-slate-200 md:block dark:bg-slate-700" />
 
-            <Link className="block shrink-0" to="/profile" onClick={closeMobileMenu}>
+            <Link className="flex items-center gap-2 shrink-0" to="/profile" onClick={closeMobileMenu}>
               <span className="sr-only">Profile</span>
               <img alt="Profile" src="https://images.unsplash.com/photo-1600486913747-55e5470d6f40?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1770&q=80" className="h-9 w-9 rounded-full object-cover" />
+              <span className="hidden sm:inline text-sm font-medium text-slate-700 dark:text-slate-200 max-w-[120px] truncate">
+                {user?.name || user?.userName || "Profile"}
+              </span>
             </Link>
 
             {!isAuthenticated ? (

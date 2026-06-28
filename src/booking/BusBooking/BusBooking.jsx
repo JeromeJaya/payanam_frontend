@@ -348,6 +348,7 @@ export default function BusBooking(){
                             averageRating={schedule.bus?.rating}
                             totalRatings={0}
                             amenities={schedule.bus?.amenities}
+                            scheduleId={schedule.scheduleId}
                             boardingPoints={schedule.boardingPoints}
                             droppingPoints={schedule.droppingPoints}
                           />

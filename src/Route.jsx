@@ -27,6 +27,7 @@ import SeatSelection from "./booking/BusBooking/SeatSelection.jsx"
 import ForgotPassword from "./Authentication/ForgotPassword.jsx";
 import ResetPassword from "./Authentication/ResetPassword.jsx";
 import BookingSummary from "./booking/BusBooking/BookingSummary.jsx";
+import UserProfile from "./UserProfile.jsx";
 
 BookingSummary
 export function Router (){
@@ -44,6 +45,7 @@ export function Router (){
     <Route path='/Banner' element={<Banner/>}/>
     <Route path='/searchcard' element={<SearchCard/>}/>  
     <Route path='/MainPage' element={<ProtectedRoute><MainPage/></ProtectedRoute>}/>
+    <Route path='/profile' element={<ProtectedRoute><UserProfile/></ProtectedRoute>}/>
     <Route path='/ExplorePlace' element={<ExplorePlace/>}/>
     <Route path='/SearchBar' element={<SearchBar/>}/>
     <Route path='/demo' element={<Demo/>}/>
