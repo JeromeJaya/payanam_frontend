@@ -26,8 +26,9 @@ import BusBooking from "./booking/BusBooking/BusBooking.jsx"
 import SeatSelection from "./booking/BusBooking/SeatSelection.jsx"
 import ForgotPassword from "./Authentication/ForgotPassword.jsx";
 import ResetPassword from "./Authentication/ResetPassword.jsx";
+import BookingSummary from "./booking/BusBooking/BookingSummary.jsx";
 
-
+BookingSummary
 export function Router (){
     return(
 <Routes>
@@ -57,6 +58,7 @@ export function Router (){
     <Route path='/SeatSelection' element={<SeatSelection/>}/>  
     <Route path='/ForgotPassword' element={<ForgotPassword/>}/>  
     <Route path='/ResetPassword' element={<ResetPassword/>}/>  
+    <Route path='/BookingSummary' element={<BookingSummary/>}/>  
 
 </Routes>
     );

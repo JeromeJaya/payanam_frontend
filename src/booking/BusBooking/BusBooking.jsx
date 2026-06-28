@@ -71,26 +71,27 @@ export default function BusBooking(){
 
       const res = await api.get("/api/v1/buses/search", { params });
       let results = res?.data?.data || [];
+      let noofbus = res?.data?.count;
 
       if (selectedSeatType === "seater") {
         results = results.filter((schedule) =>
-          schedule.busId?.busType?.toLowerCase().includes("seater")
+          schedule.bus?.type?.toLowerCase().includes("seater")
         );
       } else if (selectedSeatType === "sleeper") {
         results = results.filter((schedule) =>
-          schedule.busId?.busType?.toLowerCase().includes("sleeper")
+          schedule.bus?.type?.toLowerCase().includes("sleeper")
         );
       }
 
       if (selectedPickupTime !== "ALL") {
         results = results.filter((schedule) =>
-          matchesTimeRange(schedule.departureTime, selectedPickupTime)
+          matchesTimeRange(schedule.journey?.departureTime, selectedPickupTime)
         );
       }
 
       if (selectedDropTime !== "ALL") {
         results = results.filter((schedule) =>
-          matchesTimeRange(schedule.arrivalTime, selectedDropTime)
+          matchesTimeRange(schedule.journey?.arrivalTime, selectedDropTime)
         );
       }
 
@@ -110,7 +111,7 @@ export default function BusBooking(){
 
       if (Array.isArray(selectedOperatorNames) && selectedOperatorNames.length > 0) {
         results = results.filter((schedule) =>
-          selectedOperatorNames.includes(schedule.busId?.operatorName)
+          selectedOperatorNames.includes(schedule.operator?.name)
         );
       }
 
@@ -184,7 +185,7 @@ export default function BusBooking(){
       Array.from(
         new Set(
           buses
-            .map((schedule) => schedule.busId?.operatorName)
+            .map((schedule) => schedule.operator?.name)
             .filter(Boolean)
         )
       ),
@@ -195,19 +196,19 @@ export default function BusBooking(){
     const sorted = [...buses];
 
     if (sortBy === "Rating") {
-      sorted.sort((a, b) => (b.busId?.averageRating || 0) - (a.busId?.averageRating || 0));
+      sorted.sort((a, b) => (b.bus?.rating || 0) - (a.bus?.rating || 0));
     } else if (sortBy === "Price") {
-      sorted.sort((a, b) => (a.calculatedFare || a.baseFare) - (b.calculatedFare || b.baseFare));
+      sorted.sort((a, b) => (a.pricing?.calculatedFare || a.pricing?.baseFare) - (b.pricing?.calculatedFare || b.pricing?.baseFare));
     } else if (sortBy === "Fastest") {
       sorted.sort((a, b) => {
-        const durationA = getTimeMinutes(a.arrivalTime) - getTimeMinutes(a.departureTime);
-        const durationB = getTimeMinutes(b.arrivalTime) - getTimeMinutes(b.departureTime);
+        const durationA = getTimeMinutes(a.journey?.arrivalTime) - getTimeMinutes(a.journey?.departureTime);
+        const durationB = getTimeMinutes(b.journey?.arrivalTime) - getTimeMinutes(b.journey?.departureTime);
         return durationA - durationB;
       });
     } else if (sortBy === "Departure") {
-      sorted.sort((a, b) => a.departureTime.localeCompare(b.departureTime));
+      sorted.sort((a, b) => a.journey?.departureTime.localeCompare(b.journey?.departureTime));
     } else if (sortBy === "Arrival") {
-      sorted.sort((a, b) => a.arrivalTime.localeCompare(b.arrivalTime));
+      sorted.sort((a, b) => a.journey?.arrivalTime.localeCompare(b.journey?.arrivalTime));
     }
 
     return sorted;
@@ -334,18 +335,21 @@ export default function BusBooking(){
                     </div>
                     {Array.isArray(sortedBuses) && sortedBuses.length > 0 ? (
                       sortedBuses.map((schedule) => (
-                        <div key={schedule._id} className="bg-white w-full h-auto mb-3 rounded-3xl shadow-xl">
+                        <div key={schedule.scheduleId} className="bg-white w-full h-auto mb-3 rounded-3xl shadow-xl">
                           <BusCard
-                            busName={schedule.busId?.busName}
-                            busType={schedule.busId?.busType}
-                            departureTime={schedule.departureTime}
-                            arrivalTime={schedule.arrivalTime}
-                            availableSeats={schedule.availableSeats}
-                            calculatedFare={schedule.calculatedFare}
-                            operatorName={schedule.busId?.operatorName}
-                            averageRating={schedule.busId?.averageRating}
-                            totalRatings={schedule.busId?.totalRatings}
-                            amenities={schedule.busId?.amenities}
+                            busName={schedule.bus?.name}
+                            busType={schedule.bus?.type}
+                            departureTime={schedule.journey?.departureTime}
+                            arrivalTime={schedule.journey?.arrivalTime}
+                            travelDuration={schedule.journey?.durationMinutes}
+                            availableSeats={schedule.seats?.available}
+                            calculatedFare={schedule.pricing?.calculatedFare}
+                            operatorName={schedule.operator?.name}
+                            averageRating={schedule.bus?.rating}
+                            totalRatings={0}
+                            amenities={schedule.bus?.amenities}
+                            boardingPoints={schedule.boardingPoints}
+                            droppingPoints={schedule.droppingPoints}
                           />
                         </div>
                       ))
