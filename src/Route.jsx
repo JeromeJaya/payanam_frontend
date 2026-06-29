@@ -50,7 +50,7 @@ export function Router (){
     <Route path='/Service' element={<Service/>}/>  
     <Route path='/Banner' element={<Banner/>}/>
     <Route path='/searchcard' element={<SearchCard/>}/>  
-    <Route path='/MainPage' element={<ProtectedRoute><MainPage/></ProtectedRoute>}/>
+    <Route path='/MainPage' element={<MainPage/>}/>
     <Route path='/profile' element={<ProtectedRoute><UserProfile/></ProtectedRoute>}/>
     <Route path='/ExplorePlace' element={<ExplorePlace/>}/>
     <Route path='/SearchBar' element={<SearchBar/>}/>

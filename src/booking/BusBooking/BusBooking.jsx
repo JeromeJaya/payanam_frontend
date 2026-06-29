@@ -222,7 +222,7 @@ export default function BusBooking(){
   return (
     <>
       <Nav />
-      <div className="pt-16">
+      <div className="pt-20">
         <WhereToWhere
           className="shadow-xl sticky top-20"
           from={from}

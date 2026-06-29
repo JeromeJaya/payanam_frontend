@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom"; // IMPORTED useNavigate
-import { Calendar, Armchair, Ticket, MapPin, Eye } from "lucide-react"; 
+import { Calendar, Armchair, Ticket, MapPin, Eye, Trash2 } from "lucide-react"; 
 import Nav from "./NavComponent.jsx";
 import api from "./api/axios.js";
 import { useAuth } from "./context/AuthContext.jsx";
@@ -12,55 +12,56 @@ export default function UserProfile() {
   const [loading, setLoading] = useState(true);
   const [bookingsLoading, setBookingsLoading] = useState(true); 
   const [saving, setSaving] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(null); // Tracks active canceling booking ID
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [form, setForm] = useState({ name: "", email: "", phoneNo: "", address: "", role: "" });
   const [bookings, setBookings] = useState([]); 
 
-  useEffect(() => {
-    const fetchProfileAndBookings = async () => {
-      // 1. Fetch User Profile Details
-      try {
-        const res = await api.get("/api/users/profile");
-        const u = res.data?.data ?? res.data?.user ?? {};
+  const fetchProfileAndBookings = async () => {
+    // 1. Fetch User Profile Details
+    try {
+      const res = await api.get("/api/users/profile");
+      const u = res.data?.data ?? res.data?.user ?? {};
+      setForm({
+        name: u.name || "",
+        email: u.email || "",
+        phoneNo: u.phoneNo || u.phone || "",
+        address: u.address || "",
+        role: u.role || "",
+      });
+    } catch (err) {
+      const local = (() => {
+        try { return JSON.parse(localStorage.getItem("payanam_user")); } catch { return null; }
+      })();
+      if (local) {
         setForm({
-          name: u.name || "",
-          email: u.email || "",
-          phoneNo: u.phoneNo || u.phone || "",
-          address: u.address || "",
-          role: u.role || "",
+          name: local.name || local.userName || "",
+          email: local.email || "",
+          phoneNo: local.phoneNo || local.phone || "",
+          address: "",
+          role: local.role || "",
         });
-      } catch (err) {
-        const local = (() => {
-          try { return JSON.parse(localStorage.getItem("payanam_user")); } catch { return null; }
-        })();
-        if (local) {
-          setForm({
-            name: local.name || local.userName || "",
-            email: local.email || "",
-            phoneNo: local.phoneNo || local.phone || "",
-            address: "",
-            role: local.role || "",
-          });
-        }
-        setError(local ? null : "Failed to load profile");
-      } finally {
-        setLoading(false);
       }
+      setError(local ? null : "Failed to load profile");
+    } finally {
+      setLoading(false);
+    }
 
-      // 2. Fetch User Bookings Inventory From Backend API
-      try {
-        const res = await api.get("/api/v1/bookings/my-bookings");
-        if (res.data?.success) {
-          setBookings(res.data.data || []);
-        }
-      } catch (err) {
-        console.error("Error retrieving user historical booking logs:", err);
-      } finally {
-        setBookingsLoading(false);
+    // 2. Fetch User Bookings Inventory From Backend API
+    try {
+      const res = await api.get("/api/v1/bookings/my-bookings");
+      if (res.data?.success) {
+        setBookings(res.data.data || []);
       }
-    };
+    } catch (err) {
+      console.error("Error retrieving user historical booking logs:", err);
+    } finally {
+      setBookingsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchProfileAndBookings();
   }, []);
 
@@ -92,6 +93,38 @@ export default function UserProfile() {
     };
 
     navigate("/ticketdetails", { state: statePayload });
+  };
+
+  // Handles Cancellation Action
+  const handleCancelBooking = async (e, bookingId) => {
+    e.stopPropagation(); // Prevent navigating to ticket details screen
+    
+    const confirmCancel = window.confirm(`Are you sure you want to cancel booking ${bookingId}?`);
+    if (!confirmCancel) return;
+
+    setCancelLoading(bookingId);
+    setError("");
+    setSuccess("");
+
+    try {
+      const res = await api.post(`/api/v1/bookings/${bookingId}/cancel`);
+      if (res.data?.success) {
+        setSuccess(res.data.message || "Booking cancelled successfully.");
+        
+        // Optimistically update local booking records or completely refetch items
+        setBookings((prevBookings) =>
+          prevBookings.map((b) =>
+            (b.bookingId === bookingId) ? { ...b, status: "Cancelled" } : b
+          )
+        );
+      }
+    } catch (err) {
+      // Safely catch structural array messages defined in validation errors array block
+      const serverError = err.response?.data?.errors?.[0] || err.response?.data?.message || "Failed to cancel booking.";
+      setError(serverError);
+    } finally {
+      setCancelLoading(null);
+    }
   };
 
   const onChange = (e) => setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
@@ -144,10 +177,11 @@ export default function UserProfile() {
   const initials = form.name ? form.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "TR";
 
   return (
-    <div className=" mt-20 min-h-screen bg-slate-50 text-slate-800 font-sans selection:bg-lime-200 selection:text-slate-900">
+    <div className="mt-20 min-h-screen w-full bg-slate-50 text-slate-800 font-sans selection:bg-lime-200 selection:text-slate-900">
       <Nav />
 
-      <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+      {/* Upgraded layout structure here: swapped max-w-5xl for full dimensions */}
+      <div className="w-full px-4 py-10 sm:px-8 lg:px-12">
         
         {/* Top Header & Navigation Banner */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-6">
@@ -188,14 +222,14 @@ export default function UserProfile() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
           
-          {/* Left Panel: Profile Card & Quick Stats */}
+          {/* Left Panel: Profile Card & Quick Stats (Adjusted column layout span to match wide style) */}
           <div className="space-y-6 lg:col-span-1">
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-lime-400/10 rounded-full blur-3xl -mr-5 -mt-5 transition-all group-hover:bg-lime-400/20"></div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-lg relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-lime-600 rounded-full blur-3xl -mr-5 -mt-5 transition-all"></div>
               
-              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-tr from-lime-400 to-lime-300 text-xl font-bold text-lime-950 shadow-md">
+              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-tr from-lime-600 to-lime-500 text-xl font-bold text-lime-950 shadow-md">
                 {initials}
               </div>
               <h3 className="mt-4 text-lg font-bold text-slate-900">{form.name || "Adventurer"}</h3>
@@ -233,7 +267,7 @@ export default function UserProfile() {
           </div>
 
           {/* Right Panel: Account Details Form & Bookings History Visualizer */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-3 space-y-6">
             
             {/* Primary Profile Form */}
             <form onSubmit={handleSubmit} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -355,6 +389,7 @@ export default function UserProfile() {
                     const destination = b.droppingPoint?.city || b.destination || "Destination";
                     const travelDate = b.travelDate ? new Date(b.travelDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : "Date TBD";
                     const totalFare = b.totalAmount || b.fare || 0;
+                    const isCancelled = b.status?.toLowerCase() === 'cancelled' || b.bookingStatus?.toLowerCase() === 'cancelled';
                     
                     const seats = Array.isArray(b.passengerDetails) 
                       ? b.passengerDetails.map(p => p.seatNumber).join(", ") 
@@ -372,11 +407,11 @@ export default function UserProfile() {
                           </span>
                           <div className="flex items-center gap-2">
                             <span className={`px-2 py-0.5 rounded-md font-bold uppercase tracking-wider text-[9px] ${
-                              b.status?.toLowerCase() === 'cancelled' 
+                              isCancelled 
                                 ? 'bg-red-100 text-red-700' 
                                 : 'bg-lime-100 text-lime-800'
                             }`}>
-                              {b.status || "Confirmed"}
+                              {b.status || b.bookingStatus || "Confirmed"}
                             </span>
                             <span className="text-[10px] text-lime-600 font-bold items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all hidden sm:inline-flex">
                               View Ticket <Eye size={12} />
@@ -414,9 +449,28 @@ export default function UserProfile() {
                             <Armchair size={12} className="text-slate-400" />
                             Seats: <span className="text-slate-800 font-bold">{seats}</span>
                           </span>
-                          <span className="text-sm font-extrabold text-slate-900 group-hover:text-lime-600 transition-colors">
-                            ₹{totalFare.toLocaleString()}
-                          </span>
+                          
+                          <div className="flex items-center gap-4">
+                            {/* Cancellation Button Trigger */}
+                            {!isCancelled && b.bookingId && (
+                              <button
+                                onClick={(e) => handleCancelBooking(e, b.bookingId)}
+                                disabled={cancelLoading === b.bookingId}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+                              >
+                                {cancelLoading === b.bookingId ? (
+                                  <span className="h-3 w-3 animate-spin rounded-full border-2 border-red-600 border-t-transparent" />
+                                ) : (
+                                  <Trash2 size={12} />
+                                )}
+                                Cancel
+                              </button>
+                            )}
+                            
+                            <span className="text-sm font-extrabold text-slate-900 group-hover:text-lime-600 transition-colors">
+                              ₹{totalFare.toLocaleString()}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     );
