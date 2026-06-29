@@ -28,6 +28,11 @@ import ForgotPassword from "./Authentication/ForgotPassword.jsx";
 import ResetPassword from "./Authentication/ResetPassword.jsx";
 import BookingSummary from "./booking/BusBooking/BookingSummary.jsx";
 import UserProfile from "./UserProfile.jsx";
+import FlightBooking from "./booking/FlightBooking/FlightBooking.jsx";
+import HotelBooking from "./booking/HotelBooking/HotelBooking.jsx";
+
+import TrainBooking from "./booking/TrainBooking/TrainBooking.jsx";
+
 
 BookingSummary
 export function Router (){
@@ -61,6 +66,9 @@ export function Router (){
     <Route path='/ForgotPassword' element={<ForgotPassword/>}/>  
     <Route path='/ResetPassword' element={<ResetPassword/>}/>  
     <Route path='/BookingSummary' element={<BookingSummary/>}/>  
+    <Route path='/FlightBooking' element={<FlightBooking/>}/>  
+    <Route path='/HotelBooking' element={<HotelBooking/>}/>  
+    <Route path='/TrainBooking' element={<TrainBooking/>}/>  
 
 </Routes>
     );

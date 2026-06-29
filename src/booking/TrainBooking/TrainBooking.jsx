@@ -1,7 +1,6 @@
 import Nav from "../../NavComponent.jsx"
 import WhereToWhere from "./Wheretowhere.jsx"
-import FlightCard from "../../cards/FlightCard.jsx"
-import FlightFareSelector from "./FlightFareSelector.jsx"
+import TrainCard from "../../cards/TrainCard.jsx"
 
 import SearchheckBox from "../../filter/SearchheckBox.jsx"
 import SelectBox from "../../filter/SelectBox.jsx"
@@ -9,6 +8,9 @@ import Checkbox from "../../filter/Checkbox.jsx"
 import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import api from "../../api/axios.js"
+import TrainFilterHeader from "./TrainFilterHeader"
+
+
 
 
 export default function FlightBooking(){
@@ -223,7 +225,6 @@ export default function FlightBooking(){
     <>
       <Nav />
       <div className="pt-16">
-        flight booking
         <WhereToWhere
           className="shadow-xl sticky top-20"
           from={from}
@@ -249,6 +250,15 @@ export default function FlightBooking(){
                       }}
                     />
                     <SelectBox
+                      text={["ALL", "12 AM - 6AM", "6 AM - 12 PM", "12 PM - 6 PM", "6 PM - 12 AM"]}
+                      title ="Drop time - Bangalore, Karnataka"
+                      value={dropTimeFilter}
+                      onChange={(option) => {
+                        setDropTimeFilter(option);
+                        handleFetchBus(acFilter, seatType, pickupTimeFilter, option, selectedPickupPoints, selectedDropPoints);
+                      }}
+                    />
+                     <SelectBox
                       text={["ALL", "12 AM - 6AM", "6 AM - 12 PM", "12 PM - 6 PM", "6 PM - 12 AM"]}
                       title ="Drop time - Bangalore, Karnataka"
                       value={dropTimeFilter}
@@ -357,7 +367,7 @@ export default function FlightBooking(){
                 </div>
                 <div className = "bg-neutral-200 w-[80%] ml-[2%] px-5 rounded-lg shadow-xl flex flex-col">
                     <div className = "bg-white w-full h-auto my-5 rounded-3xl shadow-xl">
-                        <FlightFareSelector/>
+                        <TrainFilterHeader/>
                     </div>
                     {/* {Array.isArray(sortedBuses) && sortedBuses.length > 0 ? (
                       sortedBuses.map((schedule) => (
@@ -368,9 +378,11 @@ export default function FlightBooking(){
                     ) : (
                       <div className="p-8 text-center text-gray-600">No buses found for the selected route and date.</div>
                     )} */}
-                    <FlightCard/>
-                     <FlightCard/>
-                      <FlightCard/>
+                    <TrainCard/>
+                    <TrainCard/>
+                    <TrainCard/>
+                    <TrainCard/>
+
                 </div>
             </div>
         </div>

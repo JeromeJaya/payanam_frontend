@@ -8,12 +8,15 @@ export default function SearchBar({ input, service }) {
   const today = new Date().toISOString().split("T")[0];
   const day = String(new Date()).slice(0, 3);
 
+  const serviceBooking = "/"+service+"booking"
+  console.log(serviceBooking)
+
   const handleSearch = () => {
     const formData = {};
     Object.keys(inputRef.current).forEach((key) => {
       formData[key] = inputRef.current[key]?.value || "";
     });
-    navigate("/busbooking", { state: { searchData: formData } });
+    navigate(serviceBooking, { state: { searchData: formData } });
   };
 
   return (
@@ -64,6 +67,7 @@ export default function SearchBar({ input, service }) {
           onClick={handleSearch}
         >
           {`Search ${service ? service.charAt(0).toUpperCase() + service.slice(1) : "Search"}`}
+          {console.log(service.charAt(0).toUpperCase()) }
         </button>
       </div>
     </div>
