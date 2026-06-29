@@ -1,7 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
-export default function SingleSeaterFilter({ title, text, value = {}, onChange }) {
-  const items = Array.isArray(text) ? text : typeof text === "string" ? [text] : [];
+export default function SingleSeaterFilter({ title, text, value = {}, onChange, type = "multiple" }) {
+  // Memoize items to prevent the useEffect from re-running on every render 
+  // since an array literal [...] creates a new reference each time.
+  const items = useMemo(() => {
+    return Array.isArray(text) ? text : typeof text === "string" ? [text] : [];
+  }, [text]);
 
   useEffect(() => {
     if (!onChange) return;
@@ -13,11 +17,25 @@ export default function SingleSeaterFilter({ title, text, value = {}, onChange }
         return next;
       });
     }
-  }, [items, onChange]);
+  }, [items, onChange, value]);
 
   const handleToggle = (item) => {
     if (!onChange) return;
-    onChange((prev) => ({ ...prev, [item]: !prev[item] }));
+
+    onChange((prev) => {
+      // If single select mode
+      if (type === "single") {
+        const next = {};
+        // Set all known items to false except the toggled one
+        items.forEach((it) => {
+          next[it] = it === item ? !prev[item] : false;
+        });
+        return { ...prev, ...next };
+      }
+
+      // Default: multiple select mode
+      return { ...prev, [item]: !prev[item] };
+    });
   };
 
   return (
@@ -29,15 +47,24 @@ export default function SingleSeaterFilter({ title, text, value = {}, onChange }
           onClick={() => handleToggle(txt)}
           className="flex items-start gap-4 cursor-pointer mb-3"
         >
+          {/* Changed rounding behavior slightly based on type for better UX (circle for radio/single) */}
           <div
-            className={`w-5 h-5 border rounded flex items-center justify-center transition-all duration-200 ${
+            className={`w-5 h-5 border flex items-center justify-center transition-all duration-200 ${
+              type === "single" ? "rounded-full" : "rounded"
+            } ${
               value[txt] ? "border-blue-600 bg-blue-600" : "border-gray-400"
             }`}
           >
             {value[txt] && (
-              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
+              type === "single" ? (
+                // Radio style inner dot for single selection
+                <div className="w-2 h-2 bg-white rounded-full" />
+              ) : (
+                // Checkmark for multiple selection
+                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              )
             )}
           </div>
           <div className="min-w-0">

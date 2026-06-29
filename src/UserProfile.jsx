@@ -1,20 +1,25 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; // IMPORTED useNavigate
+import { Calendar, Armchair, Ticket, MapPin, Eye } from "lucide-react"; 
 import Nav from "./NavComponent.jsx";
 import api from "./api/axios.js";
 import { useAuth } from "./context/AuthContext.jsx";
 
 export default function UserProfile() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate(); // Hook initialized
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [bookingsLoading, setBookingsLoading] = useState(true); 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [form, setForm] = useState({ name: "", email: "", phoneNo: "", address: "", role: "" });
+  const [bookings, setBookings] = useState([]); 
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchProfileAndBookings = async () => {
+      // 1. Fetch User Profile Details
       try {
         const res = await api.get("/api/users/profile");
         const u = res.data?.data ?? res.data?.user ?? {};
@@ -42,9 +47,52 @@ export default function UserProfile() {
       } finally {
         setLoading(false);
       }
+
+      // 2. Fetch User Bookings Inventory From Backend API
+      try {
+        const res = await api.get("/api/v1/bookings/my-bookings");
+        if (res.data?.success) {
+          setBookings(res.data.data || []);
+        }
+      } catch (err) {
+        console.error("Error retrieving user historical booking logs:", err);
+      } finally {
+        setBookingsLoading(false);
+      }
     };
-    fetchProfile();
+
+    fetchProfileAndBookings();
   }, []);
+
+  // Maps older historical objects to match the high-fidelity Ticket view state schema
+  const handleViewTicketDetails = (b) => {
+    const totalFare = b.totalAmount || b.fare || 0;
+    const seatsArray = Array.isArray(b.passengerDetails)
+      ? b.passengerDetails.map(p => p.seatNumber)
+      : (b.seatNumbers || []);
+
+    const statePayload = {
+      ticket: {
+        bookingId: b.bookingId || "N/A",
+        bookingStatus: b.bookingStatus || b.status || "CONFIRMED",
+        paymentStatus: b.paymentStatus || "SUCCESS",
+        paymentReference: b.paymentReference || "MOCK-REF-HISTORY",
+        totalFare: totalFare,
+        bookedSeats: seatsArray,
+        bookedAt: b.bookedAt || b.createdAt || b.travelDate || new Date().toISOString()
+      },
+      meta: {
+        busName: b.busName || b.busDetails?.name || "Payanam Express",
+        boarding: b.boardingPoint || { city: b.source || "Origin", name: "Main Terminal", time: "Dep TBD" },
+        dropping: b.droppingPoint || { city: b.destination || "Destination", name: "Main Terminal", time: "Arr TBD" },
+        passengers: Array.isArray(b.passengerDetails) 
+          ? b.passengerDetails 
+          : seatsArray.map(seat => ({ name: "Passenger", seatNumber: seat, age: "N/A", gender: "N/A" }))
+      }
+    };
+
+    navigate("/ticketdetails", { state: statePayload });
+  };
 
   const onChange = (e) => setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
 
@@ -158,11 +206,13 @@ export default function UserProfile() {
                 Verified Member
               </div>
 
-              {/* Gamified Travel Perks */}
+              {/* Dynamic Analytics Data */}
               <div className="mt-6 grid grid-cols-2 gap-2 border-t border-slate-100 pt-6 text-left">
                 <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
-                  <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Trips Taken</p>
-                  <p className="text-xl font-extrabold text-slate-900 mt-0.5">14</p>
+                  <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Trips Booked</p>
+                  <p className="text-xl font-extrabold text-slate-900 mt-0.5">
+                    {bookingsLoading ? "..." : bookings.length}
+                  </p>
                 </div>
                 <div className="rounded-xl bg-lime-50/60 p-3 border border-lime-100/50">
                   <p className="text-[10px] uppercase font-bold tracking-wider text-lime-700">Payanam Coins</p>
@@ -171,18 +221,18 @@ export default function UserProfile() {
               </div>
             </div>
 
-            {/* In-Flight Preferences */}
+            {/* Quick Preferences Selection Box */}
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Quick Preferences</h4>
               <div className="flex flex-wrap gap-2">
                 <span className="rounded-lg bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600 border border-slate-200">Window Seat</span>
-                <span className="rounded-lg bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600 border border-slate-200">Veg Meal</span>
-                <span className="rounded-lg bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600 border border-slate-200">Luxury Stays</span>
+                <span className="rounded-lg bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600 border border-slate-200">Lower Berth</span>
+                <span className="rounded-lg bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600 border border-slate-200">AC Sleeper</span>
               </div>
             </div>
           </div>
 
-          {/* Right Panel: Account Details Form & Flight Route Tracker */}
+          {/* Right Panel: Account Details Form & Bookings History Visualizer */}
           <div className="lg:col-span-2 space-y-6">
             
             {/* Primary Profile Form */}
@@ -274,31 +324,105 @@ export default function UserProfile() {
               </div>
             </form>
 
-            {/* Travel Segment Component: Route Preview */}
-            <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-100 to-white p-5 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="text-sm font-bold text-slate-900 tracking-wide">Upcoming Journey</h4>
-                <span className="text-xs font-semibold text-lime-700 bg-lime-100 px-2 py-0.5 rounded-md">Confirmed</span>
+            {/* Dynamic Travel Segment Component: My Trips Tracker */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h4 className="text-base font-bold text-slate-900 tracking-wide">My Bookings History</h4>
+                <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                  Most Recent First
+                </span>
               </div>
-              <div className="flex items-center justify-between rounded-xl bg-white p-4 border border-slate-200/60 shadow-inner">
-                <div>
-                  <p className="text-xs text-slate-400">Departing Flight</p>
-                  <p className="text-lg font-extrabold text-slate-900 mt-0.5">MAA</p>
-                  <p className="text-[11px] font-medium text-slate-500">Chennai</p>
+
+              {bookingsLoading ? (
+                <div className="flex items-center justify-center py-8 gap-2 text-slate-500 text-xs font-medium">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-lime-500 border-t-transparent"></div>
+                  Fetching your journeys...
                 </div>
-                <div className="flex flex-col items-center flex-1 px-4">
-                  <span className="text-[10px] text-lime-700 font-mono font-bold tracking-widest">PY-402</span>
-                  <div className="w-full h-[1px] bg-slate-200 relative my-1">
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-xs bg-white px-1">✈️</div>
-                  </div>
-                  <span className="text-[10px] text-slate-400">2h 15m</span>
+              ) : bookings.length === 0 ? (
+                <div className="text-center py-10 border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+                  <Ticket className="mx-auto text-slate-300 mb-2" size={32} />
+                  <p className="text-sm font-bold text-slate-700">No trips found</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Looks like you haven't booked any tickets yet.</p>
+                  <Link to="/MainPage" className="mt-3 inline-flex text-xs bg-lime-500 text-white font-bold px-4 py-2 rounded-xl shadow-xs hover:bg-lime-600 transition">
+                    Book Your First Ride
+                  </Link>
                 </div>
-                <div className="text-right">
-                  <p className="text-xs text-slate-400">Destination</p>
-                  <p className="text-lg font-extrabold text-slate-900 mt-0.5">BLR</p>
-                  <p className="text-[11px] font-medium text-slate-500">Bengaluru</p>
+              ) : (
+                <div className="space-y-4 max-h-[450px] overflow-y-auto pr-1 scrollbar-thin">
+                  {bookings.map((b, i) => {
+                    const bookingId = b.bookingId || `BK-${1000 + i}`;
+                    const source = b.boardingPoint?.city || b.source || "Origin";
+                    const destination = b.droppingPoint?.city || b.destination || "Destination";
+                    const travelDate = b.travelDate ? new Date(b.travelDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : "Date TBD";
+                    const totalFare = b.totalAmount || b.fare || 0;
+                    
+                    const seats = Array.isArray(b.passengerDetails) 
+                      ? b.passengerDetails.map(p => p.seatNumber).join(", ") 
+                      : (b.seatNumbers || []).join(", ") || "N/A";
+
+                    return (
+                      <div 
+                        key={bookingId} 
+                        onClick={() => handleViewTicketDetails(b)} // CLICK INTERACTION TRIGGER LINKED HERE
+                        className="group flex flex-col rounded-xl bg-slate-50 p-4 border border-slate-200/60 shadow-xs hover:border-lime-300 hover:bg-white transition-all duration-200 cursor-pointer relative"
+                      >
+                        <div className="flex items-center justify-between border-b border-slate-200/50 pb-2 mb-3 text-[11px]">
+                          <span className="font-mono font-bold text-slate-600 tracking-wider">
+                            PNR: <span className="text-slate-900 group-hover:text-lime-600 transition-colors">{bookingId}</span>
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-0.5 rounded-md font-bold uppercase tracking-wider text-[9px] ${
+                              b.status?.toLowerCase() === 'cancelled' 
+                                ? 'bg-red-100 text-red-700' 
+                                : 'bg-lime-100 text-lime-800'
+                            }`}>
+                              {b.status || "Confirmed"}
+                            </span>
+                            <span className="text-[10px] text-lime-600 font-bold items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all hidden sm:inline-flex">
+                              View Ticket <Eye size={12} />
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-slate-400 flex items-center gap-1">
+                              <MapPin size={11} className="text-slate-400" /> Source
+                            </p>
+                            <p className="text-base font-extrabold text-slate-900 truncate mt-0.5">{source}</p>
+                            <p className="text-[10px] font-medium text-slate-500 truncate">{b.boardingPoint?.name || ""}</p>
+                          </div>
+                          
+                          <div className="flex flex-col items-center px-4 flex-1 max-w-[120px]">
+                            <div className="w-full h-[1px] bg-slate-200 relative my-1">
+                              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-xs bg-slate-50 group-hover:bg-white px-1 text-slate-400 transition-colors">🚌</div>
+                            </div>
+                            <span className="text-[10px] text-slate-500 font-medium flex items-center gap-1 mt-1 whitespace-nowrap">
+                              <Calendar size={10} /> {travelDate}
+                            </span>
+                          </div>
+
+                          <div className="text-right flex-1 min-w-0">
+                            <p className="text-xs font-bold text-slate-400">Destination</p>
+                            <p className="text-base font-extrabold text-slate-900 truncate mt-0.5">{destination}</p>
+                            <p className="text-[10px] font-medium text-slate-500 truncate">{b.droppingPoint?.name || ""}</p>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 pt-2.5 border-t border-slate-200/50 flex items-center justify-between text-xs font-semibold text-slate-600">
+                          <span className="flex items-center gap-1 text-[11px]">
+                            <Armchair size={12} className="text-slate-400" />
+                            Seats: <span className="text-slate-800 font-bold">{seats}</span>
+                          </span>
+                          <span className="text-sm font-extrabold text-slate-900 group-hover:text-lime-600 transition-colors">
+                            ₹{totalFare.toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              </div>
+              )}
             </div>
 
           </div>

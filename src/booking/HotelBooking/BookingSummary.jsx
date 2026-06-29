@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react"; // Added useMemo
 import { IndianRupee, X, ShieldCheck, Armchair, ChevronDown, ChevronUp } from "lucide-react";
 import api from "../../api/axios.js";
 import BookingSuccess from "./BookingSuccess.jsx";
@@ -18,13 +18,14 @@ export default function BookingSummary({
   const grandTotal = entries.reduce((sum, [, data]) => sum + (data.total || 0), 0);
   
   const [booking, setBooking] = useState({ status: "idle", message: "", data: null });
+  const [lockStatus, setLockStatus] = useState({ status: "idle", message: "" });
   const [passengers, setPassengers] = useState({});
   const [isMinimized, setIsMinimized] = useState(false);
 
   const selectedBoardingTextKey = selectedBoardingText || Object.keys(boardingPoints)[0] || "";
   const selectedDroppingTextKey = selectedDroppingText || Object.keys(droppingPoints)[0] || "";
 
-  // Exact ID matching matching your system configuration structure
+  // Exact ID matching structure
   const boardingPointId = boardingPoints.find((_, i) => {
     if (!selectedBoardingTextKey) return i === 0;
     const formatted = `${boardingPoints[i].name} - ${boardingPoints[i].city} (${boardingPoints[i].time})`;
@@ -37,13 +38,59 @@ export default function BookingSummary({
     return formatted === selectedDroppingTextKey;
   })?.id || droppingPoints[0]?.id;
 
-  const seatList = entries.flatMap(([, data]) => data.seats);
+  // FIX 1: Memoize seatList so it maintains reference stability across renders
+  const seatList = useMemo(() => {
+    return entries.flatMap(([, data]) => data.seats);
+  }, [JSON.stringify(entries)]); 
+
   const passengerList = seatList.map(seatId => passengers[seatId]).filter(Boolean);
+
+  // FIX 2: Controlled useEffect with stringified dependency array and mounting flag
+  useEffect(() => {
+    if (!scheduleId || seatList.length === 0) {
+      setLockStatus({ status: "idle", message: "" });
+      return;
+    }
+
+    let isMounted = true;
+
+    const blockSelectedSeats = async () => {
+      setLockStatus({ status: "locking", message: "Securing your seats..." });
+      try {
+        await api.post(`/api/v1/buses/schedules/${scheduleId}/block-seats`, {
+          seatNumbers: seatList,
+        });
+        
+        if (!isMounted) return;
+        setLockStatus({ status: "locked", message: "Seats held for 10 minutes" });
+        setBooking({ status: "idle", message: "", data: null });
+      } catch (err) {
+        if (!isMounted) return;
+
+        const errorMsg = err.response?.data?.message || "Selected seats are already blocked or booked.";
+        setLockStatus({ status: "error", message: errorMsg });
+        setBooking({ status: "error", message: errorMsg });
+      }
+    };
+
+    blockSelectedSeats();
+
+    return () => {
+      isMounted = false; // Prevents race-conditions on rapid clicking
+    };
+  }, [scheduleId, JSON.stringify(seatList)]); // Safe structural evaluation
 
   const handleBookNow = async () => {
     if (!scheduleId || entries.length === 0) return;
     
-    // Strict validation: Ensure every selected seat has a matching completed passenger profile
+    if (lockStatus.status === "error") {
+      setBooking({ 
+        status: "error", 
+        message: `Cannot proceed: ${lockStatus.message}` 
+      });
+      return;
+    }
+
     if (passengerList.length < seatList.length) {
       setBooking({ 
         status: "error", 
@@ -56,31 +103,25 @@ export default function BookingSummary({
     setBooking({ status: "loading", message: "", data: null });
     
     try {
-      // Outbound Payload structurally aligned with your API schema specifications
       const res = await api.post("/api/v1/bookings", {
         scheduleId,
         boardingPointId,
         droppingPointId,
-        passengerDetails: passengerList, // Matches exactly [{seatNumber, name, age, gender}]
+        passengerDetails: passengerList,
       });
 
-      // API Response: { success: true, message: "...", data: { bookingId: "PAY-A...", ... } }
       setBooking({ 
         status: "success", 
         message: res.data?.message || "Booking confirmed!", 
         data: res.data?.data 
       });
     } catch (err) {
-      // Capture array errors strings like backend validation errors formats
       const backendErrors = err.response?.data?.errors;
       const errorMessage = Array.isArray(backendErrors) && backendErrors.length > 0
         ? backendErrors[0]
         : (err.response?.data?.message || "Seat lock expired or booking timed out. Please try again.");
 
-      setBooking({ 
-        status: "error", 
-        message: errorMessage 
-      });
+      setBooking({ status: "error", message: errorMessage });
     }
   };
 
@@ -98,11 +139,10 @@ export default function BookingSummary({
     );
   }
 
-  // Pass payload data mapping variables over to success module banner
   if (booking.status === "success") {
     return (
       <BookingSuccess
-        bookingId={booking.data?.bookingId} // maps to "PAY-A3F2B1" PNR via spec
+        bookingId={booking.data?.bookingId} 
         message={booking.message}
       />
     );
@@ -111,7 +151,7 @@ export default function BookingSummary({
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm text-slate-800 selection:bg-lime-200 transition-all duration-300 overflow-hidden flex flex-col">
       
-      {/* Dynamic Summary Header Trigger */}
+      {/* Summary Header */}
       <div 
         onClick={() => setIsMinimized(!isMinimized)}
         className={`p-4 flex items-center justify-between cursor-pointer select-none bg-gradient-to-r from-transparent to-slate-50/30 hover:bg-slate-50/80 transition-colors ${!isMinimized ? "border-b border-slate-100" : ""}`}
@@ -125,8 +165,8 @@ export default function BookingSummary({
               </span>
             )}
           </h3>
-          <p className="text-[11px] text-slate-500">
-            {isMinimized ? `Total Fare: ₹${grandTotal.toLocaleString()}` : "10-min temporary lock active"}
+          <p className={`text-[11px] font-medium ${lockStatus.status === 'error' ? 'text-red-500' : 'text-slate-500'}`}>
+            {lockStatus.message || "10-min temporary lock active"}
           </p>
         </div>
         
@@ -166,7 +206,7 @@ export default function BookingSummary({
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {seats.map((seatId) => (
                     <span key={seatId} className="inline-flex items-center gap-1 rounded-md border border-lime-200 bg-lime-50/60 px-2 py-0.5 text-[10px] font-bold text-lime-800">
-                      <span className="h-1 w-1 rounded-full bg-lime-500"></span>
+                      <span className={`h-1.5 w-1.5 rounded-full ${lockStatus.status === "locked" ? "bg-lime-500" : lockStatus.status === "locking" ? "bg-amber-400 animate-ping" : "bg-red-500"}`}></span>
                       Seat {seatId}
                     </span>
                   ))}
@@ -213,7 +253,8 @@ export default function BookingSummary({
                     placeholder="Full Name"
                     type="text"
                     required
-                    className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-800 placeholder-slate-400 focus:border-lime-500 focus:outline-none focus:ring-1 focus:ring-lime-500"
+                    disabled={lockStatus.status === "error"}
+                    className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-800 placeholder-slate-400 focus:border-lime-500 focus:outline-none focus:ring-1 focus:ring-lime-500 disabled:bg-slate-50"
                     value={passengers[seatId]?.name || ""}
                     onChange={(e) =>
                       setPassengers((p) => ({
@@ -228,7 +269,8 @@ export default function BookingSummary({
                     min="5"
                     max="100"
                     required
-                    className="rounded-md border border-slate-200 px-1.5 py-1 text-xs text-slate-800 placeholder-slate-400 focus:border-lime-500 focus:outline-none focus:ring-1 focus:ring-lime-500"
+                    disabled={lockStatus.status === "error"}
+                    className="rounded-md border border-slate-200 px-1.5 py-1 text-xs text-slate-800 placeholder-slate-400 focus:border-lime-500 focus:outline-none focus:ring-1 focus:ring-lime-500 disabled:bg-slate-50"
                     value={passengers[seatId]?.age || ""}
                     onChange={(e) =>
                       setPassengers((p) => ({
@@ -238,7 +280,8 @@ export default function BookingSummary({
                     }
                   />
                   <select
-                    className="rounded-md border border-slate-200 bg-white px-1 py-1 text-xs text-slate-700 focus:border-lime-500 focus:outline-none focus:ring-1 focus:ring-lime-500"
+                    disabled={lockStatus.status === "error"}
+                    className="rounded-md border border-slate-200 bg-white px-1 py-1 text-xs text-slate-700 focus:border-lime-500 focus:outline-none focus:ring-1 focus:ring-lime-500 disabled:bg-slate-50"
                     value={passengers[seatId]?.gender || "male"}
                     onChange={(e) =>
                       setPassengers((p) => ({
@@ -277,7 +320,7 @@ export default function BookingSummary({
 
           <button
             onClick={handleBookNow}
-            disabled={booking.status === "loading"}
+            disabled={booking.status === "loading" || lockStatus.status === "locking" || lockStatus.status === "error"}
             className="w-full rounded-xl bg-lime-500 py-2.5 text-xs font-bold text-white shadow-md shadow-lime-500/10 transition hover:bg-lime-600 active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-1.5"
           >
             {booking.status === "loading" ? (
@@ -285,6 +328,8 @@ export default function BookingSummary({
                 <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                 Confirming with Payanam...
               </>
+            ) : lockStatus.status === "locking" ? (
+              <>Locking Inventory...</>
             ) : (
               <>
                 <ShieldCheck size={14} />

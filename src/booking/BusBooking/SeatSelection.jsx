@@ -102,6 +102,7 @@ export default function SeatSelection ({
                           text={pickupNames}
                           value={selectedBoarding}
                           onChange={setSelectedBoarding}
+                          type = "single"
                         />
                     </div>
                     <div className = "w-1/2 overflow-y-auto rounded-3xl shadow-xl">
@@ -110,6 +111,7 @@ export default function SeatSelection ({
                           text={dropNames}
                           value={selectedDropping}
                           onChange={setSelectedDropping}
+                          type = "single"
                         />
                     </div>
                 </div>
