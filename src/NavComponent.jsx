@@ -1,4 +1,5 @@
-import { useNavigate, Link } from "react-router-dom";
+// 1. Import NavLink instead of Link from react-router-dom
+import { useNavigate, NavLink, Link } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import { useState } from "react";
 import api from "./api/axios";
@@ -8,7 +9,6 @@ export default function Nav() {
   const { isAuthenticated, logout, user } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
-  // New Functional States for PNR Searching
   const [pnrQuery, setPnrQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
 
@@ -31,7 +31,6 @@ export default function Nav() {
     }
   };
 
-  // Handlers for PNR Lookup Actions
   const handlePnrSearch = async (e) => {
     e.preventDefault();
     const cleanPnr = pnrQuery.trim();
@@ -40,11 +39,8 @@ export default function Nav() {
     setIsSearching(true);
     try {
       const res = await api.get(`/api/v1/bookings/${cleanPnr}`);
-      
       if (res.data?.success || res.data) {
         const bookingData = res.data.data || res.data;
-        
-        // Structure the response to match the target context layer of TicketDetails
         navigate("/ticketdetails", {
           state: {
             ticket: {
@@ -78,20 +74,27 @@ export default function Nav() {
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
+  // 2. Extracted Tailwind style functions to keep the JSX highly readable
+  const getDesktopNavLinkStyle = ({ isActive }) => 
+    isActive
+      ? "rounded-xl bg-lime-100/70 px-4 py-2.5 text-lime-700 dark:bg-lime-900/30 dark:text-lime-300 transition block"
+      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 px-4 py-2.5 transition block";
+
+  const getMobileNavLinkStyle = ({ isActive }) =>
+    isActive
+      ? "block rounded-xl bg-lime-50 dark:bg-lime-950/30 text-lime-700 px-4 py-3.5 font-bold"
+      : "block rounded-xl px-4 py-3.5 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold";
+
   return (
     <>
-      {/* Increased height to h-20 for better breathing room with larger text balances */}
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-900/95">
-        <div className="mx-auto flex h-20 max-w-screen-2xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="flex h-20 max-w-screen-2xl items-center px-4 sm:px-6 lg:px-8">
           
-          {/* Left Side Branding & Aligned Search Input */}
           <div className="flex items-center gap-8 flex-1 max-w-2xl">
             <Link className="flex shrink-0 items-center gap-1 text-teal-600 dark:text-teal-500" to="/" onClick={closeMobileMenu}>
-              {/* Brand logo scaled up to text-2xl */}
               <span className="text-2xl font-black tracking-widest text-slate-800 dark:text-slate-200">PAYANAM</span>
             </Link>
 
-            {/* Fixed Vector Aligned Form Layer Container */}
             <form onSubmit={handlePnrSearch} className="relative hidden lg:block w-full max-w-md my-auto">
               <label className="sr-only" htmlFor="search">Search Bookings by PNR</label>
               <input
@@ -119,22 +122,21 @@ export default function Nav() {
             </form>
           </div>
 
-          {/* Right Side Navigation Utilities */}
-          <div className="flex items-center justify-end gap-6 shrink-0">
+          <div className="flex items-end gap-10 shrink-0">
+            {/* 3. Integrated Dynamic Desktop Navigation Layout */}
             <nav aria-label="Global" className="hidden md:block">
-              {/* Changed list hierarchy text to text-base */}
               <ul className="flex items-center gap-2 lg:gap-4 text-base font-bold">
                 <li>
-                  <Link className="rounded-xl bg-lime-100/70 px-4 py-2.5 text-lime-700 dark:bg-lime-900/30 dark:text-lime-300 hover:bg-lime-200/80 transition" to="/flightbooking" onClick={closeMobileMenu}> Flights </Link>
+                  <NavLink className={getDesktopNavLinkStyle} to="/flightbooking" onClick={closeMobileMenu}> Flights </NavLink>
                 </li>
                 <li>
-                  <Link className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 px-3 py-2.5 transition" to="/hotelbooking" onClick={closeMobileMenu}> Hotels </Link>
+                  <NavLink className={getDesktopNavLinkStyle} to="/hotelbooking" onClick={closeMobileMenu}> Hotels </NavLink>
                 </li>
                 <li>
-                  <Link className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 px-3 py-2.5 transition" to="/trainbooking" onClick={closeMobileMenu}> Trains </Link>
+                  <NavLink className={getDesktopNavLinkStyle} to="/trainbooking" onClick={closeMobileMenu}> Trains </NavLink>
                 </li>
                 <li>
-                  <Link className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 px-3 py-2.5 transition" to="/busbooking" onClick={closeMobileMenu}> Buses </Link>
+                  <NavLink className={getDesktopNavLinkStyle} to="/busbooking" onClick={closeMobileMenu}> Buses </NavLink>
                 </li>
               </ul>
             </nav>
@@ -144,13 +146,11 @@ export default function Nav() {
             <Link className="flex items-center gap-3 shrink-0 group" to="/profile" onClick={closeMobileMenu}>
               <span className="sr-only">Profile</span>
               <img alt="Profile avatar" src="https://images.unsplash.com/photo-1600486913747-55e5470d6f40?ixlib=rb-1.2.1&auto=format&fit=crop&w=80&q=80" className="h-9 w-9 rounded-full object-cover border border-slate-200 dark:border-slate-700 group-hover:border-lime-500 transition-colors" />
-              {/* Profile Account label shifted to text-base */}
               <span className="hidden sm:inline text-base font-extrabold text-slate-700 dark:text-slate-200 max-w-[130px] truncate group-hover:text-slate-900">
                 {user?.name || user?.userName || "My Account"}
               </span>
             </Link>
 
-            {/* CTA action buttons updated to text-base */}
             {!isAuthenticated ? (
               <Link to="/login" onClick={closeMobileMenu} className="hidden sm:block text-base font-extrabold rounded-xl bg-lime-500 px-5 py-2.5 text-white shadow-sm hover:bg-lime-600 transition">
                 Login
@@ -161,7 +161,6 @@ export default function Nav() {
               </button>
             )}
 
-            {/* Mobile Hamburger toggle link button */}
             <button
               className="md:hidden rounded-xl p-2.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -181,7 +180,7 @@ export default function Nav() {
         </div>
       </header>
 
-      {/* Mobile Dropdown Overlay Menu */}
+      {/* Mobile Dropdown Drawer Menu Layout */}
       <div
         id="mobile-menu"
         className={`fixed inset-0 z-40 md:hidden transition-transform duration-300 ease-in-out bg-white dark:bg-slate-900 ${
@@ -217,13 +216,13 @@ export default function Nav() {
               </button>
             </form>
 
-            {/* Mobile links shifted up to a clear text-lg format */}
-            <ul className="space-y-2 text-lg font-bold text-slate-700 dark:text-slate-300">
-              <li><Link to="/flightbooking" className="block rounded-xl bg-lime-50 dark:bg-lime-950/30 text-lime-700 px-4 py-3.5" onClick={closeMobileMenu}> Flights </Link></li>
-              <li><Link to="/hotelbooking" className="block rounded-xl px-4 py-3.5 hover:bg-slate-50" onClick={closeMobileMenu}> Hotels </Link></li>
-              <li><Link to="/tainbooking" className="block rounded-xl px-4 py-3.5 hover:bg-slate-50" onClick={closeMobileMenu}> Trains </Link></li>
-              <li><Link to="/busbooking" className="block rounded-xl px-4 py-3.5 hover:bg-slate-50" onClick={closeMobileMenu}> Buses </Link></li>
-             </ul>
+            {/* 4. Integrated Dynamic Mobile Navigation Layout (Note: Fixed typo from 'tainbooking' to 'trainbooking') */}
+            <ul className="space-y-2 text-lg">
+              <li><NavLink to="/flightbooking" className={getMobileNavLinkStyle} onClick={closeMobileMenu}> Flights </NavLink></li>
+              <li><NavLink to="/hotelbooking" className={getMobileNavLinkStyle} onClick={closeMobileMenu}> Hotels </NavLink></li>
+              <li><NavLink to="/trainbooking" className={getMobileNavLinkStyle} onClick={closeMobileMenu}> Trains </NavLink></li>
+              <li><NavLink to="/busbooking" className={getMobileNavLinkStyle} onClick={closeMobileMenu}> Buses </NavLink></li>
+            </ul>
 
             <div className="pt-6 border-t border-slate-200 dark:border-slate-800">
               {!isAuthenticated ? (
@@ -240,7 +239,6 @@ export default function Nav() {
         </div>
       </div>
 
-      {/* Background Dimming Drawer Backdrop */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-30 bg-black/40 md:hidden backdrop-blur-xs" onClick={closeMobileMenu} aria-hidden="true" />
       )}

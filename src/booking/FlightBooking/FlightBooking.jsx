@@ -223,7 +223,6 @@ export default function FlightBooking(){
     <>
       <Nav />
       <div className="pt-16">
-        flight booking
         <WhereToWhere
           className="shadow-xl sticky top-20"
           from={from}

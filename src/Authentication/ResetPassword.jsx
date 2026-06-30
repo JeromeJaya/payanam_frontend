@@ -95,10 +95,10 @@ export default function ResetLogin() {
     <>
     <Nav/>
     
-<div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-end  px-12 py-12 pr-50 pt-10 ">
+<div className="h-auto bg-gray-50 dark:bg-gray-900 flex items-center justify-end  px-12 pt-12 pr-50 pt-20 ">
         <div
-        className={` absolute inset-0 bg-cover bg-center mt-15  opacity-0
-        transform transition-all duration-1000 ease-out
+        className={`  absolute inset-0 bg-cover bg-center mt-15  opacity-0
+        transform transition-all duration-1000 ease-out 
           ${show ? "opacity-100" : "opacity-0"}`}
         style={{
           backgroundImage: `url(${bgImage})`,
@@ -111,7 +111,7 @@ export default function ResetLogin() {
           ${show ? "translate-x-0 opacity-100" : "-translate-x-40 opacity-0"}
         `}
       >
-    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg px-8 mt-2 pt-2 pb-4">
       <div className="text-center mb-8">
         <div className="inline-flex items-center justify-center w-12 h-12 bg-lime-100 dark:bg-lime-900/40 rounded-xl mb-4">
           <svg className="w-6 h-6 text-lime-600 dark:text-lime-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -120,12 +120,12 @@ export default function ResetLogin() {
           </svg>
         </div>
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Reset Password</h2>
-        <p className="text-gray-600 dark:text-gray-400 mt-2">Enter the OTP with in 5 minutes</p>
+        <p className="text-gray-600 dark:text-gray-400 mt-2">Enter the OTP within 5 minutes</p>
       </div>
 
       <form className="space-y-6" onSubmit={handleSubmit}>
         <div>
-          <div className = "flex flex-row justify-around">
+          <div className = "flex flex-row justify-between">
             <label htmlFor="email" className="block text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
               Email address
             </label>
@@ -242,7 +242,7 @@ export default function ResetLogin() {
         </div> */}
       </div>
 
-      <p className="mt-8 text-center text-sm text-gray-600 dark:text-gray-400">
+      <p className="mt-3 text-center text-sm text-gray-600 dark:text-gray-400">
         Don't have an account?
         <Link to="/EmailSignUp" className="font-medium text-lime-600 dark:text-lime-400 hover:text-lime-500 dark:hover:text-lime-300">Sign up</Link>
         <Outlet/>

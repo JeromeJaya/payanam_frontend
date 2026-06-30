@@ -224,7 +224,7 @@ export default function BusBooking(){
       <Nav />
       <div className="pt-20">
         <WhereToWhere
-          className="shadow-xl sticky top-20"
+          className="shadow-xl sticky top-20 mx-10"
           from={from}
           setFrom={setFrom}
           to={to}
@@ -234,7 +234,7 @@ export default function BusBooking(){
           searchData={searchData}
           handleFetchBus={handleFetchBus}
         />
-        <div className="bg-mist-50 h-auto my-5 mx-[100px] flex">
+        <div className="bg-mist-50 pt-20 h-auto my-5 mx-[100px] flex">
                 <div className = "filter bg-white-200 w-[25%] h-auto rounded-lg shadow-xl">
                     <div className = "flex justify-center mt-5 font-bold">FILTERS</div>
                     <SelectBox
