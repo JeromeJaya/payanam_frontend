@@ -222,12 +222,11 @@ export default function Nav() {
 
             {/* Mobile links shifted up to a clear text-lg format */}
             <ul className="space-y-2 text-lg font-bold text-slate-700 dark:text-slate-300">
-              <li><Link to="/" className="block rounded-xl bg-lime-50 dark:bg-lime-950/30 text-lime-700 px-4 py-3.5" onClick={closeMobileMenu}> Flights </Link></li>
-              <li><Link to="/" className="block rounded-xl px-4 py-3.5 hover:bg-slate-50" onClick={closeMobileMenu}> Hotels </Link></li>
-              <li><Link to="/" className="block rounded-xl px-4 py-3.5 hover:bg-slate-50" onClick={closeMobileMenu}> Trains </Link></li>
-              <li><Link to="/" className="block rounded-xl px-4 py-3.5 hover:bg-slate-50" onClick={closeMobileMenu}> Buses </Link></li>
-              <li><Link to="/" className="block rounded-xl px-4 py-3.5 hover:bg-slate-50" onClick={closeMobileMenu}> Holiday </Link></li>
-            </ul>
+              <li><Link to="/flightbooking" className="block rounded-xl bg-lime-50 dark:bg-lime-950/30 text-lime-700 px-4 py-3.5" onClick={closeMobileMenu}> Flights </Link></li>
+              <li><Link to="/hotelbooking" className="block rounded-xl px-4 py-3.5 hover:bg-slate-50" onClick={closeMobileMenu}> Hotels </Link></li>
+              <li><Link to="/tainbooking" className="block rounded-xl px-4 py-3.5 hover:bg-slate-50" onClick={closeMobileMenu}> Trains </Link></li>
+              <li><Link to="/busbooking" className="block rounded-xl px-4 py-3.5 hover:bg-slate-50" onClick={closeMobileMenu}> Buses </Link></li>
+             </ul>
 
             <div className="pt-6 border-t border-slate-200 dark:border-slate-800">
               {!isAuthenticated ? (

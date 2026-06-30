@@ -39,7 +39,7 @@ BookingSummary
 export function Router (){
     return(
 <Routes>
-    <Route path='/' element={<LandingPage/>}/>
+    <Route path='/' element={<MainPage/>}/>
     <Route path='/login' element={<EmailLogin/>}/>
     <Route path='/nav' element={<Nav/>}/>
     <Route path='/GetUserDetail' element={<GetUserDetail/>}/>
