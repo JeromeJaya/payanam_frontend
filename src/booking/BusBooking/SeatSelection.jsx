@@ -3,6 +3,7 @@ import Checkbox from "../../filter/Checkbox.jsx"
 import BookingSummary from "./BookingSummary.jsx"
 import api from "../../api/axios.js"
 import {useState, useEffect} from "react";
+import ProtectedRoute from "../../components/ProtectedRoute.jsx";
 
 // Tracks selections reported by each SeatArrange instance
 

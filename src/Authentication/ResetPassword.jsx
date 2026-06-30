@@ -9,7 +9,7 @@ import api from "../api/axios";
 import PasswordInput from "./PasswordInput.jsx";
 import { useAuth } from "../context/AuthContext";
 
-export default function ResetLogin({ email = "email not fetched correctly" }) {
+export default function ResetLogin() {
     const [show, setShow] = useState(false);
     const [showMobileLogin, setShowMobileLogin] = useState(false);
     const navigate = useNavigate();
@@ -19,7 +19,7 @@ export default function ResetLogin({ email = "email not fetched correctly" }) {
     const [confirmPass, setConfirmPass] = useState("");
     const [resendCountdown, setResendCountdown] = useState(300);
     const { login } = useAuth();
-
+    const emaill = location.state.email
     const strongRe = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
 
     const handleOTPChange = (event) => {
@@ -66,9 +66,9 @@ export default function ResetLogin({ email = "email not fetched correctly" }) {
 
       try {
         const response = await api.post("/api/auth/reset-password", {
-          email,
-          otpCode: otp,
-          newPassword,
+          "email": emaill,
+          "otpCode": otp,
+          "newPassword": newPassword,
         });
         if (response?.data?.success) {
           alert(response.data.message || "Password reset successful");
@@ -135,7 +135,7 @@ export default function ResetLogin({ email = "email not fetched correctly" }) {
             </button>
           </div>
           <label htmlFor="email" className="block text-md font-medium text-gray-500 ml-5 dark:text-gray-300 mb-2">
-            {location.state.email}
+            {emaill}
           </label>
           
         </div>

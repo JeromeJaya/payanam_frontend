@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MobileLogin } from "./MobileLogin.jsx";
+// import { MobileLogin } from "./MobileLogin.jsx";
 import {But3} from "../Buttons/But3.jsx";
 import bgImage from "../assets/bg3.png";
 import Nav from "../NavComponent.jsx";
