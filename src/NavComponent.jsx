@@ -128,16 +128,13 @@ export default function Nav() {
                   <Link className="rounded-xl bg-lime-100/70 px-4 py-2.5 text-lime-700 dark:bg-lime-900/30 dark:text-lime-300 hover:bg-lime-200/80 transition" to="/" onClick={closeMobileMenu}> Flights </Link>
                 </li>
                 <li>
-                  <Link className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 px-3 py-2.5 transition" to="/" onClick={closeMobileMenu}> Hotels </Link>
+                  <Link className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 px-3 py-2.5 transition" to="/hotelbooking" onClick={closeMobileMenu}> Hotels </Link>
                 </li>
                 <li>
-                  <Link className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 px-3 py-2.5 transition" to="/" onClick={closeMobileMenu}> Trains </Link>
+                  <Link className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 px-3 py-2.5 transition" to="/trainbookng" onClick={closeMobileMenu}> Trains </Link>
                 </li>
                 <li>
-                  <Link className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 px-3 py-2.5 transition" to="/" onClick={closeMobileMenu}> Buses </Link>
-                </li>
-                <li>
-                  <Link className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 px-3 py-2.5 transition" to="/" onClick={closeMobileMenu}> Holiday </Link>
+                  <Link className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 px-3 py-2.5 transition" to="/busbookng" onClick={closeMobileMenu}> Buses </Link>
                 </li>
               </ul>
             </nav>
