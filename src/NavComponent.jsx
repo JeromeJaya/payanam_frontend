@@ -125,7 +125,7 @@ export default function Nav() {
               {/* Changed list hierarchy text to text-base */}
               <ul className="flex items-center gap-2 lg:gap-4 text-base font-bold">
                 <li>
-                  <Link className="rounded-xl bg-lime-100/70 px-4 py-2.5 text-lime-700 dark:bg-lime-900/30 dark:text-lime-300 hover:bg-lime-200/80 transition" to="/" onClick={closeMobileMenu}> Flights </Link>
+                  <Link className="rounded-xl bg-lime-100/70 px-4 py-2.5 text-lime-700 dark:bg-lime-900/30 dark:text-lime-300 hover:bg-lime-200/80 transition" to="/flightbooking" onClick={closeMobileMenu}> Flights </Link>
                 </li>
                 <li>
                   <Link className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 px-3 py-2.5 transition" to="/hotelbooking" onClick={closeMobileMenu}> Hotels </Link>
