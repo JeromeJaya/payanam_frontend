@@ -87,43 +87,22 @@ export default function Nav() {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-900/95">
-        <div className="flex h-20 max-w-screen-2xl items-center px-4 sm:px-6 lg:px-8">
+    <header className="fixed top-0 left-0 right-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-900/95">
+        {/* CHANGED: 'justify-around' to 'justify-between' to push elements to opposite edges */}
+        <div className="flex h-20 max-w-screen-2xl items-center justify-between px-4 sm:px-6 lg:px-8 mx-auto">
           
+          {/* Left Side Branding & Aligned Search Input */}
           <div className="flex items-center gap-8 flex-1 max-w-2xl">
             <Link className="flex shrink-0 items-center gap-1 text-teal-600 dark:text-teal-500" to="/" onClick={closeMobileMenu}>
               <span className="text-2xl font-black tracking-widest text-slate-800 dark:text-slate-200">PAYANAM</span>
             </Link>
 
-            <form onSubmit={handlePnrSearch} className="relative hidden lg:block w-full max-w-md my-auto">
-              <label className="sr-only" htmlFor="search">Search Bookings by PNR</label>
-              <input
-                className="h-11 w-full rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 ps-5 pe-12 text-base font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-lime-500/20 focus:border-lime-500 transition-all shadow-3xs"
-                id="search"
-                type="text"
-                disabled={isSearching}
-                placeholder={isSearching ? "Verifying PNR Token..." : "Verify PNR (e.g., PAY-A3F2B1)..."}
-                value={pnrQuery}
-                onChange={(e) => setPnrQuery(e.target.value)}
-              />
-              <button 
-                type="submit" 
-                disabled={isSearching}
-                className="absolute end-2 top-1/2 -translate-y-1/2 rounded-full p-2 text-slate-400 transition hover:text-slate-600 dark:hover:text-slate-200 disabled:opacity-40"
-              >
-                {isSearching ? (
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-400 border-t-transparent"></div>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                )}
-              </button>
-            </form>
+            
           </div>
 
-          <div className="flex items-end gap-10 shrink-0">
-            {/* 3. Integrated Dynamic Desktop Navigation Layout */}
+          {/* Right Side Navigation Utilities */}
+          {/* CHANGED: 'items-end' to 'items-center' to vertically balance elements properly */}
+          <div className="flex items-center gap-6 shrink-0">
             <nav aria-label="Global" className="hidden md:block">
               <ul className="flex items-center gap-2 lg:gap-4 text-base font-bold">
                 <li>
@@ -161,6 +140,10 @@ export default function Nav() {
               </button>
             )}
 
+             <button className="rounded-xl bg-lime-50 dark:bg-lime-950/30 text-lime-700 px-4 py-3.5 font-bold" onClick={()=> navigate("/vendoremaillogin")}>
+                  Login as vendor
+                </button>
+
             <button
               className="md:hidden rounded-xl p-2.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -177,6 +160,7 @@ export default function Nav() {
               </svg>
             </button>
           </div>
+
         </div>
       </header>
 
@@ -233,7 +217,10 @@ export default function Nav() {
                 <button className="block w-full rounded-xl bg-red-100 py-3.5 font-bold text-red-700 text-base hover:bg-red-200" onClick={handleLogout}>
                   Logout
                 </button>
+
               )}
+              
+              
             </div>
           </nav>
         </div>

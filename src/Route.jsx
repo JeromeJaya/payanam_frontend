@@ -1,6 +1,6 @@
 import {Routes, Route} from 'react-router-dom';
 import {EmailLogin} from './Authentication/EmailLogin.jsx';
-import {LandingPage} from "./LandingPage.jsx";
+import LandingPage from "./LandingPage.jsx";
 import Nav from "./NavComponent.jsx";
 import {GetUserDetail} from "./forms ui/GetUserDetail.jsx";
 import {RightDraw} from "./forms ui/RightDraw.jsx";
@@ -12,6 +12,7 @@ import {Banner} from "./cards/Banner.jsx"
 import {SearchCard} from "./cards/SearchCard.jsx";
 import MainPage from "./MainPage.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import { VendorProtectedRoute } from "./components/ProtectedRoute.jsx";
 import ExplorePlace from "./ExplorePlace.jsx";
 import WhereToWhere from "./search/WhereToWhere.jsx";
 import SearchBar from "./search/SearchBar.jsx";
@@ -31,11 +32,12 @@ import UserProfile from "./UserProfile.jsx";
 import FlightBooking from "./booking/FlightBooking/FlightBooking.jsx";
 import HotelBooking from "./booking/HotelBooking/HotelBooking.jsx";
 import TrainBooking from "./booking/TrainBooking/TrainBooking.jsx";
-
+import VendorDashboard from "./VendorDashboard.jsx";
+import VendorEmailLogin from "./Authentication/vendor/VendorEmailLogin.jsx";
 import TicketDetails from "./booking/BusBooking/TicketDetails.jsx";
+import VendorEmailSignUp from "./Authentication/vendor/VendorEmailSignUp.jsx";
 
 
-BookingSummary
 export function Router (){
     return(
 <Routes>
@@ -62,15 +64,19 @@ export function Router (){
     <Route path='/SearchheckBox' element={<SearchheckBox/>}/>
     <Route path='/SelectBox' element={<SelectBox/>}/>
     <Route path='/SeatArrange' element={<SeatArrange/>}/>
-    <Route path='/BusBooking' element={<BusBooking/>}/>  
+    <Route path='/busbooking' element={<BusBooking/>}/>  
     <Route path='/SeatSelection' element={<SeatSelection/>}/>  
     <Route path='/ForgotPassword' element={<ForgotPassword/>}/>  
     <Route path='/ResetPassword' element={<ResetPassword/>}/>  
     <Route path='/BookingSummary' element={<BookingSummary/>}/>  
-    <Route path='/FlightBooking' element={<FlightBooking/>}/>  
-    <Route path='/HotelBooking' element={<HotelBooking/>}/>  
-    <Route path='/TrainBooking' element={<TrainBooking/>}/>  
+    <Route path='/flightbooking' element={<FlightBooking/>}/>  
+    <Route path='/hotelbooking' element={<HotelBooking/>}/>  
+    <Route path='/trainbooking' element={<TrainBooking/>}/>  
     <Route path='/TicketDetails' element={<TicketDetails/>}/>  
+    <Route path='/vendordashboard' element={<VendorProtectedRoute><VendorDashboard/></VendorProtectedRoute>}/>  
+    <Route path='/VendorEmailLogin' element={<VendorEmailLogin/>}/>  
+    <Route path='/VendorEmailSignUp' element={<VendorEmailSignUp/>}/>  
+
 
 
 </Routes>

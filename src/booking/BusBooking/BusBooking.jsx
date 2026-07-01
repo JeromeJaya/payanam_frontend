@@ -7,16 +7,24 @@ import SearchheckBox from "../../filter/SearchheckBox.jsx"
 import SelectBox from "../../filter/SelectBox.jsx"
 import Checkbox from "../../filter/Checkbox.jsx"
 import { useState, useEffect, useMemo } from "react";
-import { useLocation } from "react-router-dom";
-import api from "../../api/axios.js"
+import { useSearchParams } from "react-router-dom";
+import api from "../../api/axios.js";
+
 
 
 export default function BusBooking(){
 
-  const location = useLocation();
-  const searchData = location.state?.searchData || {};
-  const [from, setFrom] = useState(searchData.from || "");
-  const [to, setTo] = useState(searchData.to || "");
+  const [searchParams] = useSearchParams();
+  const fromParam = searchParams.get("from") || "";
+  const toParam = searchParams.get("to") || "";
+  const dateParam = searchParams.get("date") || (() => {
+    const d = new Date();
+    return d.toISOString().slice(0, 10);
+  })();
+  
+  const [from, setFrom] = useState(fromParam);
+  const [to, setTo] = useState(toParam);
+  const [date, setDate] = useState(dateParam);
   const [acFilter, setAcFilter] = useState("ALL");
   const [seatType, setSeatType] = useState("ALL");
   const [pickupTimeFilter, setPickupTimeFilter] = useState("ALL");
@@ -26,10 +34,6 @@ export default function BusBooking(){
   const [selectedOperators, setSelectedOperators] = useState([]);
   const [buses, setBuses] = useState([]);
   const [sortBy, setSortBy] = useState("Relevance");
-  const [date, setDate] = useState(searchData.date || (() => {
-    const d = new Date();
-    return d.toISOString().slice(0, 10);
-  })());
 
   const getTimeMinutes = (timeValue) => {
     if (!timeValue) return null;
@@ -139,11 +143,8 @@ export default function BusBooking(){
   useEffect(() => {
     const fetchInitial = async () => {
       try {
-        const initialFrom = searchData.from || from;
-        const initialTo = searchData.to || to;
-        const initialDate = searchData.date || date;
         const res = await api.get("/api/v1/buses/search", {
-          params: { from: initialFrom, to: initialTo, date: initialDate },
+          params: { from, to, date },
         });
         setBuses(res?.data?.data || []);
       } catch (err) {
@@ -231,7 +232,6 @@ export default function BusBooking(){
           setTo={setTo}
           date={date}
           setDate={setDate}
-          searchData={searchData}
           handleFetchBus={handleFetchBus}
         />
         <div className="bg-mist-50 pt-20 h-auto my-5 mx-[100px] flex">
