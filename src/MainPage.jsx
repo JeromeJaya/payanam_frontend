@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Category from "./components/category.jsx";
 import InputBox from "./components/InputBox.jsx";
 import OfferCard from "./Carousels/offer1.jsx";
@@ -14,9 +14,49 @@ import trainBG from "./assets/train bg.png";
 import busBG from "./assets/bus bg.png";
 import hotelBG from "./assets/hotel bg.png";
 
+// Custom hook for scroll animations
+const useScrollAnimation = () => {
+  const [visibleElements, setVisibleElements] = useState(new Set());
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setVisibleElements(prev => new Set([...prev, entry.target.dataset.animationId]));
+          }
+        });
+      },
+      {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+      }
+    );
+
+    const elements = document.querySelectorAll('[data-animation-id]');
+    elements.forEach(el => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, []);
+
+  return visibleElements;
+};
+
+// Helper function to get animation classes based on index
+const getAnimationClasses = (index, isVisible, baseDelay = 0) => {
+  const direction = index % 2 === 0 ? '-translate-x-8' : 'translate-x-8';
+  const delay = `${baseDelay + (index * 100)}ms`;
+  
+  return {
+    container: `transition-all duration-700 ${isVisible ? 'opacity-100 translate-x-0' : `opacity-0 ${direction}`}`,
+    style: { transitionDelay: delay }
+  };
+};
+
 export default function App() {
   const [service, setService] = useState("bus");
   const navigate = useNavigate();
+  const visibleElements = useScrollAnimation();
   
   // Service-specific background images
   const serviceBackgrounds = {
@@ -145,19 +185,47 @@ export default function App() {
 
       {/* Hero Section with Dynamic Background */}
       <div
-        className="relative h-[500px] w-full"
+        data-animation-id="hero"
+        className={`relative h-[500px] w-full transition-all duration-1000 ${
+          visibleElements.has('hero') 
+            ? 'opacity-100' 
+            : 'opacity-0'
+        }`}
         style={{ backgroundImage: `url(${photo})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
       >
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-slate-50"></div>
         <div className="relative max-w-7xl mx-auto h-full flex items-center px-6">
           <div className="text-white max-w-3xl">
-            <h1 className="text-5xl md:text-6xl font-extrabold mb-4 leading-tight">
+            <h1 
+              data-animation-id="hero-title"
+              className={`text-5xl md:text-6xl font-extrabold mb-4 leading-tight transition-all duration-700 ${
+                visibleElements.has('hero-title') 
+                  ? 'opacity-100 translate-y-0' 
+                  : 'opacity-0 translate-y-8'
+              }`}
+            >
               {currentServiceData.title}
             </h1>
-            <p className="text-xl md:text-2xl text-gray-200 mb-8">
+            <p 
+              data-animation-id="hero-subtitle"
+              className={`text-xl md:text-2xl text-gray-200 mb-8 transition-all duration-700 ${
+                visibleElements.has('hero-subtitle') 
+                  ? 'opacity-100 translate-y-0' 
+                  : 'opacity-0 translate-y-8'
+              }`}
+              style={{ transitionDelay: '200ms' }}
+            >
               {currentServiceData.subtitle}
             </p>
-            <div className="flex gap-4">
+            <div 
+              data-animation-id="hero-buttons"
+              className={`flex gap-4 transition-all duration-700 ${
+                visibleElements.has('hero-buttons') 
+                  ? 'opacity-100 translate-y-0' 
+                  : 'opacity-0 translate-y-8'
+              }`}
+              style={{ transitionDelay: '400ms' }}
+            >
               <button 
                 onClick={() => document.getElementById('search-section')?.scrollIntoView({ behavior: 'smooth' })}
                 className="bg-lime-500 hover:bg-lime-600 text-white px-8 py-4 rounded-full font-bold shadow-lg transition-all hover:shadow-xl"
@@ -176,10 +244,18 @@ export default function App() {
       </div>
 
       {/* Search Section */}
-      <div id="search-section" className="relative z-20 max-w-6xl mx-auto px-6 -mt-8 mb-16">
+      <div 
+        id="search-section" 
+        data-animation-id="search"
+        className={`relative z-20 max-w-6xl mx-auto px-6 -mt-8 mb-16 transition-all duration-700 ${
+          visibleElements.has('search') 
+            ? 'opacity-100 translate-y-0' 
+            : 'opacity-0 translate-y-10'
+        }`}
+      >
         <div className="bg-white rounded-2xl shadow-2xl p-8 border border-slate-200">
           {/* Service Category Tabs */}
-          <div className="flex flex-wrap justify-center gap-4 mb-8">
+          <div className="flex flex-wrap justify-center gap-10 mb-8">
             <Category 
               icon={<img src={flight} alt="Flights" className="w-8 h-8" />} 
               title="Flights" 
@@ -187,19 +263,13 @@ export default function App() {
               active={service === 'flight'} 
             />
             <Category 
-              icon={<img src={hotel} alt="Hotels" className="w-8 h-8" />} 
-              title="Hotels" 
-              onClick={() => setService('hotel')} 
-              active={service === 'hotel'} 
-            />
-            <Category 
-              icon={<img src={train} alt="Trains" className="w-8 h-8" />} 
+              icon={<img src={train} alt="Trains" />} 
               title="Trains" 
               onClick={() => setService('train')} 
               active={service === 'train'} 
             />
             <Category 
-              icon={<img src={buses} alt="Buses" className="w-8 h-8" />} 
+              icon={<img src={buses} alt="Buses" />} 
               title="Buses" 
               onClick={() => setService('bus')} 
               active={service === 'bus'} 
@@ -216,101 +286,198 @@ export default function App() {
 
 
       {/* Service Features Section */}
-      <section className="max-w-7xl mx-auto px-6 py-16">
+      <section 
+        data-animation-id="features"
+        className={`max-w-7xl mx-auto px-6 py-16 transition-all duration-700 ${
+          visibleElements.has('features') 
+            ? 'opacity-100 translate-y-0' 
+            : 'opacity-0 translate-y-10'
+        }`}
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {currentServiceData.features.map((feature, index) => (
-            <div 
-              key={index}
-              className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all border border-slate-200 hover:border-lime-300"
-            >
-              <div className="text-4xl mb-4">{feature.icon}</div>
-              <h3 className="text-xl font-bold text-slate-800 mb-2">{feature.title}</h3>
-              <p className="text-slate-600">{feature.desc}</p>
-            </div>
-          ))}
+          {currentServiceData.features.map((feature, index) => {
+            const isVisible = visibleElements.has(`feature-${index}`);
+            const animClasses = getAnimationClasses(index, isVisible);
+            
+            return (
+              <div 
+                key={index}
+                data-animation-id={`feature-${index}`}
+                className={`bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all duration-500 border border-slate-200 hover:border-lime-300 ${animClasses.container}`}
+                style={animClasses.style}
+              >
+                <div className="text-4xl mb-4">{feature.icon}</div>
+                <h3 className="text-xl font-bold text-slate-800 mb-2">{feature.title}</h3>
+                <p className="text-slate-600">{feature.desc}</p>
+              </div>
+            );
+          })}
         </div>
       </section>
 
       {/* Popular Routes/Destinations Section */}
-      <section className="max-w-7xl mx-auto px-6 py-16">
+      <section 
+        data-animation-id="popular"
+        className={`max-w-7xl mx-auto px-6 py-16 transition-all duration-700 ${
+          visibleElements.has('popular') 
+            ? 'opacity-100 translate-y-0' 
+            : 'opacity-0 translate-y-10'
+        }`}
+      >
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-slate-800 mb-4">
+          <h2 
+            data-animation-id="popular-title"
+            className={`text-4xl font-bold text-slate-800 mb-4 transition-all duration-700 ${
+              visibleElements.has('popular-title') 
+                ? 'opacity-100 translate-y-0' 
+                : 'opacity-0 translate-y-8'
+            }`}
+          >
             Popular {service === 'flight' ? 'Routes' : service === 'hotel' ? 'Destinations' : 'Routes'}
           </h2>
-          <p className="text-xl text-slate-600">
+          <p 
+            data-animation-id="popular-subtitle"
+            className={`text-xl text-slate-600 transition-all duration-700 ${
+              visibleElements.has('popular-subtitle') 
+                ? 'opacity-100 translate-y-0' 
+                : 'opacity-0 translate-y-8'
+            }`}
+            style={{ transitionDelay: '100ms' }}
+          >
             Discover the most booked {service} options
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {(service === 'hotel' ? currentServiceData.popularDestinations : currentServiceData.popularRoutes).map((item, index) => (
-            <div 
-              key={index}
-              className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all border border-slate-200 hover:border-lime-300 cursor-pointer group"
-            >
-              {service === 'hotel' ? (
-                <>
-                  <h3 className="text-xl font-bold text-slate-800 mb-2 group-hover:text-lime-600 transition-colors">
-                    {item.city}
-                  </h3>
-                  <p className="text-slate-600 mb-2">{item.hotels} hotels available</p>
-                  <p className="text-2xl font-bold text-lime-600">Starting {item.startingPrice}</p>
-                </>
-              ) : (
-                <>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-lg font-semibold text-slate-800">{item.from}</span>
-                    <span className="text-slate-400">→</span>
-                    <span className="text-lg font-semibold text-slate-800">{item.to}</span>
-                  </div>
-                  <p className="text-3xl font-bold text-lime-600">{item.price}</p>
-                  <p className="text-sm text-slate-500 mt-2">Starting price per person</p>
-                </>
-              )}
-            </div>
-          ))}
+          {(service === 'hotel' ? currentServiceData.popularDestinations : currentServiceData.popularRoutes).map((item, index) => {
+            const isVisible = visibleElements.has(`popular-${index}`);
+            const animClasses = getAnimationClasses(index, isVisible, 2);
+            
+            return (
+              <div 
+                key={index}
+                data-animation-id={`popular-${index}`}
+                className={`bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-500 border border-slate-200 hover:border-lime-300 cursor-pointer group ${animClasses.container}`}
+                style={animClasses.style}
+              >
+                {service === 'hotel' ? (
+                  <>
+                    <h3 className="text-xl font-bold text-slate-800 mb-2 group-hover:text-lime-600 transition-colors">
+                      {item.city}
+                    </h3>
+                    <p className="text-slate-600 mb-2">{item.hotels} hotels available</p>
+                    <p className="text-2xl font-bold text-lime-600">Starting {item.startingPrice}</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-lg font-semibold text-slate-800">{item.from}</span>
+                      <span className="text-slate-400">→</span>
+                      <span className="text-lg font-semibold text-slate-800">{item.to}</span>
+                    </div>
+                    <p className="text-3xl font-bold text-lime-600">{item.price}</p>
+                    <p className="text-sm text-slate-500 mt-2">Starting price per person</p>
+                  </>
+                )}
+              </div>
+            );
+          })}
         </div>
       </section>
 
       {/* Why Choose Us Section */}
-      <section className="bg-white py-16">
+      <section 
+        data-animation-id="why-us"
+        className={`bg-white py-16 transition-all duration-700 ${
+          visibleElements.has('why-us') 
+            ? 'opacity-100 translate-y-0' 
+            : 'opacity-0 translate-y-10'
+        }`}
+      >
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-slate-800 mb-4">Why Choose Payanam?</h2>
-            <p className="text-xl text-slate-600">We make travel booking simple, fast, and reliable</p>
+            <h2 
+              data-animation-id="why-us-title"
+              className={`text-4xl font-bold text-slate-800 mb-4 transition-all duration-700 ${
+                visibleElements.has('why-us-title') 
+                  ? 'opacity-100 translate-y-0' 
+                  : 'opacity-0 translate-y-8'
+              }`}
+            >
+              Why Choose Payanam?
+            </h2>
+            <p 
+              data-animation-id="why-us-subtitle"
+              className={`text-xl text-slate-600 transition-all duration-700 ${
+                visibleElements.has('why-us-subtitle') 
+                  ? 'opacity-100 translate-y-0' 
+                  : 'opacity-0 translate-y-8'
+              }`}
+              style={{ transitionDelay: '100ms' }}
+            >
+              We make travel booking simple, fast, and reliable
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="bg-lime-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-4xl">🎯</span>
-              </div>
-              <h3 className="text-xl font-bold text-slate-800 mb-2">Best Prices</h3>
-              <p className="text-slate-600">We guarantee the best prices for all your travel needs</p>
-            </div>
-            <div className="text-center">
-              <div className="bg-lime-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-4xl">⚡</span>
-              </div>
-              <h3 className="text-xl font-bold text-slate-800 mb-2">Instant Booking</h3>
-              <p className="text-slate-600">Get instant confirmation with e-tickets and QR codes</p>
-            </div>
-            <div className="text-center">
-              <div className="bg-lime-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-4xl">🛡️</span>
-              </div>
-              <h3 className="text-xl font-bold text-slate-800 mb-2">100% Secure</h3>
-              <p className="text-slate-600">Your payments and data are protected with bank-level security</p>
-            </div>
+            {[
+              { icon: "🎯", title: "Best Prices", desc: "We guarantee the best prices for all your travel needs" },
+              { icon: "⚡", title: "Instant Booking", desc: "Get instant confirmation with e-tickets and QR codes" },
+              { icon: "🛡️", title: "100% Secure", desc: "Your payments and data are protected with bank-level security" }
+            ].map((item, index) => {
+              const isVisible = visibleElements.has(`why-us-${index}`);
+              const animClasses = getAnimationClasses(index, isVisible, 2);
+              
+              return (
+                <div 
+                  key={index}
+                  data-animation-id={`why-us-${index}`}
+                  className={`text-center transition-all duration-500 ${animClasses.container}`}
+                  style={animClasses.style}
+                >
+                  <div className="bg-lime-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-4xl">{item.icon}</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-800 mb-2">{item.title}</h3>
+                  <p className="text-slate-600">{item.desc}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
       {/* Special Offers Section */}
-      <section className="max-w-7xl mx-auto px-6 py-16">
+      <section 
+        data-animation-id="offers"
+        className={`max-w-7xl mx-auto px-6 py-16 transition-all duration-700 ${
+          visibleElements.has('offers') 
+            ? 'opacity-100 translate-y-0' 
+            : 'opacity-0 translate-y-10'
+        }`}
+      >
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-slate-800 mb-4">Special Offers & Deals</h2>
-          <p className="text-xl text-slate-600">Save more with exclusive discounts and packages</p>
+          <h2 
+            data-animation-id="offers-title"
+            className={`text-4xl font-bold text-slate-800 mb-4 transition-all duration-700 ${
+              visibleElements.has('offers-title') 
+                ? 'opacity-100 translate-y-0' 
+                : 'opacity-0 translate-y-8'
+            }`}
+          >
+            Special Offers & Deals
+          </h2>
+          <p 
+            data-animation-id="offers-subtitle"
+            className={`text-xl text-slate-600 transition-all duration-700 ${
+              visibleElements.has('offers-subtitle') 
+                ? 'opacity-100 translate-y-0' 
+                : 'opacity-0 translate-y-8'
+            }`}
+            style={{ transitionDelay: '100ms' }}
+          >
+            Save more with exclusive discounts and packages
+          </p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6">

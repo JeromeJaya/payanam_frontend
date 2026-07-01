@@ -33,7 +33,7 @@ import FlightBooking from "./booking/FlightBooking/FlightBooking.jsx";
 import HotelBooking from "./booking/HotelBooking/HotelBooking.jsx";
 import TrainBooking from "./booking/TrainBooking/TrainBooking.jsx";
 import VendorDashboard from "./VendorDashboard.jsx";
-import VendorEmailLogin from "./Authentication/vendor/VendorEmailLogin.jsx";
+//import VendorEmailLogin from "./Authentication/vendor/VendorEmailLogin.jsx";
 import TicketDetails from "./booking/BusBooking/TicketDetails.jsx";
 import VendorEmailSignUp from "./Authentication/vendor/VendorEmailSignUp.jsx";
 
@@ -73,8 +73,8 @@ export function Router (){
     <Route path='/hotelbooking' element={<HotelBooking/>}/>  
     <Route path='/trainbooking' element={<TrainBooking/>}/>  
     <Route path='/TicketDetails' element={<TicketDetails/>}/>  
-    <Route path='/vendordashboard' element={<VendorProtectedRoute><VendorDashboard/></VendorProtectedRoute>}/>  
-    <Route path='/VendorEmailLogin' element={<VendorEmailLogin/>}/>  
+    <Route path='/vendordashboard' element={<VendorDashboard/>}/>  
+    {/* <Route path='/VendorEmailLogin' element={<VendorEmailLogin/>}/>   */}
     <Route path='/VendorEmailSignUp' element={<VendorEmailSignUp/>}/>  
 
 

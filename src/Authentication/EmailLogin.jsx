@@ -30,7 +30,12 @@ export function EmailLogin() {
       const response = await api.post("/api/auth/login", { email, password });
       if (response?.data?.success) {
         login(response.data.user);
-        navigate("/MainPage");
+        // Redirect based on user role
+        if (response.data.user.role === "vendor") {
+          navigate("/vendordashboard");
+        } else {
+          navigate("/MainPage");
+        }
       }
     } catch (err) {
       alert(err.response?.data?.message || "Login failed");

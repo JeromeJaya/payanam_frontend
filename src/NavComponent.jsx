@@ -140,7 +140,7 @@ export default function Nav() {
               </button>
             )}
 
-             <button className="rounded-xl bg-lime-50 dark:bg-lime-950/30 text-lime-700 px-4 py-3.5 font-bold" onClick={()=> navigate("/vendoremaillogin")}>
+             <button className="rounded-xl bg-lime-50 dark:bg-lime-950/30 text-lime-700 px-4 py-3.5 font-bold" onClick={()=> navigate("/login")}>
                   Login as vendor
                 </button>
 
