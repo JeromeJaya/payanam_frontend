@@ -7,218 +7,112 @@ import SearchheckBox from "../../filter/SearchheckBox.jsx"
 import SelectBox from "../../filter/SelectBox.jsx"
 import Checkbox from "../../filter/Checkbox.jsx"
 import { useState, useEffect, useMemo } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import api from "../../api/axios.js"
 
 
 export default function FlightBooking(){
 
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const serviceType = location.state?.serviceType || "flight";
   const searchData = location.state?.searchData || {};
-  const [from, setFrom] = useState(searchData.from || "");
-  const [to, setTo] = useState(searchData.to || "");
-  const [acFilter, setAcFilter] = useState("ALL");
-  const [seatType, setSeatType] = useState("ALL");
-  const [pickupTimeFilter, setPickupTimeFilter] = useState("ALL");
-  const [dropTimeFilter, setDropTimeFilter] = useState("ALL");
-  const [selectedPickupPoints, setSelectedPickupPoints] = useState([]);
-  const [selectedDropPoints, setSelectedDropPoints] = useState([]);
-  const [selectedOperators, setSelectedOperators] = useState([]);
-  const [buses, setBuses] = useState([]);
-  const [sortBy, setSortBy] = useState("Relevance");
-  const [date, setDate] = useState(searchData.date || (() => {
+  
+  // Read from query parameters
+  // Flight service uses "departure" field name in SearchBar, other services use "date"
+  const fromParam = searchParams.get('from') || searchData.from || "";
+  const toParam = searchParams.get('to') || searchData.to || "";
+  const dateParam = searchParams.get('date') || searchParams.get('departure') || searchData.date || (() => {
     const d = new Date();
     return d.toISOString().slice(0, 10);
-  })());
+  })();
+  
+  const [from, setFrom] = useState(fromParam);
+  const [to, setTo] = useState(toParam);
+  const [date, setDate] = useState(dateParam);
+  const [flights, setFlights] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [sortBy, setSortBy] = useState("price_low");
+  const [filters, setFilters] = useState({
+    aircraftType: "",
+    hasBusinessClass: "",
+    minPrice: "",
+    maxPrice: "",
+  });
 
-  const getTimeMinutes = (timeValue) => {
-    if (!timeValue) return null;
-    const [hours, minutes] = String(timeValue).split(":").map(Number);
-    if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
-    return hours * 60 + minutes;
-  };
+  const handleFetchFlights = async (searchFrom, searchTo, searchDate) => {
+    // Use passed values or fall back to state
+    const fromVal = searchFrom || from;
+    const toVal = searchTo || to;
+    const dateVal = searchDate || date;
 
-  const matchesTimeRange = (timeValue, rangeLabel) => {
-    if (rangeLabel === "ALL") return true;
-    const minutes = getTimeMinutes(timeValue);
-    if (minutes === null) return false;
+    if (!fromVal || !toVal || !dateVal) {
+      console.warn("Missing required search parameters", { fromVal, toVal, dateVal });
+      return;
+    }
 
-    const ranges = {
-      "12 AM - 6AM": [0, 360],
-      "6 AM - 12 PM": [360, 720],
-      "12 PM - 6 PM": [720, 1080],
-      "6 PM - 12 AM": [1080, 1440],
-    };
-
-    const [start, end] = ranges[rangeLabel] || [0, 1440];
-    return minutes >= start && minutes < end;
-  };
-
-  const handleFetchBus = async (
-    selectedAc = acFilter,
-    selectedSeatType = seatType,
-    selectedPickupTime = pickupTimeFilter,
-    selectedDropTime = dropTimeFilter,
-    selectedBoardingPoints = selectedPickupPoints,
-    selectedDroppingPoints = selectedDropPoints,
-    selectedOperatorNames = selectedOperators,
-    selectedDate = date
-  ) => {
+    setLoading(true);
     try {
-      const params = { from, to, date: selectedDate };
-      if (selectedAc === "AC") params.isAC = "true";
-      if (selectedAc === "NON-AC") params.isAC = "false";
+      const params = { from: fromVal, to: toVal, date: dateVal };
+      
+      // Add optional filters
+      if (filters.aircraftType) params.aircraftType = filters.aircraftType;
+      if (filters.hasBusinessClass) params.hasBusinessClass = filters.hasBusinessClass;
+      if (filters.minPrice) params.minPrice = filters.minPrice;
+      if (filters.maxPrice) params.maxPrice = filters.maxPrice;
+      if (sortBy) params.sortBy = sortBy;
 
-      const res = await api.get("/api/v1/buses/search", { params });
-      let results = res?.data?.data || [];
-      let noofbus = res?.data?.count;
-
-      if (selectedSeatType === "seater") {
-        results = results.filter((schedule) =>
-          schedule.bus?.type?.toLowerCase().includes("seater")
-        );
-      } else if (selectedSeatType === "sleeper") {
-        results = results.filter((schedule) =>
-          schedule.bus?.type?.toLowerCase().includes("sleeper")
-        );
-      }
-
-      if (selectedPickupTime !== "ALL") {
-        results = results.filter((schedule) =>
-          matchesTimeRange(schedule.journey?.departureTime, selectedPickupTime)
-        );
-      }
-
-      if (selectedDropTime !== "ALL") {
-        results = results.filter((schedule) =>
-          matchesTimeRange(schedule.journey?.arrivalTime, selectedDropTime)
-        );
-      }
-
-      if (Array.isArray(selectedBoardingPoints) && selectedBoardingPoints.length > 0) {
-        results = results.filter((schedule) =>
-          Array.isArray(schedule.boardingPoints) &&
-          schedule.boardingPoints.some((bp) => selectedBoardingPoints.includes(bp.name))
-        );
-      }
-
-      if (Array.isArray(selectedDroppingPoints) && selectedDroppingPoints.length > 0) {
-        results = results.filter((schedule) =>
-          Array.isArray(schedule.droppingPoints) &&
-          schedule.droppingPoints.some((dp) => selectedDroppingPoints.includes(dp.name))
-        );
-      }
-
-      if (Array.isArray(selectedOperatorNames) && selectedOperatorNames.length > 0) {
-        results = results.filter((schedule) =>
-          selectedOperatorNames.includes(schedule.operator?.name)
-        );
-      }
-
-      setBuses(results);
+      const res = await api.get("/api/v1/flights/search", { params });
+      console.log("Flight search params:", params);
+      const flightData = res?.data?.data || [];
+      console.log("Flight search results:", flightData);
+      setFlights(flightData);
     } catch (err) {
-      console.error(err);
-      setBuses([]);
+      console.error("Error fetching flights:", err);
+      setFlights([]);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleDateSelect = (selectedDate) => {
     setDate(selectedDate);
-    handleFetchBus(
-      acFilter,
-      seatType,
-      pickupTimeFilter,
-      dropTimeFilter,
-      selectedPickupPoints,
-      selectedDropPoints,
-      selectedOperators,
-      selectedDate
-    );
   };
 
   useEffect(() => {
-    const fetchInitial = async () => {
-      try {
-        const initialFrom = searchData.from || from;
-        const initialTo = searchData.to || to;
-        const initialDate = searchData.date || date;
-        const res = await api.get("/api/v1/buses/search", {
-          params: { from: initialFrom, to: initialTo, date: initialDate },
-        });
-        setBuses(res?.data?.data || []);
-      } catch (err) {
-        console.error(err);
-        setBuses([]);
-      }
-    };
-
-    fetchInitial();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    handleFetchFlights();
   }, []);
 
-  const pickupPointOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          buses.flatMap((schedule) =>
-            (schedule.boardingPoints || []).map((point) => point.name)
-          )
-        )
-      ),
-    [buses]
-  );
-
-  const dropPointOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          buses.flatMap((schedule) =>
-            (schedule.droppingPoints || []).map((point) => point.name)
-          )
-        )
-      ),
-    [buses]
-  );
-
-  const operatorOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          buses
-            .map((schedule) => schedule.operator?.name)
-            .filter(Boolean)
-        )
-      ),
-    [buses]
-  );
-
-  const sortedBuses = useMemo(() => {
-    const sorted = [...buses];
-
-    if (sortBy === "Rating") {
-      sorted.sort((a, b) => (b.bus?.rating || 0) - (a.bus?.rating || 0));
-    } else if (sortBy === "Price") {
-      sorted.sort((a, b) => (a.pricing?.calculatedFare || a.pricing?.baseFare) - (b.pricing?.calculatedFare || b.pricing?.baseFare));
-    } else if (sortBy === "Fastest") {
-      sorted.sort((a, b) => {
-        const durationA = getTimeMinutes(a.journey?.arrivalTime) - getTimeMinutes(a.journey?.departureTime);
-        const durationB = getTimeMinutes(b.journey?.arrivalTime) - getTimeMinutes(b.journey?.departureTime);
-        return durationA - durationB;
-      });
-    } else if (sortBy === "Departure") {
-      sorted.sort((a, b) => a.journey?.departureTime.localeCompare(b.journey?.departureTime));
-    } else if (sortBy === "Arrival") {
-      sorted.sort((a, b) => a.journey?.arrivalTime.localeCompare(b.journey?.arrivalTime));
+  useEffect(() => {
+    if (from && to && date) {
+      handleFetchFlights();
     }
+  }, [sortBy, filters]);
 
-    return sorted;
-  }, [buses, sortBy]);
-
-  const handleSortSelect = (option) => {
-    setSortBy(option);
+  const handleSortChange = (newSortBy) => {
+    setSortBy(newSortBy);
   };
 
-  console.log(buses);
+  const handleFilterChange = (filterName, value) => {
+    setFilters(prev => ({ ...prev, [filterName]: value }));
+  };
+
+  // Get unique airlines for filter
+  const airlineOptions = useMemo(() => {
+    return Array.from(new Set(flights.map(f => f.flight?.airlineName || f.operator?.name).filter(Boolean)));
+  }, [flights]);
+
+  // Get unique aircraft types for filter
+  const aircraftTypeOptions = useMemo(() => {
+    return Array.from(new Set(flights.map(f => f.flight?.aircraftType || f.aircraft?.type).filter(Boolean)));
+  }, [flights]);
+
+  // Get price range
+  const priceRange = useMemo(() => {
+    if (flights.length === 0) return { min: 0, max: 0 };
+    const prices = flights.map(f => f.pricing?.calculatedFare || f.pricing?.baseFare || 0);
+    return { min: Math.min(...prices), max: Math.max(...prices) };
+  }, [flights]);
   return (
     <>
       <Nav />
@@ -226,150 +120,62 @@ export default function FlightBooking(){
         <WhereToWhere
           className="shadow-xl sticky top-20"
           from={from}
-          setFrom={setFrom}
           to={to}
-          setTo={setTo}
           date={date}
-          setDate={setDate}
+          onFromChange={setFrom}
+          onToChange={setTo}
+          onDateChange={setDate}
           searchData={searchData}
-          handleFetchBus={handleFetchBus}
+          handleFetchFlights={handleFetchFlights}
+          serviceType={serviceType}
         />
         <div className="bg-mist-50 h-auto my-5 mx-[100px] flex">
                 <div className = "filter bg-white-200 w-[25%] h-auto rounded-lg shadow-xl">
                     <div className = "flex justify-center mt-5 font-bold">FILTERS</div>
                   
                     <SelectBox
-                      text={["ALL", "12 AM - 6AM", "6 AM - 12 PM", "12 PM - 6 PM", "6 PM - 12 AM"]}
-                      title = {"Pick up time - Hyderabad, Telangana"}
-                      value={pickupTimeFilter}
-                      onChange={(option) => {
-                        setPickupTimeFilter(option);
-                        handleFetchBus(acFilter, seatType, option, dropTimeFilter, selectedPickupPoints, selectedDropPoints);
-                      }}
+                      text={["", "AIRBUS_A320", "AIRBUS_A321", "BOEING_737", "BOEING_777", "BOEING_787", "ATR_72", "EMBRAER_E175"]}
+                      title="Aircraft Type"
+                      value={filters.aircraftType}
+                      onChange={(option) => handleFilterChange("aircraftType", option)}
                     />
                     <SelectBox
-                      text={["ALL", "12 AM - 6AM", "6 AM - 12 PM", "12 PM - 6 PM", "6 PM - 12 AM"]}
-                      title ="Drop time - Bangalore, Karnataka"
-                      value={dropTimeFilter}
-                      onChange={(option) => {
-                        setDropTimeFilter(option);
-                        handleFetchBus(acFilter, seatType, pickupTimeFilter, option, selectedPickupPoints, selectedDropPoints);
-                      }}
+                      text={["", "true", "false"]}
+                      title="Business Class"
+                      value={filters.hasBusinessClass}
+                      onChange={(option) => handleFilterChange("hasBusinessClass", option)}
                     />
-                    <Checkbox title={"Single Seater/Sleeper"} text={"Single Seats"} />
+                    <Checkbox title="Price Range" text={`₹${priceRange.min} - ₹${priceRange.max}`} />
                     <SearchheckBox
-                      title={"Popular Filters"}
-                      text={[" Non Stop ", "Hide Nearby Airports ", "IndiGo ",  " Air India ", "Morning Departures ", " Late Departures ",  "AfterNoon Departure ", " Early Morning Departures "]}
-                      selectedPoints={selectedPickupPoints}
-                      onChange={(point) => {
-                        const next = selectedPickupPoints.includes(point)
-                          ? selectedPickupPoints.filter((name) => name !== point)
-                          : [...selectedPickupPoints, point];
-                        setSelectedPickupPoints(next);
-                        handleFetchBus(acFilter, seatType, pickupTimeFilter, dropTimeFilter, next, selectedDropPoints);
-                      }}
-                      onClear={() => {
-                        setSelectedPickupPoints([]);
-                        handleFetchBus(acFilter, seatType, pickupTimeFilter, dropTimeFilter, [], selectedDropPoints);
-                      }}
+                      title="Airlines"
+                      text={airlineOptions}
+                      selectedPoints={[]}
+                      onChange={() => {}}
+                      onClear={() => {}}
                     />
                     <SearchheckBox
-                      title={"Departure Airports"}
-                      text={pickupPointOptions}
-                      selectedPoints={selectedPickupPoints}
-                      onChange={(point) => {
-                        const next = selectedPickupPoints.includes(point)
-                          ? selectedPickupPoints.filter((name) => name !== point)
-                          : [...selectedPickupPoints, point];
-                        setSelectedPickupPoints(next);
-                        handleFetchBus(acFilter, seatType, pickupTimeFilter, dropTimeFilter, next, selectedDropPoints);
-                      }}
-                      onClear={() => {
-                        setSelectedPickupPoints([]);
-                        handleFetchBus(acFilter, seatType, pickupTimeFilter, dropTimeFilter, [], selectedDropPoints);
-                      }}
-                    />
-                    <SearchheckBox
-                      title={"Arrival Airports"}
-                      text={operatorOptions}
-                      selectedPoints={selectedOperators}
-                      onChange={(point) => {
-                        const next = selectedOperators.includes(point)
-                          ? selectedOperators.filter((name) => name !== point)
-                          : [...selectedOperators, point];
-                        setSelectedOperators(next);
-                        handleFetchBus(acFilter, seatType, pickupTimeFilter, dropTimeFilter, selectedPickupPoints, selectedDropPoints, next);
-                      }}
-                      onClear={() => {
-                        setSelectedOperators([]);
-                        handleFetchBus(acFilter, seatType, pickupTimeFilter, dropTimeFilter, selectedPickupPoints, selectedDropPoints, []);
-                      }}
-                    />
-                    <SearchheckBox
-                      title={"Stops"}
-                      text={dropPointOptions}
-                      selectedPoints={selectedDropPoints}
-                      onChange={(point) => {
-                        const next = selectedDropPoints.includes(point)
-                          ? selectedDropPoints.filter((name) => name !== point)
-                          : [...selectedDropPoints, point];
-                        setSelectedDropPoints(next);
-                        handleFetchBus(acFilter, seatType, pickupTimeFilter, dropTimeFilter, selectedPickupPoints, next, selectedOperators);
-                      }}
-                      onClear={() => {
-                        setSelectedDropPoints([]);
-                        handleFetchBus(acFilter, seatType, pickupTimeFilter, dropTimeFilter, selectedPickupPoints, [], selectedOperators);
-                      }}
-                    />
-                    <SearchheckBox
-                      title={"Airlines"}
-                      text={pickupPointOptions}
-                      selectedPoints={selectedPickupPoints}
-                      onChange={(point) => {
-                        const next = selectedPickupPoints.includes(point)
-                          ? selectedPickupPoints.filter((name) => name !== point)
-                          : [...selectedPickupPoints, point];
-                        setSelectedPickupPoints(next);
-                        handleFetchBus(acFilter, seatType, pickupTimeFilter, dropTimeFilter, next, selectedDropPoints);
-                      }}
-                      onClear={() => {
-                        setSelectedPickupPoints([]);
-                        handleFetchBus(acFilter, seatType, pickupTimeFilter, dropTimeFilter, [], selectedDropPoints);
-                      }}
-                    />
-                    <SearchheckBox
-                      title={"Aircraft Size"}
-                      text={pickupPointOptions}
-                      selectedPoints={selectedPickupPoints}
-                      onChange={(point) => {
-                        const next = selectedPickupPoints.includes(point)
-                          ? selectedPickupPoints.filter((name) => name !== point)
-                          : [...selectedPickupPoints, point];
-                        setSelectedPickupPoints(next);
-                        handleFetchBus(acFilter, seatType, pickupTimeFilter, dropTimeFilter, next, selectedDropPoints);
-                      }}
-                      onClear={() => {
-                        setSelectedPickupPoints([]);
-                        handleFetchBus(acFilter, seatType, pickupTimeFilter, dropTimeFilter, [], selectedDropPoints);
-                      }}
+                      title="Aircraft Size"
+                      text={aircraftTypeOptions}
+                      selectedPoints={[]}
+                      onChange={() => {}}
+                      onClear={() => {}}
                     />
                 </div>
                 <div className = "bg-neutral-200 w-[80%] ml-[2%] px-5 rounded-lg shadow-xl flex flex-col">
                     <div className = "bg-white w-full h-auto my-5 rounded-3xl shadow-xl">
-                        <FlightFareSelector/>
+                        <FlightFareSelector sortBy={sortBy} onSortChange={handleSortChange} />
                     </div>
-                    {/* {Array.isArray(sortedBuses) && sortedBuses.length > 0 ? (
-                      sortedBuses.map((schedule) => (
-                        <div key={schedule.scheduleId} className="bg-white w-full h-auto mb-3 rounded-3xl shadow-xl">
-                         <FlightCard/>
+                    {loading ? (
+                      <div className="p-8 text-center text-gray-600">Loading flights...</div>
+                    ) : Array.isArray(flights) && flights.length > 0 ? (
+                      flights.map((flight) => (
+                        <div key={flight.scheduleId || flight.id || flight.flightNumber} className="bg-white w-full h-auto mb-3 rounded-3xl shadow-xl">
+                         <FlightCard flight={flight} />
                         </div>
                       ))
                     ) : (
-                      <div className="p-8 text-center text-gray-600">No buses found for the selected route and date.</div>
-                    )} */}
-                    <FlightCard/>
-                     <FlightCard/>
-                      <FlightCard/>
+                      <div className="p-8 text-center text-gray-600">No flights found for the selected route and date.</div>
+                    )}
                 </div>
             </div>
         </div>

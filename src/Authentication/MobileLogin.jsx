@@ -9,12 +9,53 @@ import {Link} from "react-router-dom"
 export function MobileLogin() {
     const [show, setShow] = useState(false);
     const [showEmailLogin, setShowEmailLogin] = useState(false);
+    const [phoneNumber, setPhoneNumber] = useState("");
+    const [phoneError, setPhoneError] = useState("");
 
   useEffect(() => {
     setShow(true);
   }, []);
 
   if (showEmailLogin) return <EmailLogin />;
+
+  // Indian phone number validation (10 digits starting with 6-9)
+  const validatePhoneNumber = (phone) => {
+    const phoneRegex = /^[6-9]\d{9}$/;
+    if (!phone) {
+      return "Phone number is required";
+    } else if (!phoneRegex.test(phone)) {
+      return "Please enter a valid 10-digit Indian mobile number (starting with 6-9)";
+    }
+    return "";
+  };
+
+  const handlePhoneChange = (e) => {
+    const value = e.target.value;
+    // Allow only numbers and limit to 10 digits
+    const numericValue = value.replace(/\D/g, "").slice(0, 10);
+    setPhoneNumber(numericValue);
+    
+    // Validate on change
+    if (numericValue.length === 10) {
+      const error = validatePhoneNumber(numericValue);
+      setPhoneError(error);
+    } else if (numericValue.length > 0) {
+      setPhoneError(`Please enter ${10 - numericValue.length} more digit(s)`);
+    } else {
+      setPhoneError("");
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const error = validatePhoneNumber(phoneNumber);
+    if (error) {
+      setPhoneError(error);
+      return;
+    }
+    // Proceed with OTP request
+    alert(`OTP sent to ${phoneNumber}`);
+  };
 
   return (
     <>
@@ -46,7 +87,7 @@ export function MobileLogin() {
         <p className="text-gray-600 dark:text-gray-400 mt-2">Sign in to your account</p>
       </div>
 
-      <form className="space-y-6">
+      <form className="space-y-6" onSubmit={handleSubmit}>
         <div>
           <label htmlFor="MobileNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Mobile Number
@@ -54,11 +95,31 @@ export function MobileLogin() {
           <input
             id="MobileNumber"
             name="MobileNumber"
-            type="Number"
+            type="tel"
             required
-            className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-400 focus:border-lime-500 dark:focus:border-lime-400 outline-none transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
-            placeholder=".........."
+            value={phoneNumber}
+            onChange={handlePhoneChange}
+            className={`w-full px-4 py-3 bg-white dark:bg-gray-700 border ${
+              phoneError ? "border-red-500" : "border-gray-300 dark:border-gray-600"
+            } rounded-lg focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-400 focus:border-lime-500 dark:focus:border-lime-400 outline-none transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400`}
+            placeholder="Enter 10-digit mobile number"
           />
+          {phoneError && (
+            <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              {phoneError}
+            </p>
+          )}
+          {!phoneError && phoneNumber.length === 10 && (
+            <p className="mt-2 text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              Valid mobile number
+            </p>
+          )}
         </div>
 
 

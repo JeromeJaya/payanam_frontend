@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import api from "../api/axios";
 import { X, Plus, Trash2, MapPin } from "lucide-react";
 
@@ -15,6 +15,18 @@ export default function CreateRouteForm({ buses, onClose, onSuccess }) {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  
+  // City suggestions state
+  const [sourceSuggestions, setSourceSuggestions] = useState([]);
+  const [destSuggestions, setDestSuggestions] = useState([]);
+  const [showSourceSuggestions, setShowSourceSuggestions] = useState(false);
+  const [showDestSuggestions, setShowDestSuggestions] = useState(false);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  
+  const sourceRef = useRef(null);
+  const destRef = useRef(null);
+  const sourceDebounceTimer = useRef(null);
+  const destDebounceTimer = useRef(null);
 
   // Only show ACTIVE buses
   const activeBuses = buses.filter(b => b.status === "ACTIVE");
@@ -55,20 +67,115 @@ export default function CreateRouteForm({ buses, onClose, onSuccess }) {
     });
   };
 
+  const fetchCitySuggestions = async (query, type) => {
+    if (!query || query.length < 2) {
+      if (type === 'source') {
+        setSourceSuggestions([]);
+        setShowSourceSuggestions(false);
+      } else {
+        setDestSuggestions([]);
+        setShowDestSuggestions(false);
+      }
+      return;
+    }
+
+    setLoadingSuggestions(true);
+    try {
+      const response = await api.get(`/api/v1/places/search?q=${encodeURIComponent(query)}`);
+      if (response.data?.success) {
+        const suggestions = response.data.data.slice(0, 5);
+        if (type === 'source') {
+          setSourceSuggestions(suggestions);
+          setShowSourceSuggestions(suggestions.length > 0);
+        } else {
+          setDestSuggestions(suggestions);
+          setShowDestSuggestions(suggestions.length > 0);
+        }
+      }
+    } catch (err) {
+      console.error(`Error fetching ${type} suggestions:`, err);
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
+
+  const handleSourceCityChange = (e) => {
+    const value = e.target.value;
+    setFormData(prev => ({ ...prev, source: { ...prev.source, city: value } }));
+    
+    if (sourceDebounceTimer.current) {
+      clearTimeout(sourceDebounceTimer.current);
+    }
+    
+    sourceDebounceTimer.current = setTimeout(() => {
+      fetchCitySuggestions(value, 'source');
+    }, 300);
+  };
+
+  const handleDestCityChange = (e) => {
+    const value = e.target.value;
+    setFormData(prev => ({ ...prev, destination: { ...prev.destination, city: value } }));
+    
+    if (destDebounceTimer.current) {
+      clearTimeout(destDebounceTimer.current);
+    }
+    
+    destDebounceTimer.current = setTimeout(() => {
+      fetchCitySuggestions(value, 'destination');
+    }, 300);
+  };
+
+  const selectSourceCity = (city) => {
+    setFormData(prev => ({ ...prev, source: { city: city.name, state: city.state } }));
+    setShowSourceSuggestions(false);
+  };
+
+  const selectDestCity = (city) => {
+    setFormData(prev => ({ ...prev, destination: { city: city.name, state: city.state } }));
+    setShowDestSuggestions(false);
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     if (name === "sourceCity") {
-      setFormData(prev => ({ ...prev, source: { ...prev.source, city: value } }));
+      handleSourceCityChange(e);
     } else if (name === "sourceState") {
       setFormData(prev => ({ ...prev, source: { ...prev.source, state: value } }));
     } else if (name === "destCity") {
-      setFormData(prev => ({ ...prev, destination: { ...prev.destination, city: value } }));
+      handleDestCityChange(e);
     } else if (name === "destState") {
       setFormData(prev => ({ ...prev, destination: { ...prev.destination, state: value } }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
   };
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (sourceRef.current && !sourceRef.current.contains(event.target)) {
+        setShowSourceSuggestions(false);
+      }
+      if (destRef.current && !destRef.current.contains(event.target)) {
+        setShowDestSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Cleanup debounce timers
+  useEffect(() => {
+    return () => {
+      if (sourceDebounceTimer.current) {
+        clearTimeout(sourceDebounceTimer.current);
+      }
+      if (destDebounceTimer.current) {
+        clearTimeout(destDebounceTimer.current);
+      }
+    };
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -184,7 +291,7 @@ export default function CreateRouteForm({ buses, onClose, onSuccess }) {
               Route Endpoints
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-3 p-4 bg-slate-50 rounded-xl">
+              <div className="space-y-3 p-4 bg-slate-50 rounded-xl relative" ref={sourceRef}>
                 <div className="flex items-center gap-2 text-sm font-bold text-lime-700">
                   <MapPin className="w-4 h-4" />
                   Source
@@ -197,7 +304,29 @@ export default function CreateRouteForm({ buses, onClose, onSuccess }) {
                   required
                   placeholder="City (e.g., Chennai)"
                   className="w-full px-3 py-2 border-2 border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-lime-400 focus:border-transparent"
+                  autoComplete="off"
                 />
+                {showSourceSuggestions && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
+                    {loadingSuggestions ? (
+                      <div className="px-4 py-3 text-sm text-slate-500 text-center">Loading...</div>
+                    ) : sourceSuggestions.length > 0 ? (
+                      sourceSuggestions.map((city, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() => selectSourceCity(city)}
+                          className="w-full text-left px-4 py-2 hover:bg-lime-50 transition-colors border-b border-slate-100 last:border-b-0"
+                        >
+                          <div className="text-sm font-semibold text-slate-900">{city.name}</div>
+                          <div className="text-xs text-slate-500">{city.state}</div>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-4 py-3 text-sm text-slate-500 text-center">No results found</div>
+                    )}
+                  </div>
+                )}
                 <input
                   type="text"
                   name="sourceState"
@@ -208,7 +337,7 @@ export default function CreateRouteForm({ buses, onClose, onSuccess }) {
                   className="w-full px-3 py-2 border-2 border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-lime-400 focus:border-transparent"
                 />
               </div>
-              <div className="space-y-3 p-4 bg-slate-50 rounded-xl">
+              <div className="space-y-3 p-4 bg-slate-50 rounded-xl relative" ref={destRef}>
                 <div className="flex items-center gap-2 text-sm font-bold text-red-700">
                   <MapPin className="w-4 h-4" />
                   Destination
@@ -221,7 +350,29 @@ export default function CreateRouteForm({ buses, onClose, onSuccess }) {
                   required
                   placeholder="City (e.g., Bangalore)"
                   className="w-full px-3 py-2 border-2 border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-lime-400 focus:border-transparent"
+                  autoComplete="off"
                 />
+                {showDestSuggestions && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
+                    {loadingSuggestions ? (
+                      <div className="px-4 py-3 text-sm text-slate-500 text-center">Loading...</div>
+                    ) : destSuggestions.length > 0 ? (
+                      destSuggestions.map((city, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() => selectDestCity(city)}
+                          className="w-full text-left px-4 py-2 hover:bg-lime-50 transition-colors border-b border-slate-100 last:border-b-0"
+                        >
+                          <div className="text-sm font-semibold text-slate-900">{city.name}</div>
+                          <div className="text-xs text-slate-500">{city.state}</div>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-4 py-3 text-sm text-slate-500 text-center">No results found</div>
+                    )}
+                  </div>
+                )}
                 <input
                   type="text"
                   name="destState"

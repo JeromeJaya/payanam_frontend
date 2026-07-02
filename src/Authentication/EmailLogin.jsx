@@ -16,16 +16,48 @@ export function EmailLogin() {
     const navigate = useNavigate();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [emailError, setEmailError] = useState("");
     const { login } = useAuth();
-
 
   useEffect(() => {
     setShow(true);
   }, []);
   if (showMobileLogin) return <MobileLogin />; 
 
+  // Email validation
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) {
+      return "Email is required";
+    } else if (!emailRegex.test(email)) {
+      return "Please enter a valid email address";
+    }
+    return "";
+  };
+
+  const handleEmailChange = (e) => {
+    const value = e.target.value.toLowerCase(); // Convert to lowercase
+    setEmail(value);
+    
+    // Validate on change
+    if (value.length > 0) {
+      const error = validateEmail(value);
+      setEmailError(error);
+    } else {
+      setEmailError("");
+    }
+  };
+
   async function handleSubmit(event) {
     event.preventDefault();
+    
+    // Validate email before submission
+    const error = validateEmail(email);
+    if (error) {
+      setEmailError(error);
+      return;
+    }
+    
     try {
       const response = await api.post("/api/auth/login", { email, password });
       if (response?.data?.success) {
@@ -40,8 +72,6 @@ export function EmailLogin() {
     } catch (err) {
       alert(err.response?.data?.message || "Login failed");
     }
-
-
   }
   return (
     <>
@@ -86,12 +116,29 @@ export function EmailLogin() {
             type="email"
             autoComplete="email"
             required
-            className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg 
-            focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-400 focus:border-lime-500 dark:focus:border-lime-400 outline-none
-             transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+            value={email}
+            onChange={handleEmailChange}
+            className={`w-full px-4 py-3 bg-white dark:bg-gray-700 border ${
+              emailError ? "border-red-500" : "border-gray-300 dark:border-gray-600"
+            } rounded-lg focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-400 focus:border-lime-500 dark:focus:border-lime-400 outline-none transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400`}
             placeholder="example@gmail.com"
-            onChange={(e) => setEmail(e.target.value)}
           />
+          {emailError && (
+            <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              {emailError}
+            </p>
+          )}
+          {!emailError && email.length > 0 && (
+            <p className="mt-2 text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              Valid email address
+            </p>
+          )}
         </div>
 
         <div>

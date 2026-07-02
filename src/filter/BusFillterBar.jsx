@@ -1,6 +1,9 @@
+import { useState } from "react";
 import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
 
 export default function BusFilterBar({ NoOfBus = 0, selectedDate, onDateSelect, selectedSort, onSortSelect }) {
+  const [dateOffset, setDateOffset] = useState(0);
+  
   const monthNames = [
     "Jan",
     "Feb",
@@ -19,15 +22,24 @@ export default function BusFilterBar({ NoOfBus = 0, selectedDate, onDateSelect, 
 
   const base = selectedDate ? new Date(selectedDate) : new Date();
   base.setHours(0, 0, 0, 0);
+  base.setDate(base.getDate() + dateOffset);
 
   const dates = Array.from({ length: 8 }, (_, index) => {
     const current = new Date(base);
     current.setDate(base.getDate() + index);
     return {
       label: `${String(current.getDate()).padStart(2, "0")} ${monthNames[current.getMonth()]}, ${dayNames[current.getDay()]}`,
-      value: current.toISOString().slice(0, 10),
+      value: `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, "0")}-${String(current.getDate()).padStart(2, "0")}`,
     };
   });
+
+  const handlePrevious = () => {
+    setDateOffset(prev => prev - 8);
+  };
+
+  const handleNext = () => {
+    setDateOffset(prev => prev + 8);
+  };
 
   const sortOptions = [
     "Relevance",
@@ -42,7 +54,10 @@ export default function BusFilterBar({ NoOfBus = 0, selectedDate, onDateSelect, 
     <div className="w-full bg-white rounded-3xl overflow-hidden shadow-sm">
       {/* Date Slider */}
       <div className="flex items-center ">
-        <button className="p-6 ">
+        <button 
+          onClick={handlePrevious}
+          className="p-6 hover:bg-gray-100 rounded-full transition"
+        >
           <ChevronLeft className="text-blue-500" />
         </button>
 
@@ -62,7 +77,10 @@ export default function BusFilterBar({ NoOfBus = 0, selectedDate, onDateSelect, 
           })}
         </div>
 
-        <button className="p-6">
+        <button 
+          onClick={handleNext}
+          className="p-6 hover:bg-gray-100 rounded-full transition"
+        >
           <ChevronRight className="text-blue-500" />
         </button>
       </div>

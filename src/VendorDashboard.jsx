@@ -77,6 +77,8 @@ export default function VendorDashboard() {
   const [viewRoutesBus, setViewRoutesBus] = useState(null);
   const [buses, setBuses] = useState([]);
   const [busesLoading, setBusesLoading] = useState(false);
+  const [routes, setRoutes] = useState([]);
+  const [routesLoading, setRoutesLoading] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -84,6 +86,26 @@ export default function VendorDashboard() {
   const [searchResultBusId, setSearchResultBusId] = useState(null);
   const [searchError, setSearchError] = useState("");
   const [searching, setSearching] = useState(false);
+  const [dashboardData, setDashboardData] = useState(null);
+  const [dashboardLoading, setDashboardLoading] = useState(true);
+  const [scheduleCategory, setScheduleCategory] = useState(null);
+  const [showScheduleForm, setShowScheduleForm] = useState(false);
+  const [scheduleFormData, setScheduleFormData] = useState({
+    busId: "",
+    routeId: "",
+    departureDate: "",
+    departureTime: "",
+    arrivalTime: "",
+    baseFare: "",
+    boardingPoints: [{ city: "", name: "", address: "", time: "", landmark: "" }],
+    droppingPoints: [{ city: "", name: "", address: "", time: "", landmark: "" }],
+    cancellationPolicy: [{ hoursBeforeDeparture: 24, refundPercentage: 75 }]
+  });
+  const [scheduleLoading, setScheduleLoading] = useState(false);
+  const [scheduleSuccess, setScheduleSuccess] = useState(null);
+  const [scheduleError, setScheduleError] = useState("");
+  const [busRoutes, setBusRoutes] = useState([]);
+  const [busRoutesLoading, setBusRoutesLoading] = useState(false);
   const searchInputRef = useRef(null);
 
   const handleSearch = async () => {
@@ -112,7 +134,7 @@ export default function VendorDashboard() {
       if (err.response?.status === 404) {
         setSearchError(`No ${searchServiceType} found with ID: "${q}"`);
       } else {
-        setSearchError(err.response?.data?.message || `Failed to search ${searchServiceType}`);
+        setSearchError(err.response?.data?.errors || `Failed to search ${searchServiceType}`);
       }
       setSearchResultBusId(null);
     } finally {
@@ -146,6 +168,34 @@ export default function VendorDashboard() {
     }
   };
 
+  const fetchRoutes = async () => {
+    setRoutesLoading(true);
+    try {
+      const response = await api.get("/api/v1/routes");
+      if (response.data.success) {
+        setRoutes(response.data.data);
+      }
+    } catch (err) {
+      console.error("Error fetching routes:", err);
+    } finally {
+      setRoutesLoading(false);
+    }
+  };
+
+  const fetchDashboardData = async () => {
+    setDashboardLoading(true);
+    try {
+      const response = await api.get("/api/users/vendor/dashboard");
+      if (response.data.success) {
+        setDashboardData(response.data.data);
+      }
+    } catch (err) {
+      console.error("Error fetching dashboard data:", err);
+    } finally {
+      setDashboardLoading(false);
+    }
+  };
+
   // When search finds a bus, open the detail modal
   useEffect(() => {
     if (searchResultBusId) {
@@ -157,6 +207,8 @@ export default function VendorDashboard() {
   useEffect(() => {
     if (user && user.role === "vendor") {
       fetchBuses();
+      fetchRoutes();
+      fetchDashboardData();
     }
   }, [user]);
 
@@ -190,10 +242,132 @@ export default function VendorDashboard() {
     setBuses(prev => [newBus, ...prev]);
   };
 
-  const stats = [
-    { label: "Total Buses", value: buses.length.toString(), change: "", icon: Bus, color: "lime" },
-    { label: "Active Buses", value: buses.filter(b => b.status === "ACTIVE").length.toString(), change: "", icon: Calendar, color: "emerald" },
-    { label: "Total Bookings", value: "—", change: "", icon: DollarSign, color: "green" },
+  const handleScheduleSubmit = async (e) => {
+    e.preventDefault();
+    setScheduleLoading(true);
+    setScheduleError("");
+    setScheduleSuccess(null);
+
+    try {
+      const payload = {
+        ...scheduleFormData,
+        baseFare: parseFloat(scheduleFormData.baseFare),
+        boardingPoints: scheduleFormData.boardingPoints.filter(p => p.city && p.name),
+        droppingPoints: scheduleFormData.droppingPoints.filter(p => p.city && p.name),
+      };
+
+      const response = await api.post("/api/v1/buses/schedules", payload);
+      
+      if (response.data.success) {
+        setScheduleSuccess("Schedule created successfully!");
+        setShowScheduleForm(false);
+        setScheduleFormData({
+          busId: "",
+          routeId: "",
+          departureDate: "",
+          departureTime: "",
+          arrivalTime: "",
+          baseFare: "",
+          boardingPoints: [{ city: "", name: "", address: "", time: "", landmark: "" }],
+          droppingPoints: [{ city: "", name: "", address: "", time: "", landmark: "" }],
+          cancellationPolicy: [{ hoursBeforeDeparture: 24, refundPercentage: 75 }]
+        });
+        
+        // Refresh dashboard data
+        fetchDashboardData();
+      }
+    } catch (err) {
+      setScheduleError(err.response?.data?.message || "Failed to create schedule");
+    } finally {
+      setScheduleLoading(false);
+    }
+  };
+
+  const fetchBusRoutes = async (busId) => {
+    if (!busId) {
+      setBusRoutes([]);
+      return;
+    }
+
+    setBusRoutesLoading(true);
+    try {
+      const response = await api.get(`/api/v1/buses/${busId}/routes`);
+      if (response.data.success) {
+        setBusRoutes(response.data.data);
+      }
+    } catch (err) {
+      console.error("Error fetching bus routes:", err);
+      setBusRoutes([]);
+    } finally {
+      setBusRoutesLoading(false);
+    }
+  };
+
+  const addBoardingPoint = () => {
+    setScheduleFormData(prev => ({
+      ...prev,
+      boardingPoints: [...prev.boardingPoints, { city: "", name: "", address: "", time: "", landmark: "" }]
+    }));
+  };
+
+  const addDroppingPoint = () => {
+    setScheduleFormData(prev => ({
+      ...prev,
+      droppingPoints: [...prev.droppingPoints, { city: "", name: "", address: "", time: "", landmark: "" }]
+    }));
+  };
+
+  const updateBoardingPoint = (index, field, value) => {
+    setScheduleFormData(prev => ({
+      ...prev,
+      boardingPoints: prev.boardingPoints.map((point, i) => 
+        i === index ? { ...point, [field]: value } : point
+      )
+    }));
+  };
+
+  const updateDroppingPoint = (index, field, value) => {
+    setScheduleFormData(prev => ({
+      ...prev,
+      droppingPoints: prev.droppingPoints.map((point, i) => 
+        i === index ? { ...point, [field]: value } : point
+      )
+    }));
+  };
+
+  const stats = dashboardData ? [
+    { 
+      label: "Total Buses", 
+      value: dashboardData.buses.total.toString(), 
+      change: `${dashboardData.buses.active} active`, 
+      icon: Bus, 
+      color: "lime" 
+    },
+    { 
+      label: "Total Flights", 
+      value: dashboardData.flights.total.toString(), 
+      change: `${dashboardData.flights.active} active`, 
+      icon: Plane, 
+      color: "sky" 
+    },
+    { 
+      label: "Confirmed Bookings", 
+      value: dashboardData.bookings.confirmed.toString(), 
+      change: "", 
+      icon: Calendar, 
+      color: "green" 
+    },
+    { 
+      label: "Total Revenue", 
+      value: `₹${dashboardData.revenue.total.toLocaleString('en-IN')}`, 
+      change: "", 
+      icon: TrendingUp, 
+      color: "teal" 
+    },
+  ] : [
+    { label: "Total Buses", value: "—", change: "", icon: Bus, color: "lime" },
+    { label: "Total Flights", value: "—", change: "", icon: Plane, color: "sky" },
+    { label: "Confirmed Bookings", value: "—", change: "", icon: Calendar, color: "green" },
     { label: "Total Revenue", value: "—", change: "", icon: TrendingUp, color: "teal" },
   ];
 
@@ -209,6 +383,7 @@ export default function VendorDashboard() {
     emerald: "from-emerald-500 to-emerald-600",
     green: "from-green-500 to-green-600",
     teal: "from-teal-500 to-teal-600",
+    sky: "from-sky-500 to-sky-600",
   };
 
   const renderServiceCategoryGrid = () => (
@@ -469,42 +644,57 @@ export default function VendorDashboard() {
           )}
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat, idx) => {
-            const Icon = stat.icon;
-            return (
-              <div 
-                key={idx}
-                className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${colorClasses[stat.color]} flex items-center justify-center shadow-lg`}>
-                    <Icon className="w-6 h-6 text-white" />
-                  </div>
-                  {stat.change && (
-                    <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                      {stat.change}
-                    </span>
-                  )}
-                </div>
-                <h3 className="text-2xl font-black text-slate-900 mb-1">{stat.value}</h3>
-                <p className="text-sm text-slate-600">{stat.label}</p>
-              </div>
-            );
-          })}
-        </div>
+         {/* Stats Grid */}
+         {dashboardLoading ? (
+           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+             {[1, 2, 3, 4].map((i) => (
+               <div key={i} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                 <div className="flex items-center justify-between mb-4">
+                   <div className="w-12 h-12 rounded-xl bg-slate-200 animate-pulse"></div>
+                 </div>
+                 <div className="h-8 bg-slate-200 rounded animate-pulse mb-2"></div>
+                 <div className="h-4 bg-slate-200 rounded animate-pulse w-24"></div>
+               </div>
+             ))}
+           </div>
+         ) : (
+           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+             {stats.map((stat, idx) => {
+               const Icon = stat.icon;
+               return (
+                 <div 
+                   key={idx}
+                   className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300"
+                 >
+                   <div className="flex items-center justify-between mb-4">
+                     <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${colorClasses[stat.color]} flex items-center justify-center shadow-lg`}>
+                       <Icon className="w-6 h-6 text-white" />
+                     </div>
+                     {stat.change && (
+                       <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                         {stat.change}
+                       </span>
+                     )}
+                   </div>
+                   <h3 className="text-2xl font-black text-slate-900 mb-1">{stat.value}</h3>
+                   <p className="text-sm text-slate-600">{stat.label}</p>
+                 </div>
+               );
+             })}
+           </div>
+         )}
 
         {/* Tabs */}
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm mb-8">
           <div className="border-b border-slate-200 px-6">
             <nav className="flex gap-8">
-              {["overview", "bookings", "routes", "services", "analytics"].map((tab) => (
+              {["overview", "bookings", "routes", "services", "schedule", "analytics"].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => {
                     setActiveTab(tab);
                     setSelectedCategory(null);
+                    setScheduleCategory(null);
                   }}
                   className={`py-4 text-sm font-bold capitalize border-b-2 transition-all duration-200 ${
                     activeTab === tab
@@ -521,65 +711,133 @@ export default function VendorDashboard() {
           <div className="p-6">
             {activeTab === "overview" && (
               <div className="space-y-6">
-                <h3 className="text-xl font-bold text-slate-900">Recent Bookings</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-slate-200">
-                        <th className="text-left py-3 px-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Booking ID</th>
-                        <th className="text-left py-3 px-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Customer</th>
-                        <th className="text-left py-3 px-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Service</th>
-                        <th className="text-left py-3 px-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Route</th>
-                        <th className="text-left py-3 px-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Amount</th>
-                        <th className="text-left py-3 px-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Status</th>
-                        <th className="text-left py-3 px-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Date</th>
-                        <th className="text-left py-3 px-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {recentBookings.map((booking) => (
-                        <tr key={booking.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                          <td className="py-4 px-4 text-sm font-mono font-bold text-slate-900">{booking.id}</td>
-                          <td className="py-4 px-4 text-sm text-slate-700">{booking.customer}</td>
-                          <td className="py-4 px-4">
-                            <span className="inline-flex items-center gap-1 text-sm font-bold text-slate-700">
-                              {booking.service === "Flight" && <Plane className="w-4 h-4" />}
-                              {booking.service === "Bus" && <Bus className="w-4 h-4" />}
-                              {booking.service === "Hotel" && <Hotel className="w-4 h-4" />}
-                              {booking.service === "Train" && <Train className="w-4 h-4" />}
-                              {booking.service}
-                            </span>
-                          </td>
-                          <td className="py-4 px-4 text-sm text-slate-700">{booking.route}</td>
-                          <td className="py-4 px-4 text-sm font-bold text-slate-900">{booking.amount}</td>
-                          <td className="py-4 px-4">
-                            <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${
-                              booking.status === "Confirmed" 
-                                ? "bg-green-100 text-green-700" 
-                                : "bg-amber-100 text-amber-700"
-                            }`}>
-                              {booking.status}
-                            </span>
-                          </td>
-                          <td className="py-4 px-4 text-sm text-slate-600">{booking.date}</td>
-                          <td className="py-4 px-4">
-                            <div className="flex items-center gap-2">
-                              <button className="p-2 hover:bg-lime-50 rounded-lg transition-colors group" title="View">
-                                <Eye className="w-4 h-4 text-slate-600 group-hover:text-lime-600" />
-                              </button>
-                              <button className="p-2 hover:bg-blue-50 rounded-lg transition-colors group" title="Edit">
-                                <Edit className="w-4 h-4 text-slate-600 group-hover:text-blue-600" />
-                              </button>
-                              <button className="p-2 hover:bg-red-50 rounded-lg transition-colors group" title="Delete">
-                                <Trash2 className="w-4 h-4 text-slate-600 group-hover:text-red-600" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold text-slate-900">Overview</h3>
+                  {dashboardData && (
+                    <div className="flex items-center gap-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-slate-500" />
+                        <span className="text-slate-600">
+                          <span className="font-bold text-slate-900">{dashboardData.schedules.totalUpcoming}</span> upcoming schedules
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
+                
+                {dashboardData ? (
+                  <div className="grid md:grid-cols-2 gap-6">
+                    {/* Upcoming Schedules */}
+                    <div className="bg-gradient-to-br from-lime-50 to-emerald-50 border-2 border-lime-200 rounded-xl p-6">
+                      <h4 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                        <Calendar className="w-5 h-5 text-lime-600" />
+                        Upcoming Schedules
+                      </h4>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-slate-600">Bus Schedules</span>
+                          <span className="text-2xl font-black text-lime-600">{dashboardData.schedules.upcomingBus}</span>
+                        </div>
+                        <div className="w-full bg-lime-200 rounded-full h-2">
+                          <div 
+                            className="bg-lime-600 h-2 rounded-full transition-all duration-500"
+                            style={{ width: `${Math.min((dashboardData.schedules.upcomingBus / Math.max(dashboardData.schedules.totalUpcoming, 1)) * 100, 100)}%` }}
+                          ></div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-slate-600">Flight Schedules</span>
+                          <span className="text-2xl font-black text-sky-600">{dashboardData.schedules.upcomingFlight}</span>
+                        </div>
+                        <div className="w-full bg-sky-200 rounded-full h-2">
+                          <div 
+                            className="bg-sky-600 h-2 rounded-full transition-all duration-500"
+                            style={{ width: `${Math.min((dashboardData.schedules.upcomingFlight / Math.max(dashboardData.schedules.totalUpcoming, 1)) * 100, 100)}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Fleet Status */}
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-6">
+                      <h4 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                        <Bus className="w-5 h-5 text-blue-600" />
+                        Fleet Status
+                      </h4>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-slate-600">Total Buses</span>
+                          <span className="text-2xl font-black text-slate-900">{dashboardData.buses.total}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-slate-600">Active</span>
+                          <span className="text-lg font-bold text-green-600">{dashboardData.buses.active}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-slate-600">Inactive</span>
+                          <span className="text-lg font-bold text-slate-500">{dashboardData.buses.inactive}</span>
+                        </div>
+                        <div className="w-full bg-slate-200 rounded-full h-2">
+                          <div 
+                            className="bg-green-600 h-2 rounded-full transition-all duration-500"
+                            style={{ width: `${dashboardData.buses.total > 0 ? (dashboardData.buses.active / dashboardData.buses.total) * 100 : 0}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Revenue Overview */}
+                    <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-xl p-6">
+                      <h4 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                        <TrendingUp className="w-5 h-5 text-emerald-600" />
+                        Revenue Overview
+                      </h4>
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-sm text-slate-600 mb-1">Total Revenue</p>
+                          <p className="text-3xl font-black text-emerald-600">₹{dashboardData.revenue.total.toLocaleString('en-IN')}</p>
+                        </div>
+                        <div className="flex items-center justify-between pt-2">
+                          <span className="text-sm text-slate-600">Confirmed Bookings</span>
+                          <span className="text-xl font-bold text-slate-900">{dashboardData.bookings.confirmed}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Flight Status */}
+                    <div className="bg-gradient-to-br from-sky-50 to-blue-50 border-2 border-sky-200 rounded-xl p-6">
+                      <h4 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                        <Plane className="w-5 h-5 text-sky-600" />
+                        Flight Status
+                      </h4>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-slate-600">Total Flights</span>
+                          <span className="text-2xl font-black text-slate-900">{dashboardData.flights.total}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-slate-600">Active</span>
+                          <span className="text-lg font-bold text-green-600">{dashboardData.flights.active}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-slate-600">Inactive</span>
+                          <span className="text-lg font-bold text-slate-500">{dashboardData.flights.inactive}</span>
+                        </div>
+                        <div className="w-full bg-slate-200 rounded-full h-2">
+                          <div 
+                            className="bg-sky-600 h-2 rounded-full transition-all duration-500"
+                            style={{ width: `${dashboardData.flights.total > 0 ? (dashboardData.flights.active / dashboardData.flights.total) * 100 : 0}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-12 bg-slate-50 rounded-xl border-2 border-dashed border-slate-300">
+                    <BarChart3 className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-bold text-slate-900 mb-2">No Data Available</h3>
+                    <p className="text-sm text-slate-600">Unable to load dashboard statistics</p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -645,6 +903,329 @@ export default function VendorDashboard() {
                 {selectedCategory === "bus" && renderBusServiceView()}
                 {(selectedCategory === "flight" || selectedCategory === "train" || selectedCategory === "hotel") && renderComingSoonView(selectedCategory)}
               </>
+            )}
+
+            {activeTab === "schedule" && (
+              <div className="space-y-6">
+                {!scheduleCategory ? (
+                  <>
+                    <h3 className="text-xl font-bold text-slate-900">Select Service Type</h3>
+                    <p className="text-sm text-slate-600">Choose a service category to schedule a trip</p>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {SERVICE_CATEGORIES.map((cat) => {
+                        const Icon = cat.icon;
+                        return (
+                          <button
+                            key={cat.id}
+                            onClick={() => setScheduleCategory(cat.id)}
+                            className={`text-left bg-white border-2 border-slate-200 rounded-xl p-6 ${cat.hoverBorder} hover:shadow-md transition-all duration-300 group`}
+                          >
+                            <div className="flex items-center gap-4 mb-3">
+                              <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${cat.gradient} flex items-center justify-center shadow-lg`}>
+                                <Icon className="w-6 h-6 text-white" />
+                              </div>
+                              <div>
+                                <h4 className="text-lg font-bold text-slate-900 group-hover:text-slate-700 transition-colors">
+                                  {cat.label}
+                                </h4>
+                                <p className="text-xs text-slate-500">{cat.description}</p>
+                              </div>
+                            </div>
+                            <span className="text-xs text-slate-400 group-hover:translate-x-1 transition-transform inline-block">
+                              Click to schedule →
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : scheduleCategory === "bus" ? (
+                  <>
+                    <div className="flex items-center gap-4 mb-6">
+                      <button
+                        onClick={() => { setScheduleCategory(null); setShowScheduleForm(false); }}
+                        className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                      >
+                        <ArrowLeft className="w-5 h-5 text-slate-600" />
+                      </button>
+                      <div>
+                        <h3 className="text-xl font-bold text-slate-900">Schedule Bus Trip</h3>
+                        <p className="text-sm text-slate-500">Create a new bus schedule</p>
+                      </div>
+                    </div>
+
+                    {!showScheduleForm ? (
+                      <div className="text-center py-12 bg-slate-50 rounded-xl border-2 border-dashed border-slate-300">
+                        <Bus className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                        <h3 className="text-lg font-bold text-slate-900 mb-2">Ready to Schedule</h3>
+                        <p className="text-sm text-slate-600 mb-4">Click the button below to create a new bus schedule</p>
+                        <button
+                          onClick={() => setShowScheduleForm(true)}
+                          className="inline-flex items-center gap-2 bg-lime-600 hover:bg-lime-700 text-white text-sm font-bold px-6 py-3 rounded-xl transition-colors"
+                        >
+                          <Plus className="w-4 h-4" />
+                          Create New Schedule
+                        </button>
+                      </div>
+                    ) : (
+                      <form onSubmit={handleScheduleSubmit} className="space-y-6">
+                        {scheduleSuccess && (
+                          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+                            {scheduleSuccess}
+                          </div>
+                        )}
+                        {scheduleError && (
+                          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                            {scheduleError}
+                          </div>
+                        )}
+
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-2">Select Bus *</label>
+                            <select
+                              value={scheduleFormData.busId}
+                              onChange={(e) => {
+                                const busId = e.target.value;
+                                setScheduleFormData({ ...scheduleFormData, busId, routeId: "" });
+                                fetchBusRoutes(busId);
+                              }}
+                              className="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-lime-400"
+                              required
+                            >
+                              <option value="">Choose a bus...</option>
+                              {buses.filter(b => b.status === "ACTIVE").map(bus => (
+                                <option key={bus._id} value={bus._id}>
+                                  {bus.busName} ({bus.busNumber})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-2">Select Route *</label>
+                            <select
+                              value={scheduleFormData.routeId}
+                              onChange={(e) => setScheduleFormData({ ...scheduleFormData, routeId: e.target.value })}
+                              className="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-lime-400"
+                              required
+                              disabled={!scheduleFormData.busId || busRoutesLoading}
+                            >
+                              <option value="">Choose a route...</option>
+                              {busRoutes.map(route => (
+                                <option key={route._id} value={route._id}>
+                                  {route.source.city} -- {route.destination.city}
+                                </option>
+                              ))}
+                            </select>
+                            {busRoutesLoading && (
+                              <p className="text-xs text-slate-500 mt-1">Loading routes...</p>
+                            )}
+                            {!scheduleFormData.busId && (
+                              <p className="text-xs text-amber-600 mt-1">Please select a bus first</p>
+                            )}
+                            {scheduleFormData.busId && !busRoutesLoading && busRoutes.length === 0 && (
+                              <p className="text-xs text-amber-600 mt-1">No routes available. Create routes in the Routes tab first.</p>
+                            )}
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-2">Departure Date *</label>
+                            <input
+                              type="date"
+                              value={scheduleFormData.departureDate}
+                              onChange={(e) => setScheduleFormData({ ...scheduleFormData, departureDate: e.target.value })}
+                              className="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-lime-400"
+                              required
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-2">Departure Time *</label>
+                            <input
+                              type="time"
+                              value={scheduleFormData.departureTime}
+                              onChange={(e) => setScheduleFormData({ ...scheduleFormData, departureTime: e.target.value })}
+                              className="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-lime-400"
+                              required
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-2">Arrival Time *</label>
+                            <input
+                              type="time"
+                              value={scheduleFormData.arrivalTime}
+                              onChange={(e) => setScheduleFormData({ ...scheduleFormData, arrivalTime: e.target.value })}
+                              className="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-lime-400"
+                              required
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-2">Base Fare (₹) *</label>
+                            <input
+                              type="number"
+                              value={scheduleFormData.baseFare}
+                              onChange={(e) => setScheduleFormData({ ...scheduleFormData, baseFare: e.target.value })}
+                              className="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-lime-400"
+                              required
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Boarding Points */}
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <label className="block text-sm font-bold text-slate-700">Boarding Points</label>
+                            <button
+                              type="button"
+                              onClick={addBoardingPoint}
+                              className="text-xs font-bold text-lime-600 hover:text-lime-700"
+                            >
+                              + Add Point
+                            </button>
+                          </div>
+                          {scheduleFormData.boardingPoints.map((point, index) => (
+                            <div key={index} className="grid md:grid-cols-5 gap-2 mb-2 p-3 bg-slate-50 rounded-lg">
+                              <input
+                                type="text"
+                                placeholder="City"
+                                value={point.city}
+                                onChange={(e) => updateBoardingPoint(index, "city", e.target.value)}
+                                className="px-3 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-lime-400"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Name"
+                                value={point.name}
+                                onChange={(e) => updateBoardingPoint(index, "name", e.target.value)}
+                                className="px-3 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-lime-400"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Time (HH:mm)"
+                                value={point.time}
+                                onChange={(e) => updateBoardingPoint(index, "time", e.target.value)}
+                                className="px-3 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-lime-400"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Address"
+                                value={point.address}
+                                onChange={(e) => updateBoardingPoint(index, "address", e.target.value)}
+                                className="px-3 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-lime-400"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Landmark"
+                                value={point.landmark}
+                                onChange={(e) => updateBoardingPoint(index, "landmark", e.target.value)}
+                                className="px-3 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-lime-400"
+                              />
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Dropping Points */}
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <label className="block text-sm font-bold text-slate-700">Dropping Points</label>
+                            <button
+                              type="button"
+                              onClick={addDroppingPoint}
+                              className="text-xs font-bold text-lime-600 hover:text-lime-700"
+                            >
+                              + Add Point
+                            </button>
+                          </div>
+                          {scheduleFormData.droppingPoints.map((point, index) => (
+                            <div key={index} className="grid md:grid-cols-5 gap-2 mb-2 p-3 bg-slate-50 rounded-lg">
+                              <input
+                                type="text"
+                                placeholder="City"
+                                value={point.city}
+                                onChange={(e) => updateDroppingPoint(index, "city", e.target.value)}
+                                className="px-3 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-lime-400"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Name"
+                                value={point.name}
+                                onChange={(e) => updateDroppingPoint(index, "name", e.target.value)}
+                                className="px-3 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-lime-400"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Time (HH:mm)"
+                                value={point.time}
+                                onChange={(e) => updateDroppingPoint(index, "time", e.target.value)}
+                                className="px-3 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-lime-400"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Address"
+                                value={point.address}
+                                onChange={(e) => updateDroppingPoint(index, "address", e.target.value)}
+                                className="px-3 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-lime-400"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Landmark"
+                                value={point.landmark}
+                                onChange={(e) => updateDroppingPoint(index, "landmark", e.target.value)}
+                                className="px-3 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-lime-400"
+                              />
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="flex gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setShowScheduleForm(false)}
+                            className="flex-1 px-4 py-3 border-2 border-slate-200 text-slate-700 font-bold rounded-lg hover:bg-slate-50 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={scheduleLoading}
+                            className="flex-1 px-4 py-3 bg-lime-600 hover:bg-lime-700 disabled:bg-slate-300 text-white font-bold rounded-lg transition-colors"
+                          >
+                            {scheduleLoading ? "Creating..." : "Create Schedule"}
+                          </button>
+                        </div>
+                      </form>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-16 bg-slate-50 rounded-xl border-2 border-dashed border-slate-300">
+                    {SERVICE_CATEGORIES.find(c => c.id === scheduleCategory)?.icon && (
+                      <div className="w-20 h-20 bg-gradient-to-br from-slate-200 to-slate-300 rounded-full flex items-center justify-center mx-auto mb-4">
+                        {(() => {
+                          const Icon = SERVICE_CATEGORIES.find(c => c.id === scheduleCategory).icon;
+                          return <Icon className="w-10 h-10 text-slate-500" />;
+                        })()}
+                      </div>
+                    )}
+                    <h3 className="text-xl font-bold text-slate-900 mb-2">Coming Soon</h3>
+                    <p className="text-sm text-slate-600 max-w-md mx-auto">
+                      {scheduleCategory === "flight" && "Flight scheduling will be available soon. You'll be able to manage flight schedules and routes here."}
+                      {scheduleCategory === "train" && "Train scheduling will be available soon. You'll be able to manage train schedules and routes here."}
+                      {scheduleCategory === "hotel" && "Hotel scheduling will be available soon. You'll be able to manage hotel bookings and availability here."}
+                    </p>
+                    <button
+                      onClick={() => setScheduleCategory(null)}
+                      className="mt-4 inline-flex items-center gap-2 bg-slate-600 hover:bg-slate-700 text-white text-sm font-bold px-6 py-3 rounded-xl transition-colors"
+                    >
+                      Back to Categories
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
 
             {activeTab === "analytics" && (

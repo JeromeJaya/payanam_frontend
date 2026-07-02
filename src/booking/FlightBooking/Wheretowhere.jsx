@@ -1,13 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import api from '../../api/axios';
 
-export default function Wheretowhere() {
+export default function Wheretowhere({ 
+  serviceType = "flight", 
+  from: fromProp, 
+  to: toProp, 
+  date: dateProp,
+  onFromChange,
+  onToChange,
+  onDateChange,
+  handleFetchFlights
+}) {
   // Main Search States
   const [tripType, setTripType] = useState('One Way');
-  const [fromLocation, setFromLocation] = useState('New Delhi, India');
-  const [toLocation, setToLocation] = useState('Mumbai, India');
-  const [departDate, setDepartDate] = useState('Tue, 30 Jun 26');
+  const [fromLocation, setFromLocation] = useState(fromProp || '');
+  const [toLocation, setToLocation] = useState(toProp || '');
+  const [fromIata, setFromIata] = useState('');
+  const [toIata, setToIata] = useState('');
+  const [fromAirportName, setFromAirportName] = useState('');
+  const [toAirportName, setToAirportName] = useState('');
+  const [departDate, setDepartDate] = useState(dateProp || '');
   const [returnDate, setReturnDate] = useState('');
   const [passengerClass, setPassengerClass] = useState('1 Adult, Economy/Premium');
+
+  // Autocomplete States
+  const [fromSuggestions, setFromSuggestions] = useState([]);
+  const [toSuggestions, setToSuggestions] = useState([]);
+  const [showFromSuggestions, setShowFromSuggestions] = useState(false);
+  const [showToSuggestions, setShowToSuggestions] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Service name mapping
+  const serviceNames = {
+    flight: "Flight Booking",
+    bus: "Bus Booking",
+    train: "Train Booking",
+    hotel: "Hotel Booking"
+  };
 
   // Fare & Special States
   const [fareType, setFareType] = useState('Armed Forces');
@@ -15,9 +44,156 @@ export default function Wheretowhere() {
 
   // Quick swap handler for From/To locations
   const handleSwapLocations = () => {
-    const temp = fromLocation;
+    const tempDisplay = fromLocation;
+    const tempIata = fromIata;
+    const tempAirport = fromAirportName;
     setFromLocation(toLocation);
-    setToLocation(temp);
+    setFromIata(toIata);
+    setFromAirportName(toAirportName);
+    if (onFromChange) onFromChange(toIata || toLocation);
+    setToLocation(tempDisplay);
+    setToIata(tempIata);
+    setToAirportName(tempAirport);
+    if (onToChange) onToChange(tempIata || tempDisplay);
+  };
+
+  // Search airports API call
+  const searchAirports = async (query) => {
+    if (!query || query.length < 2) {
+      return [];
+    }
+
+    try {
+      const response = await api.get(`/api/v1/airports/search?q=${encodeURIComponent(query)}`);
+      if (response.data.success) {
+        return response.data.data;
+      }
+      return [];
+    } catch (error) {
+      console.error('Error searching airports:', error);
+      return [];
+    }
+  };
+
+  // Handle From location input change
+  const handleFromChange = async (e) => {
+    const value = e.target.value;
+    setFromLocation(value);
+    // Clear IATA/airport info when user is typing manually
+    setFromIata('');
+    setFromAirportName('');
+    // Pass raw input to parent (could be city name or IATA code)
+    if (onFromChange) onFromChange(value);
+
+    if (value.length >= 2) {
+      setLoading(true);
+      const results = await searchAirports(value);
+      setFromSuggestions(results);
+      setShowFromSuggestions(true);
+      setLoading(false);
+    } else {
+      setFromSuggestions([]);
+      setShowFromSuggestions(false);
+    }
+  };
+
+  // Handle To location input change
+  const handleToChange = async (e) => {
+    const value = e.target.value;
+    setToLocation(value);
+    // Clear IATA/airport info when user is typing manually
+    setToIata('');
+    setToAirportName('');
+    // Pass raw input to parent (could be city name or IATA code)
+    if (onToChange) onToChange(value);
+
+    if (value.length >= 2) {
+      setLoading(true);
+      const results = await searchAirports(value);
+      setToSuggestions(results);
+      setShowToSuggestions(true);
+      setLoading(false);
+    } else {
+      setToSuggestions([]);
+      setShowToSuggestions(false);
+    }
+  };
+
+  // Select a suggestion for From location
+  const selectFromSuggestion = (airport) => {
+    // Store the display text for UI
+    const displayText = airport.displayText || `${airport.city} (${airport.iataCode})`;
+    setFromLocation(displayText);
+    setFromAirportName(airport.name);
+    
+    // Store the IATA code and use it for API calls
+    const apiValue = airport.iataCode || airport.city;
+    setFromIata(apiValue);
+    
+    // Update parent with IATA code or city name (clean value for API)
+    if (onFromChange) onFromChange(apiValue);
+    setShowFromSuggestions(false);
+  };
+
+  // Select a suggestion for To location
+  const selectToSuggestion = (airport) => {
+    // Store the display text for UI
+    const displayText = airport.displayText || `${airport.city} (${airport.iataCode})`;
+    setToLocation(displayText);
+    setToAirportName(airport.name);
+    
+    // Store the IATA code and use it for API calls
+    const apiValue = airport.iataCode || airport.city;
+    setToIata(apiValue);
+    
+    // Update parent with IATA code or city name (clean value for API)
+    if (onToChange) onToChange(apiValue);
+    setShowToSuggestions(false);
+  };
+
+  // Sync local state when props change from parent
+  useEffect(() => {
+    if (fromProp !== undefined) {
+      setFromLocation(fromProp);
+    }
+  }, [fromProp]);
+
+  useEffect(() => {
+    if (toProp !== undefined) {
+      setToLocation(toProp);
+    }
+  }, [toProp]);
+
+  useEffect(() => {
+    if (dateProp !== undefined) {
+      setDepartDate(dateProp);
+    }
+  }, [dateProp]);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setShowFromSuggestions(false);
+      setShowToSuggestions(false);
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
+  // Handle search - ensure we send clean values to API
+  const handleSearch = () => {
+    // Use IATA code if available, otherwise use current input value
+    const fromValue = fromIata || fromLocation;
+    const toValue = toIata || toLocation;
+    
+    // Update parent state
+    if (onFromChange) onFromChange(fromValue);
+    if (onToChange) onToChange(toValue);
+    if (onDateChange) onDateChange(departDate);
+    
+    // Trigger flight search with values directly to avoid stale closure issues
+    if (handleFetchFlights) handleFetchFlights(fromValue, toValue, departDate);
   };
 
   const fareOptions = [
@@ -30,8 +206,15 @@ export default function Wheretowhere() {
   ];
 
   return (
-    <div className="w-full max-w-7xl mx-auto p-6 bg-white rounded-lg shadow-md font-sans text-gray-800">
+    <div className="mx-12  p-6 bg-white rounded-lg shadow-md font-sans text-gray-800">
       
+      {/* Service Name Header */}
+      <div className="mb-4 pb-3 border-b border-gray-200">
+        <h2 className="text-xl font-bold text-gray-800">
+          {serviceNames[serviceType] || "Flight Booking"}
+        </h2>
+      </div>
+
       {/* Top Row: Search Inputs */}
       <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
         
@@ -47,14 +230,38 @@ export default function Wheretowhere() {
         </div>
 
         {/* From Location */}
-        <div className="flex-[2] min-w-[200px] bg-gray-50 border border-gray-200 rounded-lg p-2 cursor-pointer hover:bg-gray-100 transition-colors">
+        <div className="flex-[2] min-w-[200px] bg-gray-50 border border-gray-200 rounded-lg p-2 cursor-pointer hover:bg-gray-100 transition-colors relative">
           <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">From</label>
           <input 
             type="text" 
             value={fromLocation} 
-            onChange={(e) => setFromLocation(e.target.value)}
+            onChange={handleFromChange}
+            placeholder="City or IATA code"
             className="w-full bg-transparent font-bold text-base mt-0.5 focus:outline-none text-gray-900"
           />
+          {fromIata && fromAirportName && (
+            <div className="text-xs text-gray-500 mt-0.5">
+              {fromIata} - {fromAirportName}
+            </div>
+          )}
+          
+          {/* From Suggestions Dropdown */}
+          {showFromSuggestions && fromSuggestions.length > 0 && (
+            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+              {fromSuggestions.map((airport, index) => (
+                <div
+                  key={index}
+                  onClick={() => selectFromSuggestion(airport)}
+                  className="px-4 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                >
+                  <div className="font-medium text-sm text-gray-900">
+                    <span className="text-blue-600 font-bold">{airport.iataCode}</span> - {airport.city}
+                  </div>
+                  <div className="text-xs text-gray-500">{airport.name}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Swap Button */}
@@ -70,20 +277,52 @@ export default function Wheretowhere() {
         </button>
 
         {/* To Location */}
-        <div className="flex-[2] min-w-[200px] bg-gray-50 border border-gray-200 rounded-lg p-2 cursor-pointer hover:bg-gray-100 transition-colors">
+        <div className="flex-[2] min-w-[200px] bg-gray-50 border border-gray-200 rounded-lg p-2 cursor-pointer hover:bg-gray-100 transition-colors relative">
           <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">To</label>
           <input 
             type="text" 
             value={toLocation} 
-            onChange={(e) => setToLocation(e.target.value)}
+            onChange={handleToChange}
+            placeholder="City or IATA code"
             className="w-full bg-transparent font-bold text-base mt-0.5 focus:outline-none text-gray-900"
           />
+          {toIata && toAirportName && (
+            <div className="text-xs text-gray-500 mt-0.5">
+              {toIata} - {toAirportName}
+            </div>
+          )}
+          
+          {/* To Suggestions Dropdown */}
+          {showToSuggestions && toSuggestions.length > 0 && (
+            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+              {toSuggestions.map((airport, index) => (
+                <div
+                  key={index}
+                  onClick={() => selectToSuggestion(airport)}
+                  className="px-4 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                >
+                  <div className="font-medium text-sm text-gray-900">
+                    <span className="text-blue-600 font-bold">{airport.iataCode}</span> - {airport.city}
+                  </div>
+                  <div className="text-xs text-gray-500">{airport.name}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Depart Date */}
         <div className="flex-1 min-w-[140px] bg-gray-50 border border-gray-200 rounded-lg p-2 cursor-pointer hover:bg-gray-100 transition-colors">
           <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Depart</label>
-          <span className="block font-bold text-sm mt-1">{departDate || 'Select Date'}</span>
+          <input
+            type="date"
+            value={departDate}
+            onChange={(e) => {
+              setDepartDate(e.target.value);
+              if (onDateChange) onDateChange(e.target.value);
+            }}
+            className="w-full bg-transparent font-bold text-sm mt-0.5 focus:outline-none text-gray-900 cursor-pointer"
+          />
         </div>
 
         {/* Return Date */}
@@ -101,7 +340,10 @@ export default function Wheretowhere() {
         </div>
 
         {/* Search Button */}
-        <button className="flex-1 min-w-[140px] h-[54px] bg-gray-300 hover:bg-gray-400 text-white font-bold tracking-wide rounded-lg uppercase transition-colors shadow-inner">
+        <button 
+          onClick={handleSearch}
+          className="flex-1 min-w-[140px] h-[54px] bg-blue-600 hover:bg-blue-700 text-white font-bold tracking-wide rounded-lg uppercase transition-colors shadow-inner"
+        >
           Search
         </button>
 

@@ -1,6 +1,7 @@
 import place from '../booking/places.json';
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import api from '../api/axios';
 
 // Flat-mapping data layer
 const allDestinations = place.flatMap(p => [
@@ -20,6 +21,10 @@ export default function SearchBar({ input, service }) {
   // Suggestions Visibility Layers
   const [showFromDropdown, setShowFromDropdown] = useState(false);
   const [showToDropdown, setShowToDropdown] = useState(false);
+  
+  // Airport suggestions from API
+  const [fromAirportSuggestions, setFromAirportSuggestions] = useState([]);
+  const [toAirportSuggestions, setToAirportSuggestions] = useState([]);
 
   // Box wrapper element tracker refs
   const fromRef = useRef(null);
@@ -34,39 +39,83 @@ export default function SearchBar({ input, service }) {
     setShowToDropdown(false);
   }, [service]);
 
-  const handleFromChange = (e) => {
+  // Search airports API for flight service
+  const searchAirports = async (query) => {
+    if (!query || query.length < 2 || service !== 'flight') {
+      return [];
+    }
+
+    try {
+      const response = await api.get(`/api/v1/airports/search?q=${encodeURIComponent(query)}`);
+      if (response.data.success) {
+        return response.data.data;
+      }
+      return [];
+    } catch (error) {
+      console.error('Error searching airports:', error);
+      return [];
+    }
+  };
+
+  const handleFromChange = async (e) => {
     const val = e.target.value;
     setFrom(val);
-    if (val.trim().length > 1) {
+    
+    if (val.trim().length > 1 && service === 'flight') {
+      // Use airports API for flight service
+      const results = await searchAirports(val);
+      setFromAirportSuggestions(results);
+      setShowFromDropdown(results.length > 0);
+    } else if (val.trim().length > 1) {
+      // Use local destinations for other services
       const filtered = allDestinations
         .filter(d => d.toLowerCase().includes(val.toLowerCase()))
         .slice(0, 5);
       setShowFromDropdown(filtered.length > 0);
     } else {
       setShowFromDropdown(false);
+      setFromAirportSuggestions([]);
     }
   };
 
-  const handleToChange = (e) => {
+  const handleToChange = async (e) => {
     const val = e.target.value;
     setTo(val);
-    if (val.trim().length > 1) {
+    
+    if (val.trim().length > 1 && service === 'flight') {
+      // Use airports API for flight service
+      const results = await searchAirports(val);
+      setToAirportSuggestions(results);
+      setShowToDropdown(results.length > 0);
+    } else if (val.trim().length > 1) {
+      // Use local destinations for other services
       const filtered = allDestinations
         .filter(d => d.toLowerCase().includes(val.toLowerCase()))
         .slice(0, 5);
       setShowToDropdown(filtered.length > 0);
     } else {
       setShowToDropdown(false);
+      setToAirportSuggestions([]);
     }
   };
 
-  const selectFrom = (value) => {
-    setFrom(value);
+  const selectFrom = (item) => {
+    // If it's an airport object (from API), use displayText
+    if (typeof item === 'object' && item.displayText) {
+      setFrom(item.displayText);
+    } else {
+      setFrom(item);
+    }
     setShowFromDropdown(false);
   };
 
-  const selectTo = (value) => {
-    setTo(value);
+  const selectTo = (item) => {
+    // If it's an airport object (from API), use displayText
+    if (typeof item === 'object' && item.displayText) {
+      setTo(item.displayText);
+    } else {
+      setTo(item);
+    }
     setShowToDropdown(false);
   };
 
@@ -164,7 +213,27 @@ export default function SearchBar({ input, service }) {
               {/* Suggestions Dropdown */}
               {showDropdown && (
                 <ul className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-48 overflow-y-auto">
-                  {(isFromField ? 
+                  {service === 'flight' && isFromField && fromAirportSuggestions.map((airport, index) => (
+                    <li
+                      key={index}
+                      onClick={() => selectFrom(airport)}
+                      className="px-3 py-2 text-sm text-slate-700 hover:bg-lime-50 hover:text-lime-700 cursor-pointer transition-colors border-b border-slate-100 last:border-b-0"
+                    >
+                      <div className="font-medium">{airport.displayText || `${airport.city} (${airport.iataCode})`}</div>
+                      <div className="text-xs text-slate-500">{airport.name}</div>
+                    </li>
+                  ))}
+                  {service === 'flight' && isToField && toAirportSuggestions.map((airport, index) => (
+                    <li
+                      key={index}
+                      onClick={() => selectTo(airport)}
+                      className="px-3 py-2 text-sm text-slate-700 hover:bg-lime-50 hover:text-lime-700 cursor-pointer transition-colors border-b border-slate-100 last:border-b-0"
+                    >
+                      <div className="font-medium">{airport.displayText || `${airport.city} (${airport.iataCode})`}</div>
+                      <div className="text-xs text-slate-500">{airport.name}</div>
+                    </li>
+                  ))}
+                  {service !== 'flight' && (isFromField ? 
                     allDestinations.filter(d => d.toLowerCase().includes(from.toLowerCase())) :
                     allDestinations.filter(d => d.toLowerCase().includes(to.toLowerCase()))
                   ).slice(0, 5).map((item, index) => (

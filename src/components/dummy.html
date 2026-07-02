@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Display N Squares</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        input {
+            padding: 8px;
+            width: 80px;
+        }
+
+        button {
+            padding: 8px 15px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+
+        #container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .square {
+            width: 80px;
+            height: 80px;
+            background-color: royalblue;
+            border: 2px solid black;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Display N Squares</h2>
+
+    <input type="number" id="num" placeholder="Enter n" min="1">
+    <button onclick="showSquares()">Show Squares</button>
+
+    <div id="container"></div>
+
+    <script>
+        function showSquares() {
+            const n = parseInt(document.getElementById("num").value);
+            const container = document.getElementById("container");
+
+            // Clear previous squares
+            container.innerHTML = "";
+
+            if (isNaN(n) || n <= 0) {
+                alert("Please enter a positive integer.");
+                return;
+            }
+
+            for (let i = 0; i < n; i++) {
+                const square = document.createElement("div");
+                square.className = "square";
+                container.appendChild(square);
+            }
+        }
+    </script>
+
+</body>
+</html>

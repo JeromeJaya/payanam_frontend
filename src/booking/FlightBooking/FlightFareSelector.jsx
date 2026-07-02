@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, Zap, Star, SlidersHorizontal } from 'lucide-react';
 
-export default function FlightFareSelector() {
+export default function FlightFareSelector({ sortBy = "price_low", onSortChange }) {
   // Mock Data for the Date Carousel
   const datesData = [
     { day: 'Mon, Jun 29', price: 7455, type: 'normal' },
@@ -16,7 +16,22 @@ export default function FlightFareSelector() {
 
   // State Management
   const [selectedDate, setSelectedDate] = useState('Tue, Jun 30');
-  const [activeTab, setActiveTab] = useState('cheapest');
+  const [activeTab, setActiveTab] = useState(sortBy === "price_low" ? 'cheapest' : sortBy === "duration" ? 'nonstop' : 'cheapest');
+
+  // Handle tab change
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    // Map tab to sort value
+    const sortMapping = {
+      'cheapest': 'price_low',
+      'nonstop': 'duration',
+      'prefer': 'rating',
+      'other': 'departure'
+    };
+    if (onSortChange) {
+      onSortChange(sortMapping[tab] || 'price_low');
+    }
+  };
 
   // Helper logic to style price tiers based on your UI rules
   const getPriceColor = (date) => {
@@ -72,7 +87,7 @@ export default function FlightFareSelector() {
         
         {/* Cheapest Tab */}
         <div 
-          onClick={() => setActiveTab('cheapest')}
+          onClick={() => handleTabChange('cheapest')}
           className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
             activeTab === 'cheapest'
               ? 'bg-blue-50/70 border-blue-400 border-b-[3px] border-b-blue-600 shadow-sm'
@@ -92,7 +107,7 @@ export default function FlightFareSelector() {
 
         {/* Non Stop First Tab */}
         <div 
-          onClick={() => setActiveTab('nonstop')}
+          onClick={() => handleTabChange('nonstop')}
           className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
             activeTab === 'nonstop'
               ? 'bg-blue-50/70 border-blue-400 border-b-[3px] border-b-blue-600 shadow-sm'
@@ -112,7 +127,7 @@ export default function FlightFareSelector() {
 
         {/* You May Prefer Tab */}
         <div 
-          onClick={() => setActiveTab('prefer')}
+          onClick={() => handleTabChange('prefer')}
           className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
             activeTab === 'prefer'
               ? 'bg-blue-50/70 border-blue-400 border-b-[3px] border-b-blue-600 shadow-sm'
@@ -132,7 +147,7 @@ export default function FlightFareSelector() {
 
         {/* Other Sort Options Tab */}
         <div 
-          onClick={() => setActiveTab('other')}
+          onClick={() => handleTabChange('other')}
           className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
             activeTab === 'other'
               ? 'bg-blue-50/70 border-blue-400 border-b-[3px] border-b-blue-600 shadow-sm'

@@ -35,6 +35,8 @@ import TrainBooking from "./booking/TrainBooking/TrainBooking.jsx";
 import VendorDashboard from "./VendorDashboard.jsx";
 //import VendorEmailLogin from "./Authentication/vendor/VendorEmailLogin.jsx";
 import TicketDetails from "./booking/BusBooking/TicketDetails.jsx";
+import CheckoutPage from "./booking/BusBooking/CheckoutPage.jsx";
+import SeatConfirmation from "./booking/BusBooking/SeatConfirmation.jsx";
 import VendorEmailSignUp from "./Authentication/vendor/VendorEmailSignUp.jsx";
 
 
@@ -73,6 +75,8 @@ export function Router (){
     <Route path='/hotelbooking' element={<HotelBooking/>}/>  
     <Route path='/trainbooking' element={<TrainBooking/>}/>  
     <Route path='/TicketDetails' element={<TicketDetails/>}/>  
+    <Route path='/checkout' element={<CheckoutPage/>}/>  
+    <Route path='/seatconfirmation' element={<SeatConfirmation/>}/>  
     <Route path='/vendordashboard' element={<VendorDashboard/>}/>  
     {/* <Route path='/VendorEmailLogin' element={<VendorEmailLogin/>}/>   */}
     <Route path='/VendorEmailSignUp' element={<VendorEmailSignUp/>}/>  
