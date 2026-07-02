@@ -12,6 +12,7 @@ export default function ForgotPassword() {
     const [showMobileLogin, setShowMobileLogin] = useState(false);
     const navigate = useNavigate();
     const [email, setEmail] = useState("");
+    const [loading, setLoading] = useState(false);
   const [step, setStep] = useState("request"); // 'request' or 'verify'
 
 
@@ -22,6 +23,7 @@ export default function ForgotPassword() {
 
   async function handleSendOTP(event) {
     event.preventDefault();
+    setLoading(true);
     try {
       const res = await api.post("/api/auth/forgot-password", { email });
       if (res?.data?.success) {
@@ -31,6 +33,8 @@ export default function ForgotPassword() {
       }
     } catch (err) {
       alert(err.response?.data?.message || "Failed to send OTP");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -85,11 +89,20 @@ export default function ForgotPassword() {
           />
         </div>
         <div className="flex justify-center w-full">
+        {loading ? (
+          <div className="w-fit block mx-auto bg-lime-600 dark:bg-lime-300 text-white dark:text-gray-900 py-3 px-4 rounded-lg font-medium flex items-center justify-center gap-2">
+            <div className="relative w-6 h-6">
+              <div className="absolute inset-0 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
+            </div>
+            <span>Sending OTP...</span>
+          </div>
+        ) : (
           <But3
             type="submit"
             text="Send OTP"
             className="w-fit block mx-auto bg-lime-600 dark:bg-lime-300 text-white dark:text-gray-900 py-3 px-4 rounded-lg font-medium hover:bg-lime-700 dark:hover:bg-lime-400 justify-center transition-colors"
           />
+        )}
         </div>
 
       </form>

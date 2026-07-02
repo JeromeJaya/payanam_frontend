@@ -18,6 +18,8 @@ export default function ResetLogin() {
     const [newPassword, setNewPassword] = useState("");
     const [confirmPass, setConfirmPass] = useState("");
     const [resendCountdown, setResendCountdown] = useState(300);
+    const [loading, setLoading] = useState(false);
+    const [resendLoading, setResendLoading] = useState(false);
     const { login } = useAuth();
     const emaill = location.state.email
     const strongRe = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
@@ -64,6 +66,7 @@ export default function ResetLogin() {
         return;
       }
 
+      setLoading(true);
       try {
         const response = await api.post("/api/auth/reset-password", {
           "email": emaill,
@@ -76,19 +79,24 @@ export default function ResetLogin() {
         }
       } catch (err) {
         alert(err.response?.data?.message || "Password Reset failed");
+      } finally {
+        setLoading(false);
       }
     }
 
     async function handleResendOTP() {
       if (isResendDisabled) return;
+      setResendLoading(true);
       try {
-        const res = await api.post("/api/auth/forgot-password", { email });
+        const res = await api.post("/api/auth/forgot-password", { email: emaill });
         if (res?.data?.success) {
           alert(res.data.message || "OTP resent");
           setResendCountdown(300);
         }
       } catch (err) {
         alert(err.response?.data?.message || "Failed to resend OTP");
+      } finally {
+        setResendLoading(false);
       }
     }
   return (
@@ -162,13 +170,22 @@ export default function ResetLogin() {
           {!isOTPValid && otp.length > 0 && (
             <p className="text-red-500 text-sm mt-1">OTP must be exactly 6 digits.</p>
           )}
-        <But3
-          type="button"
-          onClick={handleResendOTP}
-          disabled={resendCountdown > 0}
-          text={`Resend OTP${resendCountdown > 0 ? ` (${formatTime(resendCountdown)})` : ""}`}
-          className={`w-fit block mx-auto py-3 px-4 rounded-lg font-medium justify-center transition-colors ${resendCountdown > 0 ? "bg-gray-400 dark:bg-gray-600 cursor-not-allowed opacity-70 hover:bg-gray-400 dark:hover:bg-gray-600" : "bg-lime-100 dark:bg-lime-100 text-white dark:text-gray-900 hover:bg-lime-200 dark:hover:bg-lime-400"}`}
-        />
+        {resendLoading ? (
+          <div className="w-fit block mx-auto bg-lime-100 dark:bg-lime-100 text-white dark:text-gray-900 py-3 px-4 rounded-lg font-medium flex items-center justify-center gap-2">
+            <div className="relative w-5 h-5">
+              <div className="absolute inset-0 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
+            </div>
+            <span>Sending...</span>
+          </div>
+        ) : (
+          <But3
+            type="button"
+            onClick={handleResendOTP}
+            disabled={resendCountdown > 0}
+            text={`Resend OTP${resendCountdown > 0 ? ` (${formatTime(resendCountdown)})` : ""}`}
+            className={`w-fit block mx-auto py-3 px-4 rounded-lg font-medium justify-center transition-colors ${resendCountdown > 0 ? "bg-gray-400 dark:bg-gray-600 cursor-not-allowed opacity-70 hover:bg-gray-400 dark:hover:bg-gray-600" : "bg-lime-100 dark:bg-lime-100 text-white dark:text-gray-900 hover:bg-lime-200 dark:hover:bg-lime-400"}`}
+          />
+        )}
 
         {/* ...new pass */}
         <div>
@@ -210,11 +227,20 @@ export default function ResetLogin() {
         </div>
 
         <div className="flex justify-center w-full">
-        <But3
-          type="submit"
-          text="Sign in"
-          className="w-fit block mx-auto bg-lime-600 dark:bg-lime-300 text-white dark:text-gray-900 py-3 px-4 rounded-lg font-medium hover:bg-lime-700 dark:hover:bg-lime-400  justify-center transition-colors"
-        />
+        {loading ? (
+          <div className="w-fit block mx-auto bg-lime-600 dark:bg-lime-300 text-white dark:text-gray-900 py-3 px-4 rounded-lg font-medium flex items-center justify-center gap-2">
+            <div className="relative w-6 h-6">
+              <div className="absolute inset-0 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
+            </div>
+            <span>Resetting password...</span>
+          </div>
+        ) : (
+          <But3
+            type="submit"
+            text="Sign in"
+            className="w-fit block mx-auto bg-lime-600 dark:bg-lime-300 text-white dark:text-gray-900 py-3 px-4 rounded-lg font-medium hover:bg-lime-700 dark:hover:bg-lime-400  justify-center transition-colors"
+          />
+        )}
         </div>
       </form>
 

@@ -6,6 +6,7 @@ import BusFillterBar from "../../filter/BusFillterBar.jsx"
 import SearchheckBox from "../../filter/SearchheckBox.jsx"
 import SelectBox from "../../filter/SelectBox.jsx"
 import Checkbox from "../../filter/Checkbox.jsx"
+import { Loader2 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import api from "../../api/axios.js";
@@ -33,7 +34,9 @@ export default function BusBooking(){
   const [selectedDropPoints, setSelectedDropPoints] = useState([]);
   const [selectedOperators, setSelectedOperators] = useState([]);
   const [buses, setBuses] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [sortBy, setSortBy] = useState("Relevance");
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   const getTimeMinutes = (timeValue) => {
     if (!timeValue) return null;
@@ -68,6 +71,7 @@ export default function BusBooking(){
     selectedOperatorNames = selectedOperators,
     selectedDate = date
   ) => {
+    setLoading(true);
     try {
       const params = { from, to, date: selectedDate };
       if (selectedAc === "AC") params.isAC = "true";
@@ -123,6 +127,8 @@ export default function BusBooking(){
     } catch (err) {
       console.error(err);
       setBuses([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -142,6 +148,7 @@ export default function BusBooking(){
 
   useEffect(() => {
     const fetchInitial = async () => {
+      setLoading(true);
       try {
         const res = await api.get("/api/v1/buses/search", {
           params: { from, to, date },
@@ -150,6 +157,8 @@ export default function BusBooking(){
       } catch (err) {
         console.error(err);
         setBuses([]);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -225,7 +234,7 @@ export default function BusBooking(){
       <Nav />
       <div className="pt-20">
         <WhereToWhere
-          className="shadow-xl sticky top-20 mx-10"
+          className="shadow-xl sticky top-20 mx-4 md:mx-10"
           from={from}
           setFrom={setFrom}
           to={to}
@@ -234,8 +243,27 @@ export default function BusBooking(){
           setDate={setDate}
           handleFetchBus={handleFetchBus}
         />
-        <div className="bg-mist-50 pt-20 h-auto my-5 mx-[100px] flex">
-                <div className = "filter bg-white-200 w-[25%] h-auto rounded-lg shadow-xl">
+        
+        {/* Mobile Filter Toggle Button */}
+        <div className="lg:hidden px-4 mt-4 mb-2">
+          <button
+            onClick={() => setShowMobileFilters(!showMobileFilters)}
+            className="w-full bg-white rounded-lg shadow-md px-4 py-3 flex items-center justify-between font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <span className="flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              Filters
+            </span>
+            <svg className={`w-5 h-5 transition-transform ${showMobileFilters ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="bg-mist-50 pt-20 h-auto my-5 mx-4 md:mx-[100px] flex flex-col lg:flex-row">
+                <div className={`filter bg-white-200 w-full lg:w-[25%] h-auto rounded-lg shadow-xl ${showMobileFilters ? 'block' : 'hidden lg:block'}`}>
                     <div className = "flex justify-center mt-5 font-bold">FILTERS</div>
                     <SelectBox
                       title={"AC type"}
@@ -322,8 +350,18 @@ export default function BusBooking(){
                         handleFetchBus(acFilter, seatType, pickupTimeFilter, dropTimeFilter, selectedPickupPoints, [], selectedOperators);
                       }}
                     />
+                    
+                    {/* Mobile Apply Filters Button */}
+                    <div className="lg:hidden px-4 py-4">
+                      <button
+                        onClick={() => setShowMobileFilters(false)}
+                        className="w-full bg-lime-600 text-white py-3 rounded-lg font-medium hover:bg-lime-700 transition-colors"
+                      >
+                        Apply Filters
+                      </button>
+                    </div>
                 </div>
-                <div className = "bg-neutral-200 w-[80%] ml-[2%] px-5 rounded-lg shadow-xl flex flex-col">
+                <div className = "bg-neutral-200 w-full lg:w-[80%] lg:ml-[2%] px-3 md:px-5 rounded-lg shadow-xl flex flex-col">
                     <div className = "bg-white w-full h-auto my-5 rounded-3xl shadow-xl">
                         <BusFillterBar
                           NoOfBus={sortedBuses.length}
@@ -333,7 +371,58 @@ export default function BusBooking(){
                           onSortSelect={handleSortSelect}
                         />
                     </div>
-                    {Array.isArray(sortedBuses) && sortedBuses.length > 0 ? (
+                    {loading ? (
+                      <div className="flex flex-col items-center justify-center py-8 md:py-20">
+                        {/* Animated gradient background card */}
+                        <div className="relative p-6 md:p-12 rounded-2xl md:rounded-3xl bg-gradient-to-br from-blue-50 via-white to-indigo-50 shadow-2xl">
+                          {/* Multiple spinning rings with different speeds */}
+                          <div className="relative w-20 h-20 md:w-32 md:h-32">
+                            {/* Outer ring - slow spin */}
+                            <div className="absolute inset-0 rounded-full border-3 md:border-4 border-blue-200 border-t-blue-600 border-r-transparent border-b-indigo-400 border-l-transparent animate-spin" style={{ animationDuration: '3s' }}></div>
+                            {/* Middle ring - reverse spin */}
+                            <div className="absolute inset-1 md:inset-2 rounded-full border-2 md:border-3 border-indigo-200 border-b-indigo-600 border-t-transparent border-r-transparent border-l-transparent animate-spin" style={{ animationDuration: '2s', animationDirection: 'reverse' }}></div>
+                            {/* Inner ring - fast spin */}
+                            <div className="absolute inset-2 md:inset-4 rounded-full border-2 border-blue-300 border-l-blue-600 border-r-transparent border-t-transparent border-b-transparent animate-spin" style={{ animationDuration: '1.5s' }}></div>
+                            {/* Center pulsing icon */}
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="relative">
+                                <div className="w-10 h-10 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 animate-pulse shadow-lg shadow-blue-500/50"></div>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <svg className="w-5 h-5 md:w-8 md:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                  </svg>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Loading text with animation */}
+                          <div className="mt-6 md:mt-10 text-center">
+                            <h3 className="text-lg md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2 md:mb-3">
+                              Finding Best Bus Routes
+                            </h3>
+                            <p className="text-gray-600 font-medium text-sm md:text-lg mb-4 md:mb-6">
+                              Searching for available buses...
+                            </p>
+
+                            {/* Animated progress indicators */}
+                            <div className="flex items-center justify-center gap-2 mb-3 md:mb-4">
+                              <div className="flex items-center gap-1">
+                                <div className="w-2 h-2 md:w-2.5 md:h-2.5 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0ms', animationDuration: '0.6s' }}></div>
+                                <div className="w-2 h-2 md:w-2.5 md:h-2.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '100ms', animationDuration: '0.6s' }}></div>
+                                <div className="w-2 h-2 md:w-2.5 md:h-2.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '200ms', animationDuration: '0.6s' }}></div>
+                              </div>
+                            </div>
+
+                            {/* Shimmer effect text */}
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-blue-50 rounded-full">
+                              <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-green-500 rounded-full animate-pulse"></div>
+                              <span className="text-xs md:text-sm text-blue-700 font-medium">Please wait a moment</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : Array.isArray(sortedBuses) && sortedBuses.length > 0 ? (
                       sortedBuses.map((schedule) => (
                         <div key={schedule.scheduleId} className="bg-white w-full h-auto mb-3 rounded-3xl shadow-xl">
                           <BusCard

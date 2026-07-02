@@ -17,6 +17,7 @@ export function EmailSignUp() {
     const [password, setPassword] = useState("");
     const [confirmPass, setConfirmPass] = useState("");
     const [emailError, setEmailError] = useState("");
+    const [loading, setLoading] = useState(false);
 
     const navigate = useNavigate()
 
@@ -51,7 +52,7 @@ export function EmailSignUp() {
 
      const strongRe = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
 
-    async function handleSubmit(event) {
+     async function handleSubmit(event) {
     event.preventDefault();
     
     // Validate email before submission
@@ -61,12 +62,20 @@ export function EmailSignUp() {
       return;
     }
 
-    let response= await axios.post("http://localhost:3000/api/auth/register",{
-      email, password,
-    })
-    .catch((err) => alert(err.response.data.message))
-  
-  if (response && response.data && response.data.success) navigate("/login");
+    setLoading(true);
+    try {
+      let response= await axios.post("http://localhost:3000/api/auth/register",{
+        email, password,
+      })
+      
+      if (response && response.data && response.data.success) {
+        navigate("/login");
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || "Registration failed");
+    } finally {
+      setLoading(false);
+    }
   }
   return (
     <>
@@ -175,13 +184,22 @@ export function EmailSignUp() {
         </div>
 
         <div className="flex justify-center w-full">
-        <But3
-          type="submit"
-          text ="Sign Up"
-          className="w-fit block mx-auto bg-lime-600 dark:bg-lime-300 text-white 
-          dark:text-gray-900 py-3 px-4 rounded-lg font-medium hover:bg-lime-700 
-          dark:hover:bg-lime-400  justify-center transition-colors"
-        />
+        {loading ? (
+          <div className="w-fit block mx-auto bg-lime-600 dark:bg-lime-300 text-white dark:text-gray-900 py-3 px-4 rounded-lg font-medium flex items-center justify-center gap-2">
+            <div className="relative w-6 h-6">
+              <div className="absolute inset-0 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
+            </div>
+            <span>Creating account...</span>
+          </div>
+        ) : (
+          <But3
+            type="submit"
+            text ="Sign Up"
+            className="w-fit block mx-auto bg-lime-600 dark:bg-lime-300 text-white 
+            dark:text-gray-900 py-3 px-4 rounded-lg font-medium hover:bg-lime-700 
+            dark:hover:bg-lime-400  justify-center transition-colors"
+          />
+        )}
         </div>
       </form>
 

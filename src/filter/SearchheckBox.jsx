@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Search, ChevronUp, ChevronDown } from "lucide-react";
 
-export default function PickupPointFilter({ 
+export default function SearchheckBox({ 
   title, 
   text = [], 
   selectedPoints, 

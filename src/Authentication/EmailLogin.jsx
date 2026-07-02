@@ -17,6 +17,7 @@ export function EmailLogin() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [emailError, setEmailError] = useState("");
+    const [loading, setLoading] = useState(false);
     const { login } = useAuth();
 
   useEffect(() => {
@@ -58,6 +59,7 @@ export function EmailLogin() {
       return;
     }
     
+    setLoading(true);
     try {
       const response = await api.post("/api/auth/login", { email, password });
       if (response?.data?.success) {
@@ -71,6 +73,8 @@ export function EmailLogin() {
       }
     } catch (err) {
       alert(err.response?.data?.message || "Login failed");
+    } finally {
+      setLoading(false);
     }
   }
   return (
@@ -162,11 +166,20 @@ export function EmailLogin() {
           />
         </div>
         <div className="flex justify-center w-full">
-        <But3
-          type = " Submit"
-          text ="Sign in"
-          className="w-fit block mx-auto bg-lime-600 dark:bg-lime-300 text-white dark:text-gray-900 py-3 px-4 rounded-lg font-medium hover:bg-lime-700 dark:hover:bg-lime-400  justify-center transition-colors"
-        />
+        {loading ? (
+          <div className="w-fit block mx-auto bg-lime-600 dark:bg-lime-300 text-white dark:text-gray-900 py-3 px-4 rounded-lg font-medium flex items-center justify-center gap-2">
+            <div className="relative w-6 h-6">
+              <div className="absolute inset-0 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
+            </div>
+            <span>Signing in...</span>
+          </div>
+        ) : (
+          <But3
+            type = "submit"
+            text ="Sign in"
+            className="w-fit block mx-auto bg-lime-600 dark:bg-lime-300 text-white dark:text-gray-900 py-3 px-4 rounded-lg font-medium hover:bg-lime-700 dark:hover:bg-lime-400  justify-center transition-colors"
+          />
+        )}
         </div>
       </form>
 

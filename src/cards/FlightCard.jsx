@@ -46,9 +46,14 @@ function calculateDuration(departure, arrival) {
   return arrMinutes - depMinutes;
 }
 
-export default function FlightCard({ flight }) {
+export default function FlightCard({ 
+  flight, 
+  isCompared = false, 
+  onAddToCompare = () => {}, 
+  onRemoveFromCompare = () => {},
+  onToggleCompareSidebar = () => {}
+}) {
   const [showDetails, setShowDetails] = useState(false);
-  const [isCompared, setIsCompared] = useState(false);
 
   // Extract flight data with defaults
   const airlineName = flight?.flight?.airlineName || flight?.operator?.name || "Unknown Airline";
@@ -205,7 +210,14 @@ export default function FlightCard({ flight }) {
       {/* 3. Utility Feature Row: Add to Compare */}
       <div className="px-4 pb-2 -mt-1">
         <button 
-          onClick={() => setIsCompared(!isCompared)}
+          onClick={() => {
+            if (isCompared) {
+              onRemoveFromCompare();
+            } else {
+              onAddToCompare();
+              onToggleCompareSidebar();
+            }
+          }}
           className={`flex items-center gap-1 text-xs font-bold transition-colors ${
             isCompared ? 'text-green-600' : 'text-blue-600 hover:text-blue-800'
           }`}

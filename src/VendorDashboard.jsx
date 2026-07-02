@@ -18,7 +18,8 @@ import {
   Trash2,
   ArrowLeft,
   Search,
-  Route
+  Route,
+  X
 } from "lucide-react";
 import api from "./api/axios";
 import CreateBusForm from "./components/CreateBusForm";
@@ -26,6 +27,8 @@ import EditBusForm from "./components/EditBusForm";
 import BusDetailModal from "./components/BusDetailModal";
 import CreateRouteForm from "./components/CreateRouteForm";
 import BusRoutesModal from "./components/BusRoutesModal";
+import CreateFlightForm from "./components/CreateFlightForm";
+import FlightDetailModal from "./components/FlightDetailModal";
 
 const SERVICE_CATEGORIES = [
   {
@@ -71,10 +74,15 @@ export default function VendorDashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
   const [showCreateBusForm, setShowCreateBusForm] = useState(false);
+  const [showCreateFlightForm, setShowCreateFlightForm] = useState(false);
+  const [flightFormKey, setFlightFormKey] = useState(0);
   const [showCreateRouteForm, setShowCreateRouteForm] = useState(false);
   const [editBus, setEditBus] = useState(null);
   const [viewBusId, setViewBusId] = useState(null);
   const [viewRoutesBus, setViewRoutesBus] = useState(null);
+  const [viewFlightId, setViewFlightId] = useState(null);
+  const [editFlight, setEditFlight] = useState(null);
+  const [deleteFlightConfirm, setDeleteFlightConfirm] = useState(null);
   const [buses, setBuses] = useState([]);
   const [busesLoading, setBusesLoading] = useState(false);
   const [routes, setRoutes] = useState([]);
@@ -88,6 +96,11 @@ export default function VendorDashboard() {
   const [searching, setSearching] = useState(false);
   const [dashboardData, setDashboardData] = useState(null);
   const [dashboardLoading, setDashboardLoading] = useState(true);
+
+  // Flights (aircraft) for vendor services page
+  const [flights, setFlights] = useState([]);
+  const [flightsLoading, setFlightsLoading] = useState(false);
+
   const [scheduleCategory, setScheduleCategory] = useState(null);
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [scheduleFormData, setScheduleFormData] = useState({
@@ -106,6 +119,48 @@ export default function VendorDashboard() {
   const [scheduleError, setScheduleError] = useState("");
   const [busRoutes, setBusRoutes] = useState([]);
   const [busRoutesLoading, setBusRoutesLoading] = useState(false);
+  const [routeCategory, setRouteCategory] = useState(null);
+  const [showFlightRouteForm, setShowFlightRouteForm] = useState(false);
+  const [flightRouteFormData, setFlightRouteFormData] = useState({
+    flightId: "",
+    source: { name: "", iataCode: "", city: "", country: "India", displayText: "" },
+    destination: { name: "", iataCode: "", city: "", country: "India" },
+    stops: [],
+    distanceInKm: "",
+    estimatedDurationInMinutes: ""
+  });
+  const [flightRouteLoading, setFlightRouteLoading] = useState(false);
+  const [flightRouteSuccess, setFlightRouteSuccess] = useState(null);
+  const [flightRouteError, setFlightRouteError] = useState("");
+  const [airportSuggestions, setAirportSuggestions] = useState([]);
+  const [airportSearchLoading, setAirportSearchLoading] = useState(false);
+  const [showSourceSuggestions, setShowSourceSuggestions] = useState(false);
+  const [showDestSuggestions, setShowDestSuggestions] = useState(false);
+  const [showStopSuggestions, setShowStopSuggestions] = useState({});
+  const [viewFlightRoutes, setViewFlightRoutes] = useState(null);
+  const [flightRoutes, setFlightRoutes] = useState([]);
+  const [flightRoutesLoading, setFlightRoutesLoading] = useState(false);
+  const [showFlightScheduleForm, setShowFlightScheduleForm] = useState(false);
+  const [flightSchedules, setFlightSchedules] = useState([]);
+  const [flightSchedulesLoading, setFlightSchedulesLoading] = useState(false);
+  const [flightScheduleFormData, setFlightScheduleFormData] = useState({
+    routeId: "",
+    flightId: "",
+    flightNumber: "",
+    departureDate: "",
+    arrivalDate: "",
+    departureTime: "",
+    arrivalTime: "",
+    baseFare: "",
+    departureTerminal: "",
+    arrivalTerminal: "",
+    mealOptions: ["VEG"],
+    cancellationPolicy: [{ hoursBeforeDeparture: 24, refundPercentage: 75 }]
+  });
+  const [flightScheduleLoading, setFlightScheduleLoading] = useState(false);
+  const [flightScheduleSuccess, setFlightScheduleSuccess] = useState(null);
+  const [flightScheduleError, setFlightScheduleError] = useState("");
+  const [cancelScheduleConfirm, setCancelScheduleConfirm] = useState(null);
   const searchInputRef = useRef(null);
 
   const handleSearch = async () => {
@@ -182,6 +237,21 @@ export default function VendorDashboard() {
     }
   };
 
+  const fetchFlights = async () => {
+    setFlightsLoading(true);
+    try {
+      const response = await api.get("/api/v1/flights");
+      if (response.data.success) {
+        setFlights(response.data.data || []);
+      }
+    } catch (err) {
+      console.error("Error fetching flights:", err);
+    } finally {
+      setFlightsLoading(false);
+    }
+  };
+
+
   const fetchDashboardData = async () => {
     setDashboardLoading(true);
     try {
@@ -204,13 +274,22 @@ export default function VendorDashboard() {
     }
   }, [searchResultBusId]);
 
+  // Fetch flight routes when viewFlightRoutes changes
+  useEffect(() => {
+    if (viewFlightRoutes) {
+      fetchFlightRoutes(viewFlightRoutes);
+    }
+  }, [viewFlightRoutes]);
+
   useEffect(() => {
     if (user && user.role === "vendor") {
       fetchBuses();
       fetchRoutes();
+      fetchFlights();
       fetchDashboardData();
     }
   }, [user]);
+
 
   if (!user || user.role !== "vendor") {
     return null;
@@ -240,6 +319,44 @@ export default function VendorDashboard() {
 
   const handleCreateSuccess = (newBus) => {
     setBuses(prev => [newBus, ...prev]);
+  };
+
+  const handleCreateFlightSuccess = (newFlight) => {
+    // Refresh dashboard data to update flight count
+    fetchDashboardData();
+  };
+
+  const handleDeleteFlight = async (flightId) => {
+    try {
+      const response = await api.delete(`/api/v1/flights/${flightId}`);
+      if (response.data.success) {
+        setFlights(prev => prev.filter(f => f._id !== flightId));
+        setDeleteFlightConfirm(null);
+        fetchDashboardData();
+      }
+    } catch (err) {
+      console.error("Error deleting flight:", err);
+      alert(err.response?.data?.message || "Failed to delete flight");
+    }
+  };
+
+  const handleUpdateFlight = async (updatedFlight) => {
+    try {
+      const response = await api.patch(`/api/v1/flights/${updatedFlight._id}`, updatedFlight);
+      if (response.data.success) {
+        setFlights(prev => prev.map(f => f._id === updatedFlight._id ? response.data.data : f));
+        setEditFlight(null);
+        fetchDashboardData();
+      }
+    } catch (err) {
+      console.error("Error updating flight:", err);
+      alert(err.response?.data?.message || "Failed to update flight");
+    }
+  };
+
+  const openCreateFlightForm = () => {
+    setFlightFormKey(prev => prev + 1);
+    setShowCreateFlightForm(true);
   };
 
   const handleScheduleSubmit = async (e) => {
@@ -283,6 +400,132 @@ export default function VendorDashboard() {
     }
   };
 
+  const handleFlightRouteSubmit = async (e) => {
+    e.preventDefault();
+    setFlightRouteLoading(true);
+    setFlightRouteError("");
+    setFlightRouteSuccess(null);
+
+    try {
+      const payload = {
+        flightId: flightRouteFormData.flightId,
+        source: flightRouteFormData.source,
+        destination: flightRouteFormData.destination,
+        stops: flightRouteFormData.stops.filter(s => s.iataCode && s.name),
+        distanceInKm: parseFloat(flightRouteFormData.distanceInKm) || 0,
+        estimatedDurationInMinutes: parseInt(flightRouteFormData.estimatedDurationInMinutes) || 0
+      };
+
+      const response = await api.post("/api/v1/flights/routes", payload);
+      
+      if (response.data.success) {
+        setFlightRouteSuccess("Flight route created successfully!");
+        setShowFlightRouteForm(false);
+        setFlightRouteFormData({
+          flightId: "",
+          source: { name: "", iataCode: "", city: "", country: "India", displayText: "" },
+          destination: { name: "", iataCode: "", city: "", country: "India" },
+          stops: [],
+          distanceInKm: "",
+          estimatedDurationInMinutes: ""
+        });
+        
+        // Refresh dashboard data
+        fetchDashboardData();
+      }
+    } catch (err) {
+      setFlightRouteError(err.response?.data?.message || "Failed to create flight route");
+    } finally {
+      setFlightRouteLoading(false);
+    }
+  };
+
+  const addFlightStop = () => {
+    setFlightRouteFormData(prev => ({
+      ...prev,
+      stops: [...prev.stops, { 
+        name: "", 
+        iataCode: "", 
+        city: "", 
+        arrivalTime: "", 
+        departureTime: "", 
+        minutesFromSource: 0, 
+        order: prev.stops.length + 1 
+      }]
+    }));
+  };
+
+  const updateFlightStop = (index, field, value) => {
+    setFlightRouteFormData(prev => ({
+      ...prev,
+      stops: prev.stops.map((stop, i) => 
+        i === index ? { ...stop, [field]: value } : stop
+      )
+    }));
+  };
+
+  const searchAirports = async (query) => {
+    if (!query || query.length < 2) {
+      setAirportSuggestions([]);
+      return;
+    }
+
+    setAirportSearchLoading(true);
+    try {
+      const response = await api.get(`/api/v1/airports/search?q=${encodeURIComponent(query)}`);
+      if (response.data.success) {
+        setAirportSuggestions(response.data.data || []);
+      }
+    } catch (err) {
+      console.error("Error searching airports:", err);
+      setAirportSuggestions([]);
+    } finally {
+      setAirportSearchLoading(false);
+    }
+  };
+
+  const selectAirport = (airport, type) => {
+    if (type === "source") {
+      setFlightRouteFormData(prev => ({
+        ...prev,
+        source: {
+          name: airport.name,
+          iataCode: airport.iataCode,
+          city: airport.city,
+          country: airport.country,
+          displayText: airport.displayText
+        }
+      }));
+      setShowSourceSuggestions(false);
+    } else if (type === "destination") {
+      setFlightRouteFormData(prev => ({
+        ...prev,
+        destination: {
+          name: airport.name,
+          iataCode: airport.iataCode,
+          city: airport.city,
+          country: airport.country
+        }
+      }));
+      setShowDestSuggestions(false);
+    }
+  };
+
+  const selectStopAirport = (airport, stopIndex) => {
+    setFlightRouteFormData(prev => ({
+      ...prev,
+      stops: prev.stops.map((stop, i) => 
+        i === stopIndex ? {
+          ...stop,
+          name: airport.name,
+          iataCode: airport.iataCode,
+          city: airport.city
+        } : stop
+      )
+    }));
+    setShowStopSuggestions(prev => ({ ...prev, [stopIndex]: false }));
+  };
+
   const fetchBusRoutes = async (busId) => {
     if (!busId) {
       setBusRoutes([]);
@@ -300,6 +543,120 @@ export default function VendorDashboard() {
       setBusRoutes([]);
     } finally {
       setBusRoutesLoading(false);
+    }
+  };
+
+  const fetchFlightRoutes = async (flightId) => {
+    if (!flightId) {
+      setFlightRoutes([]);
+      return;
+    }
+
+    setFlightRoutesLoading(true);
+    try {
+      const response = await api.get(`/api/v1/flights/${flightId}/routes`);
+      if (response.data.success) {
+        setFlightRoutes(response.data.data || []);
+      }
+    } catch (err) {
+      console.error("Error fetching flight routes:", err);
+      setFlightRoutes([]);
+    } finally {
+      setFlightRoutesLoading(false);
+    }
+  };
+
+  const fetchFlightRoutesForSchedule = async (flightId) => {
+    if (!flightId) {
+      setFlightRoutes([]);
+      return;
+    }
+
+    setFlightRoutesLoading(true);
+    try {
+      const response = await api.get(`/api/v1/flights/${flightId}/routes`);
+      if (response.data.success) {
+        setFlightRoutes(response.data.data || []);
+      }
+    } catch (err) {
+      console.error("Error fetching flight routes for schedule:", err);
+      setFlightRoutes([]);
+    } finally {
+      setFlightRoutesLoading(false);
+    }
+  };
+
+  const fetchFlightSchedules = async () => {
+    setFlightSchedulesLoading(true);
+    try {
+      const response = await api.get("/api/v1/flights/schedules");
+      if (response.data.success) {
+        setFlightSchedules(response.data.data || []);
+      }
+    } catch (err) {
+      console.error("Error fetching flight schedules:", err);
+      setFlightSchedules([]);
+    } finally {
+      setFlightSchedulesLoading(false);
+    }
+  };
+
+  const handleFlightScheduleSubmit = async (e) => {
+    e.preventDefault();
+    setFlightScheduleLoading(true);
+    setFlightScheduleError("");
+    setFlightScheduleSuccess(null);
+
+    try {
+      const payload = {
+        ...flightScheduleFormData,
+        baseFare: parseFloat(flightScheduleFormData.baseFare),
+        mealOptions: flightScheduleFormData.mealOptions,
+        cancellationPolicy: flightScheduleFormData.cancellationPolicy
+      };
+
+      const response = await api.post("/api/v1/flights/schedules", payload);
+      
+      if (response.data.success) {
+        setFlightScheduleSuccess("Flight schedule created successfully!");
+        setShowFlightScheduleForm(false);
+        setFlightScheduleFormData({
+          routeId: "",
+          flightId: "",
+          flightNumber: "",
+          departureDate: "",
+          arrivalDate: "",
+          departureTime: "",
+          arrivalTime: "",
+          baseFare: "",
+          departureTerminal: "",
+          arrivalTerminal: "",
+          mealOptions: ["VEG"],
+          cancellationPolicy: [{ hoursBeforeDeparture: 24, refundPercentage: 75 }]
+        });
+        
+        // Refresh schedules list
+        fetchFlightSchedules();
+      }
+    } catch (err) {
+      setFlightScheduleError(err.response?.data?.message || "Failed to create flight schedule");
+    } finally {
+      setFlightScheduleLoading(false);
+    }
+  };
+
+  const handleCancelSchedule = async (scheduleId) => {
+    try {
+      const response = await api.patch(`/api/v1/flights/schedules/${scheduleId}/cancel`);
+      if (response.data.success) {
+        setCancelScheduleConfirm(null);
+        // Refresh schedules list
+        fetchFlightSchedules();
+        alert(response.data.message || "Schedule cancelled successfully");
+      }
+    } catch (err) {
+      console.error("Error cancelling schedule:", err);
+      alert(err.response?.data?.message || "Failed to cancel schedule");
     }
   };
 
@@ -392,7 +749,10 @@ export default function VendorDashboard() {
       <div className="grid md:grid-cols-2 gap-4">
         {SERVICE_CATEGORIES.map((cat) => {
           const Icon = cat.icon;
-          const itemCount = cat.id === "bus" ? buses.length : 0;
+          const itemCount = cat.id === "bus" ? buses.length : cat.id === "flight" ? flights.length : 0;
+          const itemLabel = cat.id === "bus" ? (itemCount === 1 ? "Bus" : "Buses") : 
+                           cat.id === "flight" ? (itemCount === 1 ? "Aircraft" : "Aircraft") : 
+                           "Coming Soon";
           return (
             <button
               key={cat.id}
@@ -412,7 +772,7 @@ export default function VendorDashboard() {
               </div>
               <div className="flex items-center gap-4 text-sm">
                 <span className="font-bold text-slate-900">
-                  {itemCount} {cat.id === "bus" ? (itemCount === 1 ? "Bus" : "Buses") : "Coming Soon"}
+                  {itemCount} {itemLabel}
                 </span>
                 <span className="text-xs text-slate-400 ml-auto group-hover:translate-x-1 transition-transform">
                   Click to manage →
@@ -446,6 +806,7 @@ export default function VendorDashboard() {
           Add Bus
         </button>
       </div>
+      );
 
       {busesLoading ? (
         <div className="text-center py-12">
@@ -543,6 +904,127 @@ export default function VendorDashboard() {
       )}
     </div>
   );
+
+  const renderFlightServiceView = () => (
+    <div className="space-y-4">
+      <div className="flex items-center gap-4 mb-6">
+        <button
+          onClick={() => setSelectedCategory(null)}
+          className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5 text-slate-600" />
+        </button>
+        <div>
+          <h3 className="text-xl font-bold text-slate-900">Flight Services</h3>
+          <p className="text-sm text-slate-500">Manage your flight fleet</p>
+        </div>
+        <button 
+          onClick={openCreateFlightForm}
+          className="ml-auto flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          Add Flight
+        </button>
+      </div>
+
+      {flightsLoading ? (
+        <div className="text-center py-12">
+          <div className="w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-sm text-slate-600">Loading flights...</p>
+        </div>
+      ) : flights.length === 0 ? (
+        <div className="text-center py-12 bg-slate-50 rounded-xl border-2 border-dashed border-slate-300">
+          <Plane className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+          <h3 className="text-lg font-bold text-slate-900 mb-2">No Flights Yet</h3>
+          <p className="text-sm text-slate-600 mb-4">Register your first aircraft to get started</p>
+          <button
+            onClick={openCreateFlightForm}
+            className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white text-sm font-bold px-6 py-3 rounded-xl transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Register Your First Flight
+          </button>
+        </div>
+      ) : (
+        <div className="grid md:grid-cols-2 gap-4">
+          {flights.map((flight) => (
+            <div
+              key={flight._id}
+              className="border border-slate-200 rounded-xl p-6 hover:border-sky-500 hover:shadow-md transition-all duration-300"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-sky-500 to-sky-600 flex items-center justify-center">
+                    <Plane className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-bold text-slate-900">{flight.airlineName}</h4>
+                    <p className="text-xs text-slate-500">{flight.registrationNumber}</p>
+                  </div>
+                </div>
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-bold ${
+                    flight.status === "ACTIVE"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-slate-100 text-slate-600"
+                  }`}
+                >
+                  {flight.status}
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-600">Model:</span>
+                  <span className="font-bold text-slate-900">{flight.aircraftModel}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-600">Type:</span>
+                  <span className="font-bold text-slate-900">{flight.aircraftType.replace(/_/g, " ")}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-600">Seats:</span>
+                  <span className="font-bold text-slate-900">{flight.totalSeats}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-600">Cabin Classes:</span>
+                  <span className="font-bold text-slate-900">{(flight.cabinClasses || []).join(", ")}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-600">Amenities:</span>
+                  <span className="font-bold text-slate-900">{(flight.amenities || []).length}</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-end gap-2 mt-4 pt-4 border-t border-slate-100">
+                <button
+                  onClick={() => setViewFlightId(flight._id)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 rounded-lg transition-colors"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  View
+                </button>
+                <button
+                  onClick={() => setEditFlight(flight)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                >
+                  <Edit className="w-3.5 h-3.5" />
+                  Edit
+                </button>
+                <button
+                  onClick={() => setDeleteFlightConfirm(flight)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
 
   const renderComingSoonView = (category) => {
     const cat = SERVICE_CATEGORIES.find(c => c.id === category);
@@ -850,48 +1332,173 @@ export default function VendorDashboard() {
             )}
 
             {activeTab === "routes" && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-900">Route Management</h3>
-                    <p className="text-sm text-slate-500">Create and manage routes for your buses</p>
-                  </div>
-                  <button
-                    onClick={() => setShowCreateRouteForm(true)}
-                    disabled={buses.filter(b => b.status === "ACTIVE").length === 0}
-                    className="flex items-center gap-2 bg-lime-600 hover:bg-lime-700 disabled:bg-slate-300 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Create Route
-                  </button>
-                </div>
+              <div className="space-y-6">
+                {!routeCategory ? (
+                  <>
+                    <div className="text-center mb-6">
+                      <h3 className="text-xl font-bold text-slate-900 mb-2">Select Service Type</h3>
+                      <p className="text-sm text-slate-600">Choose a service category to manage routes</p>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {SERVICE_CATEGORIES.map((cat) => {
+                        const Icon = cat.icon;
+                        return (
+                          <button
+                            key={cat.id}
+                            onClick={() => setRouteCategory(cat.id)}
+                            className={`text-left bg-white border-2 border-slate-200 rounded-xl p-6 ${cat.hoverBorder} hover:shadow-md transition-all duration-300 group`}
+                          >
+                            <div className="flex items-center gap-4 mb-3">
+                              <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${cat.gradient} flex items-center justify-center shadow-lg`}>
+                                <Icon className="w-6 h-6 text-white" />
+                              </div>
+                              <div>
+                                <h4 className="text-lg font-bold text-slate-900 group-hover:text-slate-700 transition-colors">
+                                  {cat.label}
+                                </h4>
+                                <p className="text-xs text-slate-500">{cat.description}</p>
+                              </div>
+                            </div>
+                            <span className="text-xs text-slate-400 group-hover:translate-x-1 transition-transform inline-block">
+                              Click to manage routes →
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : routeCategory === "bus" ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4 mb-6">
+                      <button
+                        onClick={() => setRouteCategory(null)}
+                        className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                      >
+                        <ArrowLeft className="w-5 h-5 text-slate-600" />
+                      </button>
+                      <div>
+                        <h3 className="text-xl font-bold text-slate-900">Bus Routes</h3>
+                        <p className="text-sm text-slate-500">Create and manage routes for your buses</p>
+                      </div>
+                      <button
+                        onClick={() => setShowCreateRouteForm(true)}
+                        disabled={buses.filter(b => b.status === "ACTIVE").length === 0}
+                        className="ml-auto flex items-center gap-2 bg-lime-600 hover:bg-lime-700 disabled:bg-slate-300 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Create Route
+                      </button>
+                    </div>
 
-                {buses.filter(b => b.status === "ACTIVE").length === 0 ? (
-                  <div className="text-center py-12 bg-slate-50 rounded-xl border-2 border-dashed border-slate-300">
-                    <Bus className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-bold text-slate-900 mb-2">No Active Buses</h3>
-                    <p className="text-sm text-slate-600 max-w-md mx-auto">
-                      You need at least one active bus before you can create a route. Go to Services → Bus Services to add or activate a bus.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {buses.filter(b => b.status === "ACTIVE").map((bus) => (
-                      <div key={bus._id} className="border border-slate-200 rounded-xl p-5 hover:border-lime-500 hover:shadow-md transition-all duration-300">
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-lime-500 to-lime-600 flex items-center justify-center">
-                            <Bus className="w-5 h-5 text-white" />
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-slate-900">{bus.busName}</h4>
-                            <p className="text-xs text-slate-500">{bus.busNumber} — {bus.busType?.replace(/_/g, " ")}</p>
-                          </div>
-                        </div>
-                        <p className="text-xs text-slate-500">
-                          Click "Create Route" above to define a route for this bus with source, destination, and stops.
+                    {buses.filter(b => b.status === "ACTIVE").length === 0 ? (
+                      <div className="text-center py-12 bg-slate-50 rounded-xl border-2 border-dashed border-slate-300">
+                        <Bus className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                        <h3 className="text-lg font-bold text-slate-900 mb-2">No Active Buses</h3>
+                        <p className="text-sm text-slate-600 max-w-md mx-auto">
+                          You need at least one active bus before you can create a route. Go to Services → Bus Services to add or activate a bus.
                         </p>
                       </div>
-                    ))}
+                    ) : (
+                      <div className="grid md:grid-cols-2 gap-4">
+                        {buses.filter(b => b.status === "ACTIVE").map((bus) => (
+                          <div key={bus._id} className="border border-slate-200 rounded-xl p-5 hover:border-lime-500 hover:shadow-md transition-all duration-300">
+                            <div className="flex items-center gap-3 mb-3">
+                              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-lime-500 to-lime-600 flex items-center justify-center">
+                                <Bus className="w-5 h-5 text-white" />
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-slate-900">{bus.busName}</h4>
+                                <p className="text-xs text-slate-500">{bus.busNumber} — {bus.busType?.replace(/_/g, " ")}</p>
+                              </div>
+                            </div>
+                            <p className="text-xs text-slate-500">
+                              Click "Create Route" above to define a route for this bus with source, destination, and stops.
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : routeCategory === "flight" ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4 mb-6">
+                      <button
+                        onClick={() => setRouteCategory(null)}
+                        className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                      >
+                        <ArrowLeft className="w-5 h-5 text-slate-600" />
+                      </button>
+                      <div>
+                        <h3 className="text-xl font-bold text-slate-900">Flight Routes</h3>
+                        <p className="text-sm text-slate-500">Create and manage routes for your flights</p>
+                      </div>
+                      <button
+                        onClick={() => setShowFlightRouteForm(true)}
+                        disabled={flights.length === 0}
+                        className="ml-auto flex items-center gap-2 bg-sky-600 hover:bg-sky-700 disabled:bg-slate-300 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Create Route
+                      </button>
+                    </div>
+
+                    {flights.length === 0 ? (
+                      <div className="text-center py-12 bg-slate-50 rounded-xl border-2 border-dashed border-slate-300">
+                        <Plane className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                        <h3 className="text-lg font-bold text-slate-900 mb-2">No Flights Available</h3>
+                        <p className="text-sm text-slate-600 max-w-md mx-auto">
+                          You need at least one flight before you can create a route. Go to Services → Flight Services to register an aircraft.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid md:grid-cols-2 gap-4">
+                        {flights.map((flight) => (
+                          <div key={flight._id} className="border border-slate-200 rounded-xl p-5 hover:border-sky-500 hover:shadow-md transition-all duration-300">
+                            <div className="flex items-center gap-3 mb-3">
+                              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-sky-500 to-sky-600 flex items-center justify-center">
+                                <Plane className="w-5 h-5 text-white" />
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-slate-900">{flight.airlineName}</h4>
+                                <p className="text-xs text-slate-500">{flight.registrationNumber} — {flight.aircraftModel}</p>
+                              </div>
+                            </div>
+                            <p className="text-xs text-slate-500 mb-3">
+                              Click "Create Route" above to define a route for this flight with source, destination, and stops.
+                            </p>
+                            <button
+                              onClick={() => setViewFlightRoutes(flight._id)}
+                              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 rounded-lg transition-colors"
+                            >
+                              <Route className="w-3.5 h-3.5" />
+                              View Routes
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-16 bg-slate-50 rounded-xl border-2 border-dashed border-slate-300">
+                    {SERVICE_CATEGORIES.find(c => c.id === routeCategory)?.icon && (
+                      <div className="w-20 h-20 bg-gradient-to-br from-slate-200 to-slate-300 rounded-full flex items-center justify-center mx-auto mb-4">
+                        {(() => {
+                          const Icon = SERVICE_CATEGORIES.find(c => c.id === routeCategory).icon;
+                          return <Icon className="w-10 h-10 text-slate-500" />;
+                        })()}
+                      </div>
+                    )}
+                    <h3 className="text-xl font-bold text-slate-900 mb-2">Coming Soon</h3>
+                    <p className="text-sm text-slate-600 max-w-md mx-auto">
+                      {routeCategory === "train" && "Train route management will be available soon."}
+                      {routeCategory === "hotel" && "Hotel location management will be available soon."}
+                    </p>
+                    <button
+                      onClick={() => setRouteCategory(null)}
+                      className="mt-4 inline-flex items-center gap-2 bg-slate-600 hover:bg-slate-700 text-white text-sm font-bold px-6 py-3 rounded-xl transition-colors"
+                    >
+                      Back to Categories
+                    </button>
                   </div>
                 )}
               </div>
@@ -901,7 +1508,8 @@ export default function VendorDashboard() {
               <>
                 {selectedCategory === null && renderServiceCategoryGrid()}
                 {selectedCategory === "bus" && renderBusServiceView()}
-                {(selectedCategory === "flight" || selectedCategory === "train" || selectedCategory === "hotel") && renderComingSoonView(selectedCategory)}
+                {selectedCategory === "flight" && renderFlightServiceView()}
+                {(selectedCategory === "train" || selectedCategory === "hotel") && renderComingSoonView(selectedCategory)}
               </>
             )}
 
@@ -1201,6 +1809,150 @@ export default function VendorDashboard() {
                       </form>
                     )}
                   </>
+                ) : scheduleCategory === "flight" ? (
+                  <>
+                    <div className="flex items-center gap-4 mb-6">
+                      <button
+                        onClick={() => { setScheduleCategory(null); setShowFlightScheduleForm(false); }}
+                        className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                      >
+                        <ArrowLeft className="w-5 h-5 text-slate-600" />
+                      </button>
+                      <div>
+                        <h3 className="text-xl font-bold text-slate-900">Schedule Flight Trip</h3>
+                        <p className="text-sm text-slate-500">Create and manage flight schedules</p>
+                      </div>
+                      <button
+                        onClick={() => setShowFlightScheduleForm(true)}
+                        className="ml-auto flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Create Schedule
+                      </button>
+                    </div>
+
+                    {/* Flight Schedules List */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-lg font-bold text-slate-900">Your Flight Schedules</h4>
+                        <button
+                          onClick={fetchFlightSchedules}
+                          className="text-sm font-bold text-sky-600 hover:text-sky-700"
+                        >
+                          Refresh
+                        </button>
+                      </div>
+
+                      {flightSchedulesLoading ? (
+                        <div className="text-center py-12">
+                          <div className="w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                          <p className="text-sm text-slate-600">Loading schedules...</p>
+                        </div>
+                      ) : flightSchedules.length === 0 ? (
+                        <div className="text-center py-12 bg-slate-50 rounded-xl border-2 border-dashed border-slate-300">
+                          <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                          <h3 className="text-lg font-bold text-slate-900 mb-2">No Schedules Yet</h3>
+                          <p className="text-sm text-slate-600 mb-4">Create your first flight schedule to get started</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {flightSchedules.map((schedule) => (
+                            <div key={schedule._id} className="border border-slate-200 rounded-xl p-6 hover:border-sky-500 hover:shadow-md transition-all duration-300">
+                              <div className="flex items-start justify-between mb-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-sky-500 to-sky-600 flex items-center justify-center">
+                                    <Plane className="w-5 h-5 text-white" />
+                                  </div>
+                                  <div>
+                                    <h4 className="text-lg font-bold text-slate-900">
+                                      {schedule.flight?.airlineName || "Flight"} - {schedule.flightNumber}
+                                    </h4>
+                                    <p className="text-xs text-slate-500">
+                                      {schedule.route?.source?.city} → {schedule.route?.destination?.city}
+                                    </p>
+                                  </div>
+                                </div>
+                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                  schedule.status === "SCHEDULED" 
+                                    ? "bg-green-100 text-green-700" 
+                                    : schedule.status === "CANCELLED"
+                                    ? "bg-red-100 text-red-700"
+                                    : "bg-slate-100 text-slate-600"
+                                }`}>
+                                  {schedule.status}
+                                </span>
+                              </div>
+
+                              <div className="grid md:grid-cols-2 gap-4 mb-4">
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span className="text-slate-600">Departure:</span>
+                                    <span className="font-bold text-slate-900">
+                                      {new Date(schedule.departureDate).toLocaleDateString('en-IN')} at {schedule.departureTime}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span className="text-slate-600">Arrival:</span>
+                                    <span className="font-bold text-slate-900">
+                                      {new Date(schedule.arrivalDate).toLocaleDateString('en-IN')} at {schedule.arrivalTime}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span className="text-slate-600">Base Fare:</span>
+                                    <span className="font-bold text-slate-900">₹{schedule.baseFare?.toLocaleString('en-IN')}</span>
+                                  </div>
+                                </div>
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span className="text-slate-600">Departure Terminal:</span>
+                                    <span className="font-bold text-slate-900">{schedule.departureTerminal}</span>
+                                  </div>
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span className="text-slate-600">Arrival Terminal:</span>
+                                    <span className="font-bold text-slate-900">{schedule.arrivalTerminal}</span>
+                                  </div>
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span className="text-slate-600">Meal Options:</span>
+                                    <span className="font-bold text-slate-900">{(schedule.mealOptions || []).join(", ")}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Cancellation Policy */}
+                              {schedule.cancellationPolicy && schedule.cancellationPolicy.length > 0 && (
+                                <div className="bg-slate-50 rounded-lg p-3 mb-4">
+                                  <p className="text-xs font-semibold text-slate-700 mb-2">Cancellation Policy</p>
+                                  <div className="space-y-1">
+                                    {schedule.cancellationPolicy.map((policy, idx) => (
+                                      <div key={idx} className="flex items-center justify-between text-xs">
+                                        <span className="text-slate-600">
+                                          {policy.hoursBeforeDeparture}h before departure
+                                        </span>
+                                        <span className="font-bold text-slate-900">{policy.refundPercentage}% refund</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Actions */}
+                              {schedule.status === "SCHEDULED" && (
+                                <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
+                                  <button
+                                    onClick={() => setCancelScheduleConfirm(schedule)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                    Cancel Schedule
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
                 ) : (
                   <div className="text-center py-16 bg-slate-50 rounded-xl border-2 border-dashed border-slate-300">
                     {SERVICE_CATEGORIES.find(c => c.id === scheduleCategory)?.icon && (
@@ -1213,7 +1965,6 @@ export default function VendorDashboard() {
                     )}
                     <h3 className="text-xl font-bold text-slate-900 mb-2">Coming Soon</h3>
                     <p className="text-sm text-slate-600 max-w-md mx-auto">
-                      {scheduleCategory === "flight" && "Flight scheduling will be available soon. You'll be able to manage flight schedules and routes here."}
                       {scheduleCategory === "train" && "Train scheduling will be available soon. You'll be able to manage train schedules and routes here."}
                       {scheduleCategory === "hotel" && "Hotel scheduling will be available soon. You'll be able to manage hotel bookings and availability here."}
                     </p>
@@ -1271,11 +2022,63 @@ export default function VendorDashboard() {
         </div>
       )}
 
+      {/* Delete Flight Confirmation Modal */}
+      {deleteFlightConfirm && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="w-8 h-8 text-red-600" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Delete Flight</h3>
+              <p className="text-sm text-slate-600 mb-6">
+                Are you sure you want to delete <strong>{deleteFlightConfirm.airlineName}</strong> ({deleteFlightConfirm.registrationNumber})?
+                This will also delete all associated routes and schedules. This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeleteFlightConfirm(null)}
+                  className="flex-1 px-4 py-3 border-2 border-slate-200 text-slate-700 font-bold rounded-lg hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleDeleteFlight(deleteFlightConfirm._id)}
+                  className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Create Bus Modal */}
       {showCreateBusForm && (
         <CreateBusForm 
           onClose={() => setShowCreateBusForm(false)}
           onSuccess={handleCreateSuccess}
+        />
+      )}
+
+      {/* Create Flight Modal */}
+      {showCreateFlightForm && (
+        <CreateFlightForm
+          key={flightFormKey}
+          onClose={() => setShowCreateFlightForm(false)}
+          onSuccess={handleCreateFlightSuccess}
+        />
+      )}
+
+      {/* Edit Flight Modal */}
+      {editFlight && (
+        <CreateFlightForm
+          key={editFlight._id}
+          flight={editFlight}
+          isEdit={true}
+          onClose={() => setEditFlight(null)}
+          onSuccess={handleUpdateFlight}
         />
       )}
 
@@ -1293,6 +2096,14 @@ export default function VendorDashboard() {
         <BusDetailModal
           busId={viewBusId}
           onClose={() => setViewBusId(null)}
+        />
+      )}
+
+      {/* View Flight Detail Modal */}
+      {viewFlightId && (
+        <FlightDetailModal
+          flightId={viewFlightId}
+          onClose={() => setViewFlightId(null)}
         />
       )}
 
@@ -1314,6 +2125,789 @@ export default function VendorDashboard() {
           bus={viewRoutesBus}
           onClose={() => setViewRoutesBus(null)}
         />
+      )}
+
+      {/* View Flight Routes Modal */}
+      {viewFlightRoutes && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-slate-900">Flight Routes</h2>
+              <button
+                onClick={() => setViewFlightRoutes(null)}
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-slate-600" />
+              </button>
+            </div>
+
+            <div className="p-6">
+              {flightRoutesLoading ? (
+                <div className="text-center py-12">
+                  <div className="w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                  <p className="text-sm text-slate-600">Loading routes...</p>
+                </div>
+              ) : flightRoutes.length === 0 ? (
+                <div className="text-center py-12">
+                  <Route className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-bold text-slate-900 mb-2">No Routes Found</h3>
+                  <p className="text-sm text-slate-600">This flight doesn't have any routes yet. Create a route to get started.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {flightRoutes.map((route, index) => (
+                    <div key={route._id || index} className="border border-slate-200 rounded-xl p-5 hover:border-sky-500 hover:shadow-md transition-all duration-300">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-sky-500 to-sky-600 flex items-center justify-center">
+                          <Route className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-slate-900">Route {index + 1}</h4>
+                          <p className="text-xs text-slate-500">
+                            {route.source?.city} → {route.destination?.city}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        {/* Source */}
+                        <div className="bg-slate-50 rounded-lg p-3">
+                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Source</p>
+                          <p className="text-sm font-bold text-slate-900">{route.source?.name}</p>
+                          <p className="text-xs text-slate-600">
+                            {route.source?.city}, {route.source?.country} ({route.source?.iataCode})
+                          </p>
+                        </div>
+
+                        {/* Stops */}
+                        {route.stops && route.stops.length > 0 && (
+                          <div className="bg-blue-50 rounded-lg p-3">
+                            <p className="text-xs font-semibold text-blue-700 uppercase tracking-wider mb-2">Stops</p>
+                            <div className="space-y-2">
+                              {route.stops.map((stop, stopIndex) => (
+                                <div key={stopIndex} className="flex items-center gap-2 text-sm">
+                                  <div className="w-6 h-6 rounded-full bg-blue-200 flex items-center justify-center text-xs font-bold text-blue-700">
+                                    {stop.order || stopIndex + 1}
+                                  </div>
+                                  <div>
+                                    <p className="font-semibold text-slate-900">{stop.name}</p>
+                                    <p className="text-xs text-slate-600">
+                                      {stop.city} ({stop.iataCode}) - {stop.arrivalTime} to {stop.departureTime}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Destination */}
+                        <div className="bg-slate-50 rounded-lg p-3">
+                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Destination</p>
+                          <p className="text-sm font-bold text-slate-900">{route.destination?.name}</p>
+                          <p className="text-xs text-slate-600">
+                            {route.destination?.city}, {route.destination?.country} ({route.destination?.iataCode})
+                          </p>
+                        </div>
+
+                        {/* Additional Info */}
+                        <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-200">
+                          <div>
+                            <p className="text-xs text-slate-500 mb-1">Distance</p>
+                            <p className="text-sm font-bold text-slate-900">{route.distanceInKm} km</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-500 mb-1">Duration</p>
+                            <p className="text-sm font-bold text-slate-900">{route.estimatedDurationInMinutes} min</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Flight Route Form Modal */}
+      {showFlightRouteForm && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-slate-900">Create Flight Route</h2>
+              <button
+                onClick={() => setShowFlightRouteForm(false)}
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-slate-600" />
+              </button>
+            </div>
+
+            <form onSubmit={handleFlightRouteSubmit} className="p-6 space-y-6">
+              {flightRouteSuccess && (
+                <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+                  {flightRouteSuccess}
+                </div>
+              )}
+              {flightRouteError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                  {flightRouteError}
+                </div>
+              )}
+
+              {/* Flight Selection */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-bold text-slate-900 border-b border-slate-200 pb-2">
+                  Flight Details
+                </h3>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Select Flight *</label>
+                  <select
+                    value={flightRouteFormData.flightId}
+                    onChange={(e) => setFlightRouteFormData({ ...flightRouteFormData, flightId: e.target.value })}
+                    className="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
+                    required
+                  >
+                    <option value="">Choose a flight...</option>
+                    {flights.map(flight => (
+                      <option key={flight._id} value={flight._id}>
+                        {flight.airlineName} ({flight.registrationNumber})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Route Details */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-bold text-slate-900 border-b border-slate-200 pb-2">
+                  Route Information
+                </h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  {/* Source Airport with Autocomplete */}
+                  <div className="relative">
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">Source Airport *</label>
+                    <input
+                      type="text"
+                      value={flightRouteFormData.source.name}
+                      onChange={(e) => {
+                        setFlightRouteFormData({
+                          ...flightRouteFormData,
+                          source: { ...flightRouteFormData.source, name: e.target.value }
+                        });
+                        searchAirports(e.target.value);
+                        setShowSourceSuggestions(true);
+                      }}
+                      onFocus={() => flightRouteFormData.source.name && setShowSourceSuggestions(true)}
+                      required
+                      className="w-full px-3 py-2 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
+                      placeholder="Search airport (e.g., Delhi, DEL, Indira Gandhi)"
+                    />
+                    {showSourceSuggestions && airportSuggestions.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border-2 border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        {airportSuggestions.map((airport, index) => (
+                          <div
+                            key={index}
+                            onClick={() => selectAirport(airport, "source")}
+                            className="px-4 py-3 hover:bg-sky-50 cursor-pointer border-b border-slate-100 last:border-b-0"
+                          >
+                            <p className="text-sm font-bold text-slate-900">{airport.displayText}</p>
+                            <p className="text-xs text-slate-500">{airport.city}, {airport.country}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">Source IATA Code *</label>
+                    <input
+                      type="text"
+                      value={flightRouteFormData.source.iataCode}
+                      onChange={(e) => setFlightRouteFormData({
+                        ...flightRouteFormData,
+                        source: { ...flightRouteFormData.source, iataCode: e.target.value.toUpperCase() }
+                      })}
+                      required
+                      maxLength="3"
+                      className="w-full px-3 py-2 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
+                      placeholder="e.g., DEL"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">Source City *</label>
+                    <input
+                      type="text"
+                      value={flightRouteFormData.source.city}
+                      onChange={(e) => setFlightRouteFormData({
+                        ...flightRouteFormData,
+                        source: { ...flightRouteFormData.source, city: e.target.value }
+                      })}
+                      required
+                      className="w-full px-3 py-2 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
+                      placeholder="e.g., Delhi"
+                    />
+                  </div>
+
+                  {/* Destination Airport with Autocomplete */}
+                  <div className="relative">
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">Destination Airport *</label>
+                    <input
+                      type="text"
+                      value={flightRouteFormData.destination.name}
+                      onChange={(e) => {
+                        setFlightRouteFormData({
+                          ...flightRouteFormData,
+                          destination: { ...flightRouteFormData.destination, name: e.target.value }
+                        });
+                        searchAirports(e.target.value);
+                        setShowDestSuggestions(true);
+                      }}
+                      onFocus={() => flightRouteFormData.destination.name && setShowDestSuggestions(true)}
+                      required
+                      className="w-full px-3 py-2 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
+                      placeholder="Search airport (e.g., Mumbai, BOM, Chhatrapati Shivaji)"
+                    />
+                    {showDestSuggestions && airportSuggestions.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border-2 border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        {airportSuggestions.map((airport, index) => (
+                          <div
+                            key={index}
+                            onClick={() => selectAirport(airport, "destination")}
+                            className="px-4 py-3 hover:bg-sky-50 cursor-pointer border-b border-slate-100 last:border-b-0"
+                          >
+                            <p className="text-sm font-bold text-slate-900">{airport.displayText}</p>
+                            <p className="text-xs text-slate-500">{airport.city}, {airport.country}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">Destination IATA Code *</label>
+                    <input
+                      type="text"
+                      value={flightRouteFormData.destination.iataCode}
+                      onChange={(e) => setFlightRouteFormData({
+                        ...flightRouteFormData,
+                        destination: { ...flightRouteFormData.destination, iataCode: e.target.value.toUpperCase() }
+                      })}
+                      required
+                      maxLength="3"
+                      className="w-full px-3 py-2 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
+                      placeholder="e.g., BOM"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">Destination City *</label>
+                    <input
+                      type="text"
+                      value={flightRouteFormData.destination.city}
+                      onChange={(e) => setFlightRouteFormData({
+                        ...flightRouteFormData,
+                        destination: { ...flightRouteFormData.destination, city: e.target.value }
+                      })}
+                      required
+                      className="w-full px-3 py-2 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
+                      placeholder="e.g., Mumbai"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Stops */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-bold text-slate-900 border-b border-slate-200 pb-2">
+                    Stops (Optional)
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={addFlightStop}
+                    className="text-sm font-bold text-sky-600 hover:text-sky-700"
+                  >
+                    + Add Stop
+                  </button>
+                </div>
+                {flightRouteFormData.stops.length === 0 ? (
+                  <p className="text-sm text-slate-500">No stops added. This will be a direct flight.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {flightRouteFormData.stops.map((stop, index) => (
+                      <div key={index} className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-sm font-bold text-slate-700">Stop {index + 1}</h4>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFlightRouteFormData(prev => ({
+                                ...prev,
+                                stops: prev.stops.filter((_, i) => i !== index)
+                              }));
+                            }}
+                            className="text-xs text-red-600 hover:text-red-700"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                        <div className="grid md:grid-cols-3 gap-3">
+                          {/* Stop Airport with Autocomplete */}
+                          <div className="relative">
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">Airport Name</label>
+                            <input
+                              type="text"
+                              value={stop.name}
+                              onChange={(e) => {
+                                updateFlightStop(index, "name", e.target.value);
+                                searchAirports(e.target.value);
+                                setShowStopSuggestions(prev => ({ ...prev, [index]: true }));
+                              }}
+                              onFocus={() => stop.name && setShowStopSuggestions(prev => ({ ...prev, [index]: true }))}
+                              className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-sky-400"
+                              placeholder="Search airport"
+                            />
+                            {showStopSuggestions[index] && airportSuggestions.length > 0 && (
+                              <div className="absolute z-10 w-full mt-1 bg-white border-2 border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                {airportSuggestions.map((airport, idx) => (
+                                  <div
+                                    key={idx}
+                                    onClick={() => selectStopAirport(airport, index)}
+                                    className="px-4 py-3 hover:bg-sky-50 cursor-pointer border-b border-slate-100 last:border-b-0"
+                                  >
+                                    <p className="text-sm font-bold text-slate-900">{airport.displayText}</p>
+                                    <p className="text-xs text-slate-500">{airport.city}, {airport.country}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">IATA Code</label>
+                            <input
+                              type="text"
+                              value={stop.iataCode}
+                              onChange={(e) => updateFlightStop(index, "iataCode", e.target.value.toUpperCase())}
+                              maxLength="3"
+                              className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-sky-400"
+                              placeholder="e.g., BLR"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">City</label>
+                            <input
+                              type="text"
+                              value={stop.city}
+                              onChange={(e) => updateFlightStop(index, "city", e.target.value)}
+                              className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-sky-400"
+                              placeholder="City"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">Arrival Time</label>
+                            <input
+                              type="time"
+                              value={stop.arrivalTime}
+                              onChange={(e) => updateFlightStop(index, "arrivalTime", e.target.value)}
+                              className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-sky-400"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">Departure Time</label>
+                            <input
+                              type="time"
+                              value={stop.departureTime}
+                              onChange={(e) => updateFlightStop(index, "departureTime", e.target.value)}
+                              className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-sky-400"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">Minutes from Source</label>
+                            <input
+                              type="number"
+                              value={stop.minutesFromSource}
+                              onChange={(e) => updateFlightStop(index, "minutesFromSource", parseInt(e.target.value) || 0)}
+                              min="0"
+                              className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-sky-400"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Additional Info */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-bold text-slate-900 border-b border-slate-200 pb-2">
+                  Additional Information
+                </h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">Distance (km) *</label>
+                    <input
+                      type="number"
+                      value={flightRouteFormData.distanceInKm}
+                      onChange={(e) => setFlightRouteFormData({ ...flightRouteFormData, distanceInKm: e.target.value })}
+                      required
+                      min="0"
+                      step="0.1"
+                      className="w-full px-3 py-2 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
+                      placeholder="e.g., 1150"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">Estimated Duration (minutes) *</label>
+                    <input
+                      type="number"
+                      value={flightRouteFormData.estimatedDurationInMinutes}
+                      onChange={(e) => setFlightRouteFormData({ ...flightRouteFormData, estimatedDurationInMinutes: e.target.value })}
+                      required
+                      min="0"
+                      className="w-full px-3 py-2 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
+                      placeholder="e.g., 135"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Submit Buttons */}
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowFlightRouteForm(false)}
+                  className="flex-1 px-6 py-3 border-2 border-slate-200 text-slate-700 font-bold rounded-lg hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={flightRouteLoading}
+                  className="flex-1 px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {flightRouteLoading ? "Creating Route..." : "Create Route"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Flight Schedule Form Modal */}
+      {showFlightScheduleForm && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-slate-900">Create Flight Schedule</h2>
+              <button
+                onClick={() => setShowFlightScheduleForm(false)}
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-slate-600" />
+              </button>
+            </div>
+
+            <form onSubmit={handleFlightScheduleSubmit} className="p-6 space-y-6">
+              {flightScheduleSuccess && (
+                <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+                  {flightScheduleSuccess}
+                </div>
+              )}
+              {flightScheduleError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                  {flightScheduleError}
+                </div>
+              )}
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Select Flight *</label>
+                  <select
+                    value={flightScheduleFormData.flightId}
+                    onChange={(e) => {
+                      const flightId = e.target.value;
+                      setFlightScheduleFormData({ ...flightScheduleFormData, flightId, routeId: "" });
+                      // Fetch routes for selected flight
+                      if (flightId) {
+                        fetchFlightRoutesForSchedule(flightId);
+                      }
+                    }}
+                    className="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
+                    required
+                  >
+                    <option value="">Choose a flight...</option>
+                    {flights.map(flight => (
+                      <option key={flight._id} value={flight._id}>
+                        {flight.airlineName} ({flight.registrationNumber})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Flight Number *</label>
+                  <input
+                    type="text"
+                    value={flightScheduleFormData.flightNumber}
+                    onChange={(e) => setFlightScheduleFormData({ ...flightScheduleFormData, flightNumber: e.target.value })}
+                    className="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
+                    required
+                    placeholder="e.g., 6E-204"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Select Route *</label>
+                  <select
+                    value={flightScheduleFormData.routeId}
+                    onChange={(e) => setFlightScheduleFormData({ ...flightScheduleFormData, routeId: e.target.value })}
+                    className="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
+                    required
+                    disabled={!flightScheduleFormData.flightId || flightRoutesLoading}
+                  >
+                    <option value="">Choose a route...</option>
+                    {flightRoutes.map(route => (
+                      <option key={route._id} value={route._id}>
+                        {route.source?.city} → {route.destination?.city}
+                      </option>
+                    ))}
+                  </select>
+                  {flightRoutesLoading && (
+                    <p className="text-xs text-slate-500 mt-1">Loading routes...</p>
+                  )}
+                  {!flightScheduleFormData.flightId && (
+                    <p className="text-xs text-amber-600 mt-1">Please select a flight first</p>
+                  )}
+                  {flightScheduleFormData.flightId && !flightRoutesLoading && flightRoutes.length === 0 && (
+                    <p className="text-xs text-amber-600 mt-1">No routes available. Create routes for this flight first.</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Base Fare (₹) *</label>
+                  <input
+                    type="number"
+                    value={flightScheduleFormData.baseFare}
+                    onChange={(e) => setFlightScheduleFormData({ ...flightScheduleFormData, baseFare: e.target.value })}
+                    className="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
+                    required
+                    min="0"
+                    step="0.01"
+                    placeholder="e.g., 4500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Departure Date *</label>
+                  <input
+                    type="date"
+                    value={flightScheduleFormData.departureDate}
+                    onChange={(e) => setFlightScheduleFormData({ ...flightScheduleFormData, departureDate: e.target.value })}
+                    className="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Arrival Date *</label>
+                  <input
+                    type="date"
+                    value={flightScheduleFormData.arrivalDate}
+                    onChange={(e) => setFlightScheduleFormData({ ...flightScheduleFormData, arrivalDate: e.target.value })}
+                    className="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Departure Time *</label>
+                  <input
+                    type="time"
+                    value={flightScheduleFormData.departureTime}
+                    onChange={(e) => setFlightScheduleFormData({ ...flightScheduleFormData, departureTime: e.target.value })}
+                    className="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Arrival Time *</label>
+                  <input
+                    type="time"
+                    value={flightScheduleFormData.arrivalTime}
+                    onChange={(e) => setFlightScheduleFormData({ ...flightScheduleFormData, arrivalTime: e.target.value })}
+                    className="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Departure Terminal *</label>
+                  <input
+                    type="text"
+                    value={flightScheduleFormData.departureTerminal}
+                    onChange={(e) => setFlightScheduleFormData({ ...flightScheduleFormData, departureTerminal: e.target.value })}
+                    className="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
+                    required
+                    placeholder="e.g., Terminal 3"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Arrival Terminal *</label>
+                  <input
+                    type="text"
+                    value={flightScheduleFormData.arrivalTerminal}
+                    onChange={(e) => setFlightScheduleFormData({ ...flightScheduleFormData, arrivalTerminal: e.target.value })}
+                    className="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
+                    required
+                    placeholder="e.g., T2"
+                  />
+                </div>
+              </div>
+
+              {/* Meal Options */}
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">Meal Options</label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={flightScheduleFormData.mealOptions.includes("VEG")}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setFlightScheduleFormData({
+                            ...flightScheduleFormData,
+                            mealOptions: [...flightScheduleFormData.mealOptions, "VEG"]
+                          });
+                        } else {
+                          setFlightScheduleFormData({
+                            ...flightScheduleFormData,
+                            mealOptions: flightScheduleFormData.mealOptions.filter(m => m !== "VEG")
+                          });
+                        }
+                      }}
+                      className="w-4 h-4 text-sky-600 border-slate-300 rounded focus:ring-sky-500"
+                    />
+                    <span className="text-sm text-slate-700">Vegetarian</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={flightScheduleFormData.mealOptions.includes("NON_VEG")}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setFlightScheduleFormData({
+                            ...flightScheduleFormData,
+                            mealOptions: [...flightScheduleFormData.mealOptions, "NON_VEG"]
+                          });
+                        } else {
+                          setFlightScheduleFormData({
+                            ...flightScheduleFormData,
+                            mealOptions: flightScheduleFormData.mealOptions.filter(m => m !== "NON_VEG")
+                          });
+                        }
+                      }}
+                      className="w-4 h-4 text-sky-600 border-slate-300 rounded focus:ring-sky-500"
+                    />
+                    <span className="text-sm text-slate-700">Non-Vegetarian</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Cancellation Policy */}
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">Cancellation Policy</label>
+                <div className="space-y-2">
+                  {flightScheduleFormData.cancellationPolicy.map((policy, index) => (
+                    <div key={index} className="grid md:grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-xs text-slate-600 mb-1">Hours Before Departure</label>
+                        <input
+                          type="number"
+                          value={policy.hoursBeforeDeparture}
+                          onChange={(e) => {
+                            const newPolicy = [...flightScheduleFormData.cancellationPolicy];
+                            newPolicy[index] = { ...newPolicy[index], hoursBeforeDeparture: parseInt(e.target.value) || 0 };
+                            setFlightScheduleFormData({ ...flightScheduleFormData, cancellationPolicy: newPolicy });
+                          }}
+                          className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-sky-400"
+                          min="0"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-600 mb-1">Refund Percentage</label>
+                        <input
+                          type="number"
+                          value={policy.refundPercentage}
+                          onChange={(e) => {
+                            const newPolicy = [...flightScheduleFormData.cancellationPolicy];
+                            newPolicy[index] = { ...newPolicy[index], refundPercentage: parseInt(e.target.value) || 0 };
+                            setFlightScheduleFormData({ ...flightScheduleFormData, cancellationPolicy: newPolicy });
+                          }}
+                          className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-sky-400"
+                          min="0"
+                          max="100"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowFlightScheduleForm(false)}
+                  className="flex-1 px-6 py-3 border-2 border-slate-200 text-slate-700 font-bold rounded-lg hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={flightScheduleLoading}
+                  className="flex-1 px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {flightScheduleLoading ? "Creating..." : "Create Schedule"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Schedule Confirmation Modal */}
+      {cancelScheduleConfirm && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                <X className="w-8 h-8 text-red-600" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Cancel Flight Schedule</h3>
+              <p className="text-sm text-slate-600 mb-6">
+                Are you sure you want to cancel this flight schedule? All confirmed bookings will be automatically refunded in full. This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setCancelScheduleConfirm(null)}
+                  className="flex-1 px-4 py-3 border-2 border-slate-200 text-slate-700 font-bold rounded-lg hover:bg-slate-50 transition-colors"
+                >
+                  Keep Schedule
+                </button>
+                <button
+                  onClick={() => handleCancelSchedule(cancelScheduleConfirm._id)}
+                  className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors"
+                >
+                  Cancel Schedule
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

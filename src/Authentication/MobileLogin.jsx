@@ -11,6 +11,7 @@ export function MobileLogin() {
     const [showEmailLogin, setShowEmailLogin] = useState(false);
     const [phoneNumber, setPhoneNumber] = useState("");
     const [phoneError, setPhoneError] = useState("");
+    const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     setShow(true);
@@ -46,15 +47,23 @@ export function MobileLogin() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const error = validatePhoneNumber(phoneNumber);
     if (error) {
       setPhoneError(error);
       return;
     }
-    // Proceed with OTP request
-    alert(`OTP sent to ${phoneNumber}`);
+    
+    setLoading(true);
+    try {
+      // Proceed with OTP request
+      alert(`OTP sent to ${phoneNumber}`);
+    } catch (err) {
+      alert("Failed to send OTP");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -135,11 +144,20 @@ export function MobileLogin() {
           </label>
         </div>
 
-        <But2
-          type="submit"
-          text ="Get OTP to this number"
-          className="w-full bg-lime-600 dark:bg-lime-300 text-white dark:text-gray-900 py-3 px-4 rounded-lg font-medium hover:bg-lime-700 dark:hover:bg-lime-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-lime-500 dark:focus:ring-offset-gray-800 transition-colors"
-        />
+        {loading ? (
+          <div className="w-full bg-lime-600 dark:bg-lime-300 text-white dark:text-gray-900 py-3 px-4 rounded-lg font-medium flex items-center justify-center gap-2">
+            <div className="relative w-6 h-6">
+              <div className="absolute inset-0 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
+            </div>
+            <span>Sending OTP...</span>
+          </div>
+        ) : (
+          <But2
+            type="submit"
+            text ="Get OTP to this number"
+            className="w-full bg-lime-600 dark:bg-lime-300 text-white dark:text-gray-900 py-3 px-4 rounded-lg font-medium hover:bg-lime-700 dark:hover:bg-lime-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-lime-500 dark:focus:ring-offset-gray-800 transition-colors"
+          />
+        )}
       </form>
 
       <div className="mt-6">

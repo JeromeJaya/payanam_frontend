@@ -2,6 +2,7 @@ import Nav from "../../NavComponent.jsx"
 import WhereToWhere from "./Wheretowhere.jsx"
 import FlightCard from "../../cards/FlightCard.jsx"
 import FlightFareSelector from "./FlightFareSelector.jsx"
+import SelectedFlightsSidebar from "../../cards/SelectedFlightsSidebar.jsx"
 
 import SearchheckBox from "../../filter/SearchheckBox.jsx"
 import SelectBox from "../../filter/SelectBox.jsx"
@@ -35,10 +36,13 @@ export default function FlightBooking(){
   const [sortBy, setSortBy] = useState("price_low");
   const [filters, setFilters] = useState({
     aircraftType: "",
-    hasBusinessClass: "",
+    cabinClass: "",
     minPrice: "",
     maxPrice: "",
+    airlines: [],
   });
+  const [comparedFlights, setComparedFlights] = useState([]);
+  const [showCompareSidebar, setShowCompareSidebar] = useState(false);
 
   const handleFetchFlights = async (searchFrom, searchTo, searchDate) => {
     // Use passed values or fall back to state
@@ -57,7 +61,7 @@ export default function FlightBooking(){
       
       // Add optional filters
       if (filters.aircraftType) params.aircraftType = filters.aircraftType;
-      if (filters.hasBusinessClass) params.hasBusinessClass = filters.hasBusinessClass;
+      if (filters.cabinClass) params.cabinClass = filters.cabinClass;
       if (filters.minPrice) params.minPrice = filters.minPrice;
       if (filters.maxPrice) params.maxPrice = filters.maxPrice;
       if (sortBy) params.sortBy = sortBy;
@@ -66,7 +70,16 @@ export default function FlightBooking(){
       console.log("Flight search params:", params);
       const flightData = res?.data?.data || [];
       console.log("Flight search results:", flightData);
-      setFlights(flightData);
+      
+      // Apply client-side filtering for airlines (since backend doesn't support array filter yet)
+      let filteredData = flightData;
+      if (filters.airlines.length > 0) {
+        filteredData = flightData.filter(flight => 
+          filters.airlines.includes(flight.flight?.airlineName || flight.operator?.name)
+        );
+      }
+      
+      setFlights(filteredData);
     } catch (err) {
       console.error("Error fetching flights:", err);
       setFlights([]);
@@ -95,6 +108,24 @@ export default function FlightBooking(){
 
   const handleFilterChange = (filterName, value) => {
     setFilters(prev => ({ ...prev, [filterName]: value }));
+  };
+
+  const handleAddToCompare = (flight) => {
+    if (!comparedFlights.find(f => f.scheduleId === flight.scheduleId || f.id === flight.id)) {
+      setComparedFlights([...comparedFlights, flight]);
+    }
+  };
+
+  const handleRemoveFromCompare = (flight) => {
+    setComparedFlights(comparedFlights.filter(f => f.scheduleId !== flight.scheduleId && f.id !== flight.id));
+  };
+
+  const isFlightCompared = (flight) => {
+    return comparedFlights.some(f => f.scheduleId === flight.scheduleId || f.id === flight.id);
+  };
+
+  const toggleCompareSidebar = () => {
+    setShowCompareSidebar(!showCompareSidebar);
   };
 
   // Get unique airlines for filter
@@ -129,9 +160,17 @@ export default function FlightBooking(){
           handleFetchFlights={handleFetchFlights}
           serviceType={serviceType}
         />
+        
+        {/* Selected Flights Sidebar */}
+        <SelectedFlightsSidebar
+          comparedFlights={comparedFlights}
+          show={showCompareSidebar}
+          onClose={() => setShowCompareSidebar(false)}
+          onRemoveFromCompare={handleRemoveFromCompare}
+        />
         <div className="bg-mist-50 h-auto my-5 mx-[100px] flex">
-                <div className = "filter bg-white-200 w-[25%] h-auto rounded-lg shadow-xl">
-                    <div className = "flex justify-center mt-5 font-bold">FILTERS</div>
+                <div className = "filter bg-white w-[25%] h-auto rounded-lg shadow-xl p-4">
+                    <div className = "flex justify-center mb-4 font-bold text-lg">FILTERS</div>
                   
                     <SelectBox
                       text={["", "AIRBUS_A320", "AIRBUS_A321", "BOEING_737", "BOEING_777", "BOEING_787", "ATR_72", "EMBRAER_E175"]}
@@ -140,37 +179,127 @@ export default function FlightBooking(){
                       onChange={(option) => handleFilterChange("aircraftType", option)}
                     />
                     <SelectBox
-                      text={["", "true", "false"]}
-                      title="Business Class"
-                      value={filters.hasBusinessClass}
-                      onChange={(option) => handleFilterChange("hasBusinessClass", option)}
+                      text={["", "ECONOMY", "BUSINESS", "PREMIUM_ECONOMY", "FIRST"]}
+                      title="Cabin Class"
+                      value={filters.cabinClass}
+                      onChange={(option) => handleFilterChange("cabinClass", option)}
                     />
-                    <Checkbox title="Price Range" text={`₹${priceRange.min} - ₹${priceRange.max}`} />
+                    
+                    {/* Price Range Filter */}
+                    <div className="p-4 bg-white/50 rounded-lg m-2">
+                      <label className="block text-xs font-bold text-gray-700 mb-2">Price Range</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="number"
+                          placeholder="Min"
+                          value={filters.minPrice}
+                          onChange={(e) => handleFilterChange("minPrice", e.target.value)}
+                          className="w-1/2 p-2 border border-gray-300 rounded text-sm"
+                        />
+                        <input
+                          type="number"
+                          placeholder="Max"
+                          value={filters.maxPrice}
+                          onChange={(e) => handleFilterChange("maxPrice", e.target.value)}
+                          className="w-1/2 p-2 border border-gray-300 rounded text-sm"
+                        />
+                      </div>
+                      {priceRange.min > 0 && (
+                        <p className="text-xs text-gray-500 mt-1">Range: ₹{priceRange.min.toLocaleString('en-IN')} - ₹{priceRange.max.toLocaleString('en-IN')}</p>
+                      )}
+                    </div>
                     <SearchheckBox
                       title="Airlines"
                       text={airlineOptions}
-                      selectedPoints={[]}
-                      onChange={() => {}}
-                      onClear={() => {}}
+                      selectedPoints={filters.airlines}
+                      onChange={(selected) => handleFilterChange("airlines", selected)}
+                      onClear={() => handleFilterChange("airlines", [])}
                     />
-                    <SearchheckBox
-                      title="Aircraft Size"
-                      text={aircraftTypeOptions}
-                      selectedPoints={[]}
-                      onChange={() => {}}
-                      onClear={() => {}}
-                    />
+                    
+                    {/* Filter Actions */}
+                    <div className="p-4 flex gap-2">
+                      <button 
+                        onClick={() => {
+                          // Reset all filters
+                          setFilters({
+                            aircraftType: "",
+                            cabinClass: "",
+                            minPrice: "",
+                            maxPrice: "",
+                            airlines: []
+                          });
+                        }}
+                        className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-300 transition-colors"
+                      >
+                        Reset Filters
+                      </button>
+                    </div>
                 </div>
                 <div className = "bg-neutral-200 w-[80%] ml-[2%] px-5 rounded-lg shadow-xl flex flex-col">
                     <div className = "bg-white w-full h-auto my-5 rounded-3xl shadow-xl">
                         <FlightFareSelector sortBy={sortBy} onSortChange={handleSortChange} />
                     </div>
                     {loading ? (
-                      <div className="p-8 text-center text-gray-600">Loading flights...</div>
+                      <div className="flex flex-col items-center justify-center py-20">
+                        {/* Animated gradient background card */}
+                        <div className="relative p-12 rounded-3xl bg-gradient-to-br from-sky-50 via-white to-blue-50 shadow-2xl">
+                          {/* Multiple spinning rings with different speeds */}
+                          <div className="relative w-32 h-32">
+                            {/* Outer ring - slow spin */}
+                            <div className="absolute inset-0 rounded-full border-4 border-sky-200 border-t-sky-600 border-r-transparent border-b-blue-400 border-l-transparent animate-spin" style={{ animationDuration: '3s' }}></div>
+                            {/* Middle ring - reverse spin */}
+                            <div className="absolute inset-2 rounded-full border-3 border-blue-200 border-b-blue-600 border-t-transparent border-r-transparent border-l-transparent animate-spin" style={{ animationDuration: '2s', animationDirection: 'reverse' }}></div>
+                            {/* Inner ring - fast spin */}
+                            <div className="absolute inset-4 rounded-full border-2 border-sky-300 border-l-sky-600 border-r-transparent border-t-transparent border-b-transparent animate-spin" style={{ animationDuration: '1.5s' }}></div>
+                            {/* Center pulsing icon */}
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="relative">
+                                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-sky-600 to-blue-600 animate-pulse shadow-lg shadow-sky-500/50"></div>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                  </svg>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Loading text with animation */}
+                          <div className="mt-10 text-center">
+                            <h3 className="text-2xl font-bold bg-gradient-to-r from-sky-600 to-blue-600 bg-clip-text text-transparent mb-3">
+                              Searching for Flights
+                            </h3>
+                            <p className="text-gray-600 font-medium text-lg mb-6">
+                              Finding the best flight options for you...
+                            </p>
+
+                            {/* Animated progress indicators */}
+                            <div className="flex items-center justify-center gap-2 mb-4">
+                              <div className="flex items-center gap-1">
+                                <div className="w-2.5 h-2.5 bg-sky-600 rounded-full animate-bounce" style={{ animationDelay: '0ms', animationDuration: '0.6s' }}></div>
+                                <div className="w-2.5 h-2.5 bg-sky-500 rounded-full animate-bounce" style={{ animationDelay: '100ms', animationDuration: '0.6s' }}></div>
+                                <div className="w-2.5 h-2.5 bg-sky-400 rounded-full animate-bounce" style={{ animationDelay: '200ms', animationDuration: '0.6s' }}></div>
+                              </div>
+                            </div>
+
+                            {/* Shimmer effect text */}
+                            <div className="inline-flex items-center gap-2 px-4 py-2 bg-sky-50 rounded-full">
+                              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                              <span className="text-sm text-sky-700 font-medium">Please wait a moment</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     ) : Array.isArray(flights) && flights.length > 0 ? (
                       flights.map((flight) => (
                         <div key={flight.scheduleId || flight.id || flight.flightNumber} className="bg-white w-full h-auto mb-3 rounded-3xl shadow-xl">
-                         <FlightCard flight={flight} />
+                         <FlightCard 
+                           flight={flight} 
+                           isCompared={isFlightCompared(flight)}
+                           onAddToCompare={() => handleAddToCompare(flight)}
+                           onRemoveFromCompare={() => handleRemoveFromCompare(flight)}
+                           onToggleCompareSidebar={toggleCompareSidebar}
+                         />
                         </div>
                       ))
                     ) : (
