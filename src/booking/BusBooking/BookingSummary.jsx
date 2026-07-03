@@ -92,9 +92,14 @@ export default function BookingSummary({
     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm text-slate-800 transition-all duration-300 overflow-hidden flex flex-col">
       {/* Header */}
       <div onClick={() => setIsMinimized(!isMinimized)} className="p-4 flex items-center justify-between cursor-pointer border-b border-slate-100 bg-slate-50/20">
-        <div>
+        <div className ="flex flex-row gap-10">
           <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Seat Summary</h3>
-          <p className="text-[11px] text-slate-500">{lockStatus.message}</p>
+
+          {booking.status === "error" && (
+            <div className="rounded-lg bg-red-50  p- text-center text-[11px] font-medium text-red-600">
+              ⚠️ {booking.message}
+            </div>
+          )}
         </div>
         <button className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100">
           {isMinimized ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
@@ -103,14 +108,11 @@ export default function BookingSummary({
 
       {/* Body Section Layout */}
       <div className={`transition-all duration-300 overflow-hidden ${isMinimized ? "max-h-0 opacity-0" : "max-h-[500px] opacity-100 flex flex-col"}`}>
-        <div className="p-5 pb-2 flex-1 space-y-4">
+        <div className="  flex-1 ">
           
           {/* Active Seats Info Cards */}
-          <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-3">
-            <div className="flex items-center justify-between font-bold text-xs text-slate-700">
-              <span>{busName}</span>
-              <span className="text-sm text-slate-900">₹{grandTotal.toLocaleString()}</span>
-            </div>
+          <div className="rounded-xl border border-slate-100 bg-slate-50/50">
+  
             <div className="mt-2 flex flex-wrap gap-1.5">
               {seatList.map(id => (
                 <span key={id} className="rounded-md border border-lime-200 bg-lime-50/60 px-2 py-0.5 text-[10px] font-bold text-lime-800">
@@ -120,26 +122,21 @@ export default function BookingSummary({
             </div>
           </div>
 
-          {booking.status === "error" && (
-            <div className="rounded-lg bg-red-50 border border-red-100 p-2 text-center text-[11px] font-medium text-red-600">
-              ⚠️ {booking.message}
-            </div>
-          )}
-
           {/* Footer Processing Container */}
-          <div className="p-5 pt-2 border-t border-slate-100 bg-white">
+          <div className="p- pt-2 border-t border-slate-100 bg-white">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold text-slate-900">Total Payable</span>
+              <span className="text-lg pl-3 font-bold text-slate-900">Total Payable</span>
               <span className="text-xl font-black text-slate-900">₹{grandTotal.toLocaleString()}</span>
-            </div>
-
-            <button
+              <button
               onClick={handleConfirmSeats}
               disabled={booking.status === "loading" || lockStatus.status === "error"}
-              className="w-full rounded-xl bg-lime-500 py-2.5 text-xs font-bold text-white shadow-md shadow-lime-500/10 transition hover:bg-lime-600 disabled:opacity-50 flex items-center justify-center gap-1.5"
+              className="w-xs rounded-xl bg-lime-500 py-2.5 text-lg font-bold text-white shadow-md shadow-lime-500/10 transition hover:bg-lime-600 disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
               {booking.status === "loading" ? "Confirming with Payanam..." : "Confirm Seats"}
             </button>
+            </div>
+
+            
           </div>
         </div>
       </div>

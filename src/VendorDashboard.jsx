@@ -101,6 +101,9 @@ export default function VendorDashboard() {
   const [flights, setFlights] = useState([]);
   const [flightsLoading, setFlightsLoading] = useState(false);
 
+  const [busSchedules, setBusSchedules] = useState([]);
+  const [busSchedulesLoading, setBusSchedulesLoading] = useState(false);
+
   const [scheduleCategory, setScheduleCategory] = useState(null);
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [scheduleFormData, setScheduleFormData] = useState({
@@ -161,6 +164,7 @@ export default function VendorDashboard() {
   const [flightScheduleSuccess, setFlightScheduleSuccess] = useState(null);
   const [flightScheduleError, setFlightScheduleError] = useState("");
   const [cancelScheduleConfirm, setCancelScheduleConfirm] = useState(null);
+  const [cancelBusScheduleConfirm, setCancelBusScheduleConfirm] = useState(null);
   const searchInputRef = useRef(null);
 
   const handleSearch = async () => {
@@ -226,7 +230,7 @@ export default function VendorDashboard() {
   const fetchRoutes = async () => {
     setRoutesLoading(true);
     try {
-      const response = await api.get("/api/v1/routes");
+      const response = await api.get("/api/v1/buses/routes");
       if (response.data.success) {
         setRoutes(response.data.data);
       }
@@ -248,6 +252,20 @@ export default function VendorDashboard() {
       console.error("Error fetching flights:", err);
     } finally {
       setFlightsLoading(false);
+    }
+  };
+
+  const fetchBusSchedules = async () => {
+    setBusSchedulesLoading(true);
+    try {
+      const response = await api.get("/api/v1/buses/schedules");
+      if (response.data.success) {
+        setBusSchedules(response.data.data);
+      }
+    } catch (err) {
+      console.error("Error fetching bus schedules:", err);
+    } finally {
+      setBusSchedulesLoading(false);
     }
   };
 
@@ -287,6 +305,7 @@ export default function VendorDashboard() {
       fetchRoutes();
       fetchFlights();
       fetchDashboardData();
+      fetchBusSchedules();
     }
   }, [user]);
 
@@ -390,8 +409,9 @@ export default function VendorDashboard() {
           cancellationPolicy: [{ hoursBeforeDeparture: 24, refundPercentage: 75 }]
         });
         
-        // Refresh dashboard data
+        // Refresh dashboard data and bus schedules list
         fetchDashboardData();
+        fetchBusSchedules();
       }
     } catch (err) {
       setScheduleError(err.response?.data?.message || "Failed to create schedule");
@@ -657,6 +677,21 @@ export default function VendorDashboard() {
     } catch (err) {
       console.error("Error cancelling schedule:", err);
       alert(err.response?.data?.message || "Failed to cancel schedule");
+    }
+  };
+
+  const handleCancelBusSchedule = async (scheduleId) => {
+    try {
+      const response = await api.patch(`/api/v1/buses/schedules/${scheduleId}/cancel`);
+      if (response.data.success) {
+        setCancelBusScheduleConfirm(null);
+        fetchBusSchedules();
+        fetchDashboardData();
+        alert(response.data.message || "Bus schedule cancelled successfully");
+      }
+    } catch (err) {
+      console.error("Error cancelling bus schedule:", err);
+      alert(err.response?.data?.message || "Failed to cancel bus schedule");
     }
   };
 
@@ -1525,7 +1560,10 @@ export default function VendorDashboard() {
                         return (
                           <button
                             key={cat.id}
-                            onClick={() => setScheduleCategory(cat.id)}
+                  onClick={() => {
+                            setScheduleCategory(cat.id);
+                            if (cat.id === "flight") fetchFlightSchedules();
+                          }}
                             className={`text-left bg-white border-2 border-slate-200 rounded-xl p-6 ${cat.hoverBorder} hover:shadow-md transition-all duration-300 group`}
                           >
                             <div className="flex items-center gap-4 mb-3">
@@ -1558,24 +1596,162 @@ export default function VendorDashboard() {
                       </button>
                       <div>
                         <h3 className="text-xl font-bold text-slate-900">Schedule Bus Trip</h3>
-                        <p className="text-sm text-slate-500">Create a new bus schedule</p>
+                        <p className="text-sm text-slate-500">Create and manage bus schedules</p>
                       </div>
+                      <button
+                        onClick={() => setShowScheduleForm(true)}
+                        className="ml-auto flex items-center gap-2 bg-lime-600 hover:bg-lime-700 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Create Schedule
+                      </button>
                     </div>
 
-                    {!showScheduleForm ? (
-                      <div className="text-center py-12 bg-slate-50 rounded-xl border-2 border-dashed border-slate-300">
-                        <Bus className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                        <h3 className="text-lg font-bold text-slate-900 mb-2">Ready to Schedule</h3>
-                        <p className="text-sm text-slate-600 mb-4">Click the button below to create a new bus schedule</p>
+                    {/* Bus Schedules List */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-lg font-bold text-slate-900">Your Bus Schedules</h4>
                         <button
-                          onClick={() => setShowScheduleForm(true)}
-                          className="inline-flex items-center gap-2 bg-lime-600 hover:bg-lime-700 text-white text-sm font-bold px-6 py-3 rounded-xl transition-colors"
+                          onClick={fetchBusSchedules}
+                          className="text-sm font-bold text-lime-600 hover:text-lime-700"
                         >
-                          <Plus className="w-4 h-4" />
-                          Create New Schedule
+                          Refresh
                         </button>
                       </div>
-                    ) : (
+
+                      {busSchedulesLoading ? (
+                        <div className="text-center py-12">
+                          <div className="w-8 h-8 border-4 border-lime-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                          <p className="text-sm text-slate-600">Loading schedules...</p>
+                        </div>
+                      ) : busSchedules.length === 0 ? (
+                        <div className="text-center py-12 bg-slate-50 rounded-xl border-2 border-dashed border-slate-300">
+                          <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                          <h3 className="text-lg font-bold text-slate-900 mb-2">No Schedules Yet</h3>
+                          <p className="text-sm text-slate-600 mb-4">Create your first bus schedule to get started</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {busSchedules.map((schedule) => (
+                            <div key={schedule._id} className="border border-slate-200 rounded-xl p-6 hover:border-lime-500 hover:shadow-md transition-all duration-300">
+                              <div className="flex items-start justify-between mb-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-lime-500 to-lime-600 flex items-center justify-center">
+                                    <Bus className="w-5 h-5 text-white" />
+                                  </div>
+                                  <div>
+                                    <h4 className="text-lg font-bold text-slate-900">
+                                      {schedule.busId?.busName || "Bus"} ({schedule.busId?.busNumber || ""})
+                                    </h4>
+                                    <p className="text-xs text-slate-500">
+                                      {schedule.routeId?.source?.city} → {schedule.routeId?.destination?.city}
+                                    </p>
+                                  </div>
+                                </div>
+                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                  schedule.status === "SCHEDULED"
+                                    ? "bg-green-100 text-green-700"
+                                    : schedule.status === "CANCELLED"
+                                    ? "bg-red-100 text-red-700"
+                                    : schedule.status === "COMPLETED"
+                                    ? "bg-blue-100 text-blue-700"
+                                    : schedule.status === "IN_TRANSIT"
+                                    ? "bg-amber-100 text-amber-700"
+                                    : "bg-slate-100 text-slate-600"
+                                }`}>
+                                  {schedule.status}
+                                </span>
+                              </div>
+
+                              <div className="grid md:grid-cols-2 gap-4 mb-4">
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span className="text-slate-600">Bus Type:</span>
+                                    <span className="font-bold text-slate-900">{schedule.busId?.busType?.replace(/_/g, " ") || "—"}</span>
+                                  </div>
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span className="text-slate-600">Departure:</span>
+                                    <span className="font-bold text-slate-900">
+                                      {new Date(schedule.departureDate).toLocaleDateString('en-IN')} at {schedule.departureTime}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span className="text-slate-600">Arrival:</span>
+                                    <span className="font-bold text-slate-900">
+                                      {schedule.arrivalTime}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span className="text-slate-600">Base Fare:</span>
+                                    <span className="font-bold text-slate-900">₹{schedule.baseFare?.toLocaleString('en-IN')}</span>
+                                  </div>
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span className="text-slate-600">Available Seats:</span>
+                                    <span className="font-bold text-slate-900">{schedule.availableSeats ?? "—"}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Boarding & Dropping Points */}
+                              {((schedule.boardingPoints && schedule.boardingPoints.length > 0) || (schedule.droppingPoints && schedule.droppingPoints.length > 0)) && (
+                                <div className="grid md:grid-cols-2 gap-4 mb-4">
+                                  {schedule.boardingPoints && schedule.boardingPoints.length > 0 && (
+                                    <div className="bg-green-50 rounded-lg p-3">
+                                      <p className="text-xs font-semibold text-green-700 mb-1">Boarding Points</p>
+                                      {schedule.boardingPoints.map((bp, idx) => (
+                                        <p key={idx} className="text-xs text-slate-700">{bp.name}, {bp.city} {bp.time ? `(${bp.time})` : ""}</p>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {schedule.droppingPoints && schedule.droppingPoints.length > 0 && (
+                                    <div className="bg-orange-50 rounded-lg p-3">
+                                      <p className="text-xs font-semibold text-orange-700 mb-1">Dropping Points</p>
+                                      {schedule.droppingPoints.map((dp, idx) => (
+                                        <p key={idx} className="text-xs text-slate-700">{dp.name}, {dp.city} {dp.time ? `(${dp.time})` : ""}</p>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Cancellation Policy */}
+                              {schedule.cancellationPolicy && schedule.cancellationPolicy.length > 0 && (
+                                <div className="bg-slate-50 rounded-lg p-3 mb-4">
+                                  <p className="text-xs font-semibold text-slate-700 mb-2">Cancellation Policy</p>
+                                  <div className="space-y-1">
+                                    {schedule.cancellationPolicy.map((policy, idx) => (
+                                      <div key={idx} className="flex items-center justify-between text-xs">
+                                        <span className="text-slate-600">
+                                          {policy.hoursBeforeDeparture}h before departure
+                                        </span>
+                                        <span className="font-bold text-slate-900">{policy.refundPercentage}% refund</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Actions */}
+                              {schedule.status === "SCHEDULED" && (
+                                <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
+                                  <button
+                                    onClick={() => setCancelBusScheduleConfirm(schedule)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                    Cancel Schedule
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {showScheduleForm && (
                       <form onSubmit={handleScheduleSubmit} className="space-y-6">
                         {scheduleSuccess && (
                           <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
@@ -2900,6 +3076,37 @@ export default function VendorDashboard() {
                 </button>
                 <button
                   onClick={() => handleCancelSchedule(cancelScheduleConfirm._id)}
+                  className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors"
+                >
+                  Cancel Schedule
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Bus Schedule Confirmation Modal */}
+      {cancelBusScheduleConfirm && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                <X className="w-8 h-8 text-red-600" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Cancel Bus Schedule</h3>
+              <p className="text-sm text-slate-600 mb-6">
+                Are you sure you want to cancel this bus schedule for <strong>{cancelBusScheduleConfirm.busId?.busName || "this bus"}</strong>? All confirmed bookings will be automatically refunded in full. This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setCancelBusScheduleConfirm(null)}
+                  className="flex-1 px-4 py-3 border-2 border-slate-200 text-slate-700 font-bold rounded-lg hover:bg-slate-50 transition-colors"
+                >
+                  Keep Schedule
+                </button>
+                <button
+                  onClick={() => handleCancelBusSchedule(cancelBusScheduleConfirm._id)}
                   className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors"
                 >
                   Cancel Schedule

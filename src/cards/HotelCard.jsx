@@ -18,7 +18,7 @@ export default function HotelCard({
   const [currentSlide, setCurrentSlide] = useState(0);
 
   return (
-    <div className="w-full max-w-5xl mx-auto bg-white border border-blue-400 rounded-sm shadow-sm overflow-hidden font-sans text-gray-900 select-none transition-all hover:shadow-md mb-4">
+    <div className="w-full mx-auto bg-white border border-blue-400 rounded-sm shadow-sm overflow-hidden font-sans text-gray-900 select-none transition-all hover:shadow-md mb-4">
       <div className="grid grid-cols-1 md:grid-cols-[1.3fr_2fr_1.1fr] min-h-[220px]">
         
         {/* ================= LEFT COLUMN: HERO IMAGE & BADGES ================= */}

@@ -8,7 +8,7 @@ export default function HotelSearchWidget() {
   const [roomsAndGuests, setRoomsAndGuests] = useState('1 Room, 2 Adults');
 
   return (
-    <div className="w-full max-w-7xl mx-auto p-4 bg-white rounded-xl shadow-md border border-gray-100 font-sans text-gray-800 select-none">
+    <div className=" mx-25 p-4 bg-white rounded-xl shadow-md border border-gray-100 font-sans text-gray-800 select-none">
       <div className="flex flex-col md:flex-row items-center gap-2 lg:flex-nowrap">
         
         {/* 1. Destination Box Input */}
