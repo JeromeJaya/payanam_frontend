@@ -30,142 +30,125 @@ export default function BusCard({
 
   return (
     <>
-      <div className="w-full overflow-hidden rounded-3xl bg-white shadow-3xl hover:bg-cyan-50 transition-colors">
+      <div className="w-full overflow-hidden rounded-xl sm:rounded-2xl bg-white shadow-md border border-gray-100 hover:border-cyan-200 hover:bg-cyan-50/30 transition-all duration-300">
 
-        {/* ================= Top Section ================= */}
-        <div className="px-8 py-6">
-          <div className="grid grid-cols-[2fr_1.5fr_1fr] items-center gap-8">
+        {/* ================= Top/Main Section ================= */}
+        <div className="p-4 sm:p-5 md:p-6 lg:p-8">
+          {/* Use CSS Grid for robust layout handling on all screens */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6 items-center">
 
-            {/* ================= Left ================= */}
-            <div className="space-y-3">
-
+            {/* 1. Left Section: Bus details */}
+            <div className="space-y-2 sm:col-span-2 lg:col-span-1">
               <div>
-                <h2 className="text-2xl font-bold">{busName}</h2>
-                <p className="text-sm text-gray-500">{busType}</p>
-                <p className="text-sm text-slate-500">{operatorName}</p>
+                <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 tracking-tight leading-snug break-words">
+                  {busName}
+                </h2>
+                <p className="text-xs sm:text-sm font-medium text-gray-500 mt-0.5">{busType}</p>
+                <p className="text-xs text-slate-400">{operatorName}</p>
               </div>
 
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1 rounded bg-blue-700 px-2 py-1 text-white">
-                  <Star size={14} fill="white" />
-                  <span className="font-semibold">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 rounded bg-emerald-600 px-1.5 py-0.5 text-white">
+                  <Star size={12} fill="white" className="text-white" />
+                  <span className="font-semibold text-xs">
                     {averageRating ?? "N/A"}
                   </span>
                 </div>
-
-                <span className="text-sm text-gray-600">
-                  {totalRatings ?? 0} Reviews
+                <span className="text-xs text-gray-500 font-medium">
+                  ({totalRatings ?? 0} Reviews)
                 </span>
               </div>
 
-              <div className="flex flex-wrap gap-3">
+              {/* Amenities tags */}
+              <div className="flex flex-wrap gap-1.5 pt-1">
                 {Array.isArray(amenities) && amenities.length > 0 ? (
-                  amenities.slice(0, 4).map((amenity, idx) => (
+                  amenities.slice(0, 3).map((amenity, idx) => (
                     <span
                       key={idx}
-                      className="rounded-lg border px-4 py-2 text-sm text-gray-600"
+                      className="rounded-md border border-gray-200 bg-white px-2 py-0.5 text-xs text-gray-600 font-medium whitespace-nowrap"
                     >
                       {amenity}
                     </span>
                   ))
                 ) : (
-                  <span className="rounded-lg border px-4 py-2 text-sm text-gray-600">
+                  <span className="rounded-md border border-gray-200 bg-white px-2 py-0.5 text-xs text-gray-400 italic">
                     No amenities listed
                   </span>
                 )}
               </div>
             </div>
 
-            {/* ================= Center ================= */}
-            <div className="flex items-center justify-center gap-6">
-
-              <div className="text-center">
-                <h3 className="text-3xl font-semibold">
+            {/* 2. Center Section: Timeline & Duration */}
+            <div className="flex items-center justify-between sm:justify-center gap-3 md:gap-4 lg:col-span-2 border-y border-dashed border-gray-100 py-3 sm:py-0 sm:border-none">
+              <div className="text-left sm:text-center min-w-[70px]">
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-800">
                   {departureTime}
                 </h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Departure
+                <p className="text-xs font-semibold text-gray-400 mt-0.5 uppercase tracking-wider">
+                  Departs
                 </p>
               </div>
 
-              <div className="flex items-center gap-3">
-                <div className="h-px w-16 bg-gray-300"></div>
-
-                <span className="whitespace-nowrap text-sm text-gray-500">
+              {/* Progress visual timeline indicator */}
+              <div className="flex-1 flex items-center justify-center max-w-[140px] px-1">
+                <div className="hidden xs:block h-px flex-1 bg-gray-300/80 relative">
+                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-gray-400"></div>
+                </div>
+                <span className="mx-2 whitespace-nowrap text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded-full border border-gray-200">
                   {formatDuration(travelDuration)}
                 </span>
-
-                <div className="h-px w-16 bg-gray-300"></div>
+                <div className="hidden xs:block h-px flex-1 bg-gray-300/80 relative">
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full border border-gray-400 bg-white"></div>
+                </div>
               </div>
 
-              <div className="text-center">
-                <h3 className="text-3xl font-semibold">
+              <div className="text-right sm:text-center min-w-[70px]">
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-800">
                   {arrivalTime}
                 </h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Arrival
+                <p className="text-xs font-semibold text-gray-400 mt-0.5 uppercase tracking-wider">
+                  Arrives
                 </p>
               </div>
-
             </div>
 
-            {/* ================= Right ================= */}
-            <div className="flex flex-col items-end justify-center">
-
-              <h2 className="text-5xl font-bold">
-                {calculatedFare !== "N/A"
-                  ? `₹ ${calculatedFare}`
-                  : calculatedFare}
-              </h2>
-
-              <p className="mt-3 text-gray-500">
-                {availableSeats} Seats Available
-              </p>
-
+            {/* 3. Right Section: Pricing and seat capacity info */}
+            <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-5 sm:text-right">
+              <div>
+                <p className="text-xs text-gray-400 font-medium sm:hidden">Fare</p>
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
+                  {calculatedFare !== "N/A" ? `₹${calculatedFare}` : calculatedFare}
+                </h2>
+              </div>
+              <div className="text-right">
+                <span className="inline-block text-xs font-semibold px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
+                  {availableSeats} Seats Left
+                </span>
+              </div>
+                        <button
+                          onClick={() => setShowLayout(!showLayout)}
+                          className="w-full sm:w-auto rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-[0.98] px-6 py-2.5 text-sm font-bold text-white transition-all shadow-md shadow-blue-200 tracking-wide text-center uppercase"
+                        >
+                          {showLayout ? "Hide Seats" : "Select Seats"}
+                        </button>
             </div>
 
           </div>
+          
         </div>
 
-        {/* ================= Bottom Bar ================= */}
-        <div className="flex flex-wrap items-center justify-between gap-4 bg-neutral-200 px-8 py-3">
-
-          <div className="flex flex-wrap gap-5">
-
-            {[
-              "Photos",
-              "Amenities",
-              "Pickup & Drop Points",
-              "Ratings & Reviews",
-              "Policies",
-            ].map((item) => (
-              <button
-                key={item}
-                className="flex items-center gap-1 text-gray-700 transition hover:text-blue-600"
-              >
-                {item}
-                <ChevronDown size={16} />
-              </button>
-            ))}
-
-          </div>
-
-          <button
-            onClick={() => setShowLayout(!showLayout)}
-            className="rounded-xl bg-blue-600 px-12 py-3 font-semibold text-white transition hover:bg-blue-700"
-          >
-            {showLayout ? "HIDE LAYOUT" : "SELECT SEATS"}
-          </button>
-
-        </div>
 
       </div>
 
-      {showLayout && <SeatSelection
-        scheduleId={scheduleId}
-        boardingPoints={boardingPoints}
-        droppingPoints={droppingPoints}
-      />}
+      {showLayout && (
+        <div className="w-full mt-2 transition-all duration-300">
+          <SeatSelection
+            scheduleId={scheduleId}
+            boardingPoints={boardingPoints}
+            droppingPoints={droppingPoints}
+          />
+        </div>
+      )}
     </>
   );
 }

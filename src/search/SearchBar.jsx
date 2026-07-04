@@ -3,11 +3,51 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from '../api/axios';
 
+
 // Flat-mapping data layer
 const allDestinations = place.flatMap(p => [
   p.state,
   ...p.districts.map(d => d)
 ]);
+
+// Valid service keys the AI can return + their booking routes.
+const SERVICE_ROUTES = {
+  bus: '/busbooking',
+  flight: '/flightbooking',
+  train: '/trainbooking',
+  hotel: '/hotelbooking',
+};
+
+// Convert a date string (YYYY-MM-DD, "7 July", "today", "tomorrow") into YYYY-MM-DD.
+// Returns null if the input cannot be parsed.
+function normalizeDate(input) {
+  if (!input) return null;
+  const todayDate = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+  const s = String(input).trim().toLowerCase();
+
+  if (s === 'today') return iso(todayDate);
+  if (s === 'tomorrow') return iso(new Date(todayDate.getTime() + 86400000));
+
+  // Already YYYY-MM-DD?
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+  // Weekday name -> next occurrence
+  const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const idx = weekdays.indexOf(s);
+  if (idx !== -1) {
+    const diff = (idx - todayDate.getDay() + 7) % 7 || 7;
+    return iso(new Date(todayDate.getTime() + diff * 86400000));
+  }
+
+  // Try natural parsing like "7 July" or "July 7"
+  const parsed = new Date(input);
+  if (!isNaN(parsed.getTime())) return iso(parsed);
+
+  return null;
+}
 
 export default function SearchBar({ input, service }) {
   const navigate = useNavigate();
@@ -17,6 +57,7 @@ export default function SearchBar({ input, service }) {
   // Core Controlled Search Parameters State
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [lang, setLang] = useState('en-IN');
 
   // Suggestions Visibility Layers
   const [showFromDropdown, setShowFromDropdown] = useState(false);
@@ -30,6 +71,35 @@ export default function SearchBar({ input, service }) {
   const fromRef = useRef(null);
   const toRef = useRef(null);
   const inputRefs = useRef({});
+
+
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = 'en-IN';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+  // Speak a question out loud, then listen once for the user's answer.
+  // Returns a Promise<string> with the transcript (or '' if nothing recognized).
+  const askAndListen = (question) =>
+    new Promise((resolve) => {
+      const utter = new SpeechSynthesisUtterance(question);
+      utter.lang = 'en-IN';
+      utter.onend = () => {
+        const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        rec.lang = 'en-IN';
+        rec.interimResults = false;
+        rec.maxAlternatives = 1;
+        rec.onresult = (event) => {
+          const r = event.results[event.resultIndex];
+          resolve(r ? r[0].transcript : '');
+        };
+        rec.onerror = () => resolve('');
+        rec.onend = () => resolve('');
+        rec.start();
+      };
+      utter.onerror = () => resolve('');
+      window.speechSynthesis.speak(utter);
+    });
 
   // Clear query inputs if service toggles changes
   useEffect(() => {
@@ -154,6 +224,160 @@ export default function SearchBar({ input, service }) {
     navigate(`/${service}booking?${queryParams.toString()}`);
   };
 
+  // Send a transcript to the backend AI and return the parsed booking object
+  const extractFromAI = async (transcript) => {
+    const completion = await api.post('/api/v1/ai/chat', {
+      message:
+        `Extract travel search details from this voice query and return ONLY a JSON object with keys: ` +
+        `"from" (departure city), "to" (destination city), ` +
+        `"service" (one of: bus, flight, train, hotel — infer from words like flight/planes, bus, train, hotel/stay), ` +
+        `and optional "date" in STRICT YYYY-MM-DD format. ` +
+        `If the user says "today" use ${today}; if "tomorrow" use ` +
+        `${new Date(Date.now() + 86400000).toISOString().split('T')[0]}; for a weekday like "Monday" ` +
+        `compute the next matching date. Omit any key the user did not mention. Do not include any explanation. ` +
+        `Query: "${transcript}"`
+    });
+    const response = completion.data.content;
+    const match = response.match(/\{[\s\S]*\}/);
+    return match ? JSON.parse(match[0]) : null;
+  };
+
+  // Query the search API for the given service and speak the count of available results.
+  async function speakAvailability(serviceName, fromPlace, toPlace, dateStr) {
+    if (!serviceName || !fromPlace || !toPlace) return;
+    const d = normalizeDate(dateStr) || new Date().toISOString().slice(0, 10);
+    let count = 0;
+    try {
+      if (serviceName === 'bus') {
+        const res = await api.get('/api/v1/buses/search', { params: { from: fromPlace, to: toPlace, date: d } });
+        count = res?.data?.data?.length || 0;
+      } else if (serviceName === 'flight') {
+        const res = await api.get('/api/v1/flights/search', { params: { from: fromPlace, to: toPlace, date: d } });
+        count = res?.data?.data?.length || 0;
+      }
+    } catch (e) {
+      console.warn('Availability check failed:', e);
+      return;
+    }
+    const msg = count > 0
+      ? `There are ${count} ${serviceName} options available from ${fromPlace} to ${toPlace} on ${d}.`
+      : `No ${serviceName} available from ${fromPlace} to ${toPlace} on ${d}.`;
+    window.speechSynthesis.speak(new SpeechSynthesisUtterance(msg));
+  }
+
+   const handleMic = () => {
+      recognition.start();
+      recognition.onresult = async (event) => {
+        const speechresult = event.results[event.resultIndex]
+        const transcript = speechresult[0].transcript
+        if (!speechresult.isFinal) return;
+  
+        try {
+          let booking = await extractFromAI(transcript);
+          console.log('Parsed booking:', booking);
+  
+          if (!booking) {
+            console.error('AI did not return a valid booking object');
+            return;
+          }
+  
+          // STEP 1: If service not detected from the voice query, TTS-ask the user
+          if (!booking.service || !SERVICE_ROUTES[booking.service]) {
+            const answer = await askAndListen(
+              'Which service would you like to book? Please say bus or flight.'
+            );
+            const matched = (answer || '').toLowerCase().match(/bus|flight/);
+            if (!matched) {
+              window.speechSynthesis.speak(
+                new SpeechSynthesisUtterance('Sorry, I did not catch the service. Please try again.')
+              );
+              return;
+            }
+            booking.service = matched[0];
+            console.log('Service from follow-up:', booking.service);
+          }
+  
+          // If from/to still missing, ask for them too (best-effort)
+          if (!booking.from || !booking.to) {
+            const answer = await askAndListen(
+              'From where and to where would you like to travel? For example, Chennai to Madurai.'
+            );
+            const extra = await extractFromAI(`${transcript} ${answer}`);
+            if (extra) {
+              booking.from = booking.from || extra.from;
+              booking.to = booking.to || extra.to;
+              booking.date = booking.date || extra.date;
+            }
+          }
+  
+          // If date still missing, ask the user which date they want to book
+          if (!booking.date) {
+            const dateAnswer = await askAndListen(
+              'On which date would you like to book? Please say a date, for example tomorrow or 15 August.'
+            );
+            if (dateAnswer) {
+              const extra = await extractFromAI(`${transcript} date ${dateAnswer}`);
+              if (extra && extra.date) {
+                booking.date = extra.date;
+              }
+              // Fallback: try to normalize the spoken answer directly
+              if (!booking.date) {
+                const direct = normalizeDate(dateAnswer);
+                if (direct) booking.date = direct;
+              }
+            }
+          }
+  
+          // Populate the visible search fields
+          if (booking.from) setFrom(booking.from);
+          if (booking.to) setTo(booking.to);
+  
+          // Normalize AI date into YYYY-MM-DD and populate date field(s)
+          if (booking.date) {
+            const normalized = normalizeDate(booking.date);
+            if (normalized) {
+              input.forEach((field) => {
+                if (field.type === 'date' && inputRefs.current[field.name]) {
+                  inputRefs.current[field.name].value = normalized;
+                }
+              });
+            } else {
+              console.warn('Could not normalize date from AI:', booking.date);
+            }
+          }
+  
+          // STEP 2: Redirect to the listing/booking page for the detected service
+          const route = SERVICE_ROUTES[booking.service];
+          if (!route) {
+            console.error('Unknown service:', booking.service);
+            return;
+          }
+  
+          const queryParams = new URLSearchParams();
+          if (booking.from) queryParams.append('from', booking.from);
+          if (booking.to) queryParams.append('to', booking.to);
+          if (booking.date) {
+            const normalized = normalizeDate(booking.date);
+            if (normalized) queryParams.append('date', normalized);
+          }
+  
+          console.log('Navigating to', `${route}?${queryParams.toString()}`);
+  
+          // Speak availability count before navigating
+          await speakAvailability(booking.service, booking.from, booking.to, booking.date);
+  
+          navigate(`${route}?${queryParams.toString()}`);
+        } catch (err) {
+          console.error('AI chat error:', err);
+        }
+      };
+    }
+
+  // recognition.onEnd
+  // onSoundStart = () => {
+  //   console.log('Sound detected');
+  // }
+
   return (
     <div className="w-full">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
@@ -260,6 +484,12 @@ export default function SearchBar({ input, service }) {
         className="w-full bg-gradient-to-r from-lime-500 to-lime-600 hover:from-lime-600 hover:to-lime-700 text-white font-semibold py-2.5 px-6 rounded-lg transition-all shadow-md hover:shadow-lg text-sm uppercase tracking-wide"
       >
         Search {service ? service.charAt(0).toUpperCase() + service.slice(1) : ""}
+      </button>
+      <button
+        onClick={() => handleMic()}
+        className="w-full bg-gradient-to-r from-lime-500 to-lime-600 hover:from-lime-600 hover:to-lime-700 text-white font-semibold py-2.5 px-6 rounded-lg transition-all shadow-md hover:shadow-lg text-sm uppercase tracking-wide"
+      >
+        micSearch {service ? service.charAt(0).toUpperCase() + service.slice(1) : ""}
       </button>
     </div>
   );

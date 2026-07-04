@@ -44,14 +44,14 @@ export default function SearchheckBox({
   const displayedPoints = showAll ? filteredPoints : filteredPoints.slice(0, 4);
 
   return (
-    <div className="w-full h-auto rounded-3xl shadow-3xl bg-grey-50 hover:bg-slate-200 max-w-md p-3">
+    <div className="w-full h-auto rounded-3xl shadow-3xl bg-grey-50 hover:bg-slate-200 max-w-md p-2 md:p-3">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="font-semibold text-xl text-gray-700">
+      <div className="flex items-center justify-between mb-2 md:mb-4">
+        <h2 className="font-semibold text-sm md:text-xl text-gray-700">
           {title}
         </h2>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
           <button
             onClick={() => {
               if (onClear) {
@@ -60,13 +60,13 @@ export default function SearchheckBox({
                 setSelectedPointsLocal([]);
               }
             }}
-            className="text-sm font-semibold text-gray-400 hover:text-gray-600"
+            className="text-[10px] md:text-sm font-semibold text-gray-400 hover:text-gray-600"
           >
             CLEAR
           </button>
 
           <button onClick={() => setOpen(!open)}>
-            {open ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+            {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
         </div>
       </div>
@@ -74,10 +74,10 @@ export default function SearchheckBox({
       {open && (
         <>
           {/* Search Box */}
-          <div className="relative mb-4 ">
+          <div className="relative mb-2 md:mb-4">
             <Search
-              size={18}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+              size={14}
+              className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 text-gray-400"
             />
 
             <input
@@ -88,16 +88,16 @@ export default function SearchheckBox({
                 setSearch(e.target.value);
                 setShowAll(false);
               }}
-              className="w-full border rounded-xl py-3 pl-12 pr-4 outline-none focus:border-blue-500"
+              className="w-full border rounded-lg md:rounded-xl py-2 md:py-3 pl-8 md:pl-12 pr-3 md:pr-4 outline-none focus:border-blue-500 text-xs md:text-sm"
             />
           </div>
 
           {/* Pickup Points */}
-          <div className="space-y-4">
+          <div className="space-y-2 md:space-y-4">
             {displayedPoints.map((point) => (
               <label
                 key={point}
-                className="flex items-center gap-4 cursor-pointer"
+                className="flex items-center gap-2 md:gap-4 cursor-pointer"
               >
                 <input
                   // Switch visual style between radio (circle) and checkbox (square) dynamically
@@ -111,10 +111,10 @@ export default function SearchheckBox({
                       togglePoint(point);
                     }
                   }}
-                  className={`h-5 w-5 accent-blue-600 ${selectionType === "one" ? "rounded-full" : "rounded"}`}
+                  className={`h-3.5 w-3.5 md:h-5 md:w-5 accent-blue-600 ${selectionType === "one" ? "rounded-full" : "rounded"}`}
                 />
 
-                <span className="text-lg text-gray-700 truncate">
+                <span className="text-xs md:text-lg text-gray-700 truncate">
                   {point}
                 </span>
               </label>
@@ -125,17 +125,17 @@ export default function SearchheckBox({
           {filteredPoints.length > 4 && (
             <button 
               onClick={() => setShowAll(!showAll)}
-              className="mt-5 text-blue-600 font-medium flex items-center gap-1 hover:text-blue-700"
+              className="mt-3 md:mt-5 text-blue-600 font-medium flex items-center gap-1 hover:text-blue-700 text-xs md:text-sm"
             >
               {showAll ? (
                 <>
                   Show less
-                  <ChevronUp size={16} />
+                  <ChevronUp size={14} />
                 </>
               ) : (
                 <>
                   Show all ({filteredPoints.length})
-                  <ChevronDown size={16} />
+                  <ChevronDown size={14} />
                 </>
               )}
             </button>

@@ -32,6 +32,7 @@ export default function FlightBooking(){
   const [to, setTo] = useState(toParam);
   const [date, setDate] = useState(dateParam);
   const [flights, setFlights] = useState([]);
+  const [allFlights, setAllFlights] = useState([]); // Store full unfiltered data
   const [loading, setLoading] = useState(false);
   const [sortBy, setSortBy] = useState("price_low");
   const [filters, setFilters] = useState({
@@ -44,6 +45,81 @@ export default function FlightBooking(){
   const [comparedFlights, setComparedFlights] = useState([]);
   const [showCompareSidebar, setShowCompareSidebar] = useState(false);
 
+  // Generate a unique sessionStorage key based on search params
+  const getStorageKey = (searchFrom, searchTo, searchDate) => {
+    return `flight_search_${(searchFrom || from).trim()}_${(searchTo || to).trim()}_${(searchDate || date)}`;
+  };
+
+  // Apply all filters client-side from the given data array
+  const applyFilters = (data, currentFilters = filters) => {
+    let filteredData = [...data];
+
+    if (currentFilters.aircraftType) {
+      filteredData = filteredData.filter(flight => 
+        (flight.flight?.aircraftType || flight.aircraft?.type) === currentFilters.aircraftType
+      );
+    }
+
+    if (currentFilters.cabinClass) {
+      filteredData = filteredData.filter(flight => 
+        (flight.cabin?.class || flight.cabinClass) === currentFilters.cabinClass
+      );
+    }
+
+    if (currentFilters.minPrice) {
+      const min = Number(currentFilters.minPrice);
+      filteredData = filteredData.filter(flight => 
+        (flight.pricing?.calculatedFare || flight.pricing?.baseFare || 0) >= min
+      );
+    }
+
+    if (currentFilters.maxPrice) {
+      const max = Number(currentFilters.maxPrice);
+      filteredData = filteredData.filter(flight => 
+        (flight.pricing?.calculatedFare || flight.pricing?.baseFare || 0) <= max
+      );
+    }
+
+    if (currentFilters.airlines.length > 0) {
+      filteredData = filteredData.filter(flight => 
+        currentFilters.airlines.includes(flight.flight?.airlineName || flight.operator?.name)
+      );
+    }
+
+    return filteredData;
+  };
+
+  // Apply sorting client-side
+  const applySorting = (data, sortOption = sortBy) => {
+    const sorted = [...data];
+    
+    switch (sortOption) {
+      case "price_low":
+        sorted.sort((a, b) => (a.pricing?.calculatedFare || a.pricing?.baseFare || 0) - (b.pricing?.calculatedFare || b.pricing?.baseFare || 0));
+        break;
+      case "price_high":
+        sorted.sort((a, b) => (b.pricing?.calculatedFare || b.pricing?.baseFare || 0) - (a.pricing?.calculatedFare || a.pricing?.baseFare || 0));
+        break;
+      case "duration":
+        sorted.sort((a, b) => {
+          const durA = a.journey?.durationMinutes || 0;
+          const durB = b.journey?.durationMinutes || 0;
+          return durA - durB;
+        });
+        break;
+      case "departure":
+        sorted.sort((a, b) => (a.journey?.departureTime || "").localeCompare(b.journey?.departureTime || ""));
+        break;
+      case "arrival":
+        sorted.sort((a, b) => (a.journey?.arrivalTime || "").localeCompare(b.journey?.arrivalTime || ""));
+        break;
+      default:
+        break;
+    }
+    
+    return sorted;
+  };
+
   const handleFetchFlights = async (searchFrom, searchTo, searchDate) => {
     // Use passed values or fall back to state
     const fromVal = searchFrom || from;
@@ -52,6 +128,19 @@ export default function FlightBooking(){
 
     if (!fromVal || !toVal || !dateVal) {
       console.warn("Missing required search parameters", { fromVal, toVal, dateVal });
+      return;
+    }
+
+    const storageKey = getStorageKey(fromVal, toVal, dateVal);
+    const cachedData = sessionStorage.getItem(storageKey);
+
+    if (cachedData) {
+      // Use cached data from sessionStorage - apply filters and sort client-side
+      const allFlightData = JSON.parse(cachedData);
+      setAllFlights(allFlightData);
+      const filtered = applyFilters(allFlightData);
+      const sorted = applySorting(filtered);
+      setFlights(sorted);
       return;
     }
 
@@ -71,6 +160,10 @@ export default function FlightBooking(){
       const flightData = res?.data?.data || [];
       console.log("Flight search results:", flightData);
       
+      // Store the FULL unfiltered response in sessionStorage
+      sessionStorage.setItem(storageKey, JSON.stringify(flightData));
+      setAllFlights(flightData);
+      
       // Apply client-side filtering for airlines (since backend doesn't support array filter yet)
       let filteredData = flightData;
       if (filters.airlines.length > 0) {
@@ -83,6 +176,7 @@ export default function FlightBooking(){
     } catch (err) {
       console.error("Error fetching flights:", err);
       setFlights([]);
+      setAllFlights([]);
     } finally {
       setLoading(false);
     }
@@ -92,13 +186,32 @@ export default function FlightBooking(){
     setDate(selectedDate);
   };
 
+  // Initial fetch: only if from/to look like IATA codes (3 uppercase letters)
+  // otherwise WhereTowhere will resolve city names to IATA codes and trigger
+  // a re-fetch via the [from, to, date] effect.
   useEffect(() => {
-    handleFetchFlights();
+    const looksLikeIata = (v) => /^[A-Z]{3}$/.test(v || '');
+    if (from && to && date && looksLikeIata(from) && looksLikeIata(to)) {
+      handleFetchFlights();
+    } else if (from && to && date) {
+      // Non-IATA values will be resolved by WhereTowhere, which calls setFrom/setTo
+      // with IATA codes, triggering the [from, to, date] effect below.
+    }
   }, []);
 
+  // Re-fetch when from/to/date changes (e.g. after IATA auto-resolution or user edit)
   useEffect(() => {
     if (from && to && date) {
       handleFetchFlights();
+    }
+  }, [from, to, date]);
+
+  // Re-apply filters and sort when sort/filter changes (no API call)
+  useEffect(() => {
+    if (allFlights.length > 0) {
+      const filtered = applyFilters(allFlights);
+      const sorted = applySorting(filtered);
+      setFlights(sorted);
     }
   }, [sortBy, filters]);
 
@@ -130,20 +243,20 @@ export default function FlightBooking(){
 
   // Get unique airlines for filter
   const airlineOptions = useMemo(() => {
-    return Array.from(new Set(flights.map(f => f.flight?.airlineName || f.operator?.name).filter(Boolean)));
-  }, [flights]);
+    return Array.from(new Set(allFlights.map(f => f.flight?.airlineName || f.operator?.name).filter(Boolean)));
+  }, [allFlights]);
 
   // Get unique aircraft types for filter
   const aircraftTypeOptions = useMemo(() => {
-    return Array.from(new Set(flights.map(f => f.flight?.aircraftType || f.aircraft?.type).filter(Boolean)));
-  }, [flights]);
+    return Array.from(new Set(allFlights.map(f => f.flight?.aircraftType || f.aircraft?.type).filter(Boolean)));
+  }, [allFlights]);
 
   // Get price range
   const priceRange = useMemo(() => {
-    if (flights.length === 0) return { min: 0, max: 0 };
-    const prices = flights.map(f => f.pricing?.calculatedFare || f.pricing?.baseFare || 0);
+    if (allFlights.length === 0) return { min: 0, max: 0 };
+    const prices = allFlights.map(f => f.pricing?.calculatedFare || f.pricing?.baseFare || 0);
     return { min: Math.min(...prices), max: Math.max(...prices) };
-  }, [flights]);
+  }, [allFlights]);
   return (
     <>
       <Nav />
@@ -168,8 +281,8 @@ export default function FlightBooking(){
           onClose={() => setShowCompareSidebar(false)}
           onRemoveFromCompare={handleRemoveFromCompare}
         />
-        <div className="bg-mist-50 h-auto my-5 mx-[100px] flex">
-                <div className = "filter bg-white w-[25%] h-auto rounded-lg shadow-xl p-4">
+        <div className="bg-mist-50 h-auto my-4 md:my-5 mx-2 sm:mx-4 md:mx-[100px] flex flex-col lg:flex-row">
+                <div className = "filter bg-white w-full lg:w-[25%] h-auto rounded-lg shadow-xl p-4">
                     <div className = "flex justify-center mb-4 font-bold text-lg">FILTERS</div>
                   
                     <SelectBox
@@ -235,7 +348,7 @@ export default function FlightBooking(){
                       </button>
                     </div>
                 </div>
-                <div className = "bg-neutral-200 w-[80%] ml-[2%] px-5 rounded-lg shadow-xl flex flex-col">
+                <div className = "bg-neutral-200 w-full lg:w-[80%] lg:ml-[2%] px-2 sm:px-3 md:px-5 rounded-lg shadow-xl flex flex-col">
                     <div className = "bg-white w-full h-auto my-5 rounded-3xl shadow-xl">
                         <FlightFareSelector sortBy={sortBy} onSortChange={handleSortChange} />
                     </div>
@@ -303,7 +416,7 @@ export default function FlightBooking(){
                         </div>
                       ))
                     ) : (
-                      <div className="p-8 text-center text-gray-600">No flights found for the selected route and date.</div>
+                      <div className="p-4 md:p-8 text-center text-gray-600">No flights found for the selected route and date.</div>
                     )}
                 </div>
             </div>

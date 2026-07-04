@@ -6,12 +6,10 @@ import BusFillterBar from "../../filter/BusFillterBar.jsx"
 import SearchheckBox from "../../filter/SearchheckBox.jsx"
 import SelectBox from "../../filter/SelectBox.jsx"
 import Checkbox from "../../filter/Checkbox.jsx"
-import { Loader2 } from "lucide-react";
+import { Loader2, CalendarDays, RefreshCw, AlertCircle } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import api from "../../api/axios.js";
-
-
 
 export default function BusBooking(){
 
@@ -34,9 +32,14 @@ export default function BusBooking(){
   const [selectedDropPoints, setSelectedDropPoints] = useState([]);
   const [selectedOperators, setSelectedOperators] = useState([]);
   const [buses, setBuses] = useState([]);
+  const [allBuses, setAllBuses] = useState([]); 
   const [loading, setLoading] = useState(false);
   const [sortBy, setSortBy] = useState("Relevance");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+
+  const getStorageKey = (searchFrom, searchTo, searchDate) => {
+    return `bus_search_${(searchFrom || from).trim()}_${(searchTo || to).trim()}_${(searchDate || date)}`;
+  };
 
   const getTimeMinutes = (timeValue) => {
     if (!timeValue) return null;
@@ -61,6 +64,68 @@ export default function BusBooking(){
     return minutes >= start && minutes < end;
   };
 
+  const applyFilters = (data, {
+    selectedAc = acFilter,
+    selectedSeatType = seatType,
+    selectedPickupTime = pickupTimeFilter,
+    selectedDropTime = dropTimeFilter,
+    selectedBoardingPoints = selectedPickupPoints,
+    selectedDroppingPoints = selectedDropPoints,
+    selectedOperatorNames = selectedOperators,
+  } = {}) => {
+    let results = [...data];
+
+    if (selectedAc === "AC") {
+      results = results.filter((schedule) => schedule.bus?.isAC === true);
+    } else if (selectedAc === "NON-AC") {
+      results = results.filter((schedule) => schedule.bus?.isAC === false);
+    }
+
+    if (selectedSeatType === "seater") {
+      results = results.filter((schedule) =>
+        schedule.bus?.type?.toLowerCase().includes("seater")
+      );
+    } else if (selectedSeatType === "sleeper") {
+      results = results.filter((schedule) =>
+        schedule.bus?.type?.toLowerCase().includes("sleeper")
+      );
+    }
+
+    if (selectedPickupTime !== "ALL") {
+      results = results.filter((schedule) =>
+        matchesTimeRange(schedule.journey?.departureTime, selectedPickupTime)
+      );
+    }
+
+    if (selectedDropTime !== "ALL") {
+      results = results.filter((schedule) =>
+        matchesTimeRange(schedule.journey?.arrivalTime, selectedDropTime)
+      );
+    }
+
+    if (Array.isArray(selectedBoardingPoints) && selectedBoardingPoints.length > 0) {
+      results = results.filter((schedule) =>
+        Array.isArray(schedule.boardingPoints) &&
+        schedule.boardingPoints.some((bp) => selectedBoardingPoints.includes(bp.name))
+      );
+    }
+
+    if (Array.isArray(selectedDroppingPoints) && selectedDroppingPoints.length > 0) {
+      results = results.filter((schedule) =>
+        Array.isArray(schedule.droppingPoints) &&
+        schedule.droppingPoints.some((dp) => selectedDroppingPoints.includes(dp.name))
+      );
+    }
+
+    if (Array.isArray(selectedOperatorNames) && selectedOperatorNames.length > 0) {
+      results = results.filter((schedule) =>
+        selectedOperatorNames.includes(schedule.operator?.name)
+      );
+    }
+
+    return results;
+  };
+
   const handleFetchBus = async (
     selectedAc = acFilter,
     selectedSeatType = seatType,
@@ -71,6 +136,25 @@ export default function BusBooking(){
     selectedOperatorNames = selectedOperators,
     selectedDate = date
   ) => {
+    const storageKey = getStorageKey(from, to, selectedDate);
+    const cachedData = sessionStorage.getItem(storageKey);
+
+    if (cachedData) {
+      const allBusesData = JSON.parse(cachedData);
+      setAllBuses(allBusesData);
+      const filtered = applyFilters(allBusesData, {
+        selectedAc,
+        selectedSeatType,
+        selectedPickupTime,
+        selectedDropTime,
+        selectedBoardingPoints,
+        selectedDroppingPoints,
+        selectedOperatorNames,
+      });
+      setBuses(filtered);
+      return;
+    }
+
     setLoading(true);
     try {
       const params = { from, to, date: selectedDate };
@@ -78,52 +162,21 @@ export default function BusBooking(){
       if (selectedAc === "NON-AC") params.isAC = "false";
 
       const res = await api.get("/api/v1/buses/search", { params });
-      let results = res?.data?.data || [];
-      let noofbus = res?.data?.count;
+      const allResults = res?.data?.data || [];
 
-      if (selectedSeatType === "seater") {
-        results = results.filter((schedule) =>
-          schedule.bus?.type?.toLowerCase().includes("seater")
-        );
-      } else if (selectedSeatType === "sleeper") {
-        results = results.filter((schedule) =>
-          schedule.bus?.type?.toLowerCase().includes("sleeper")
-        );
-      }
+      sessionStorage.setItem(storageKey, JSON.stringify(allResults));
+      setAllBuses(allResults);
 
-      if (selectedPickupTime !== "ALL") {
-        results = results.filter((schedule) =>
-          matchesTimeRange(schedule.journey?.departureTime, selectedPickupTime)
-        );
-      }
-
-      if (selectedDropTime !== "ALL") {
-        results = results.filter((schedule) =>
-          matchesTimeRange(schedule.journey?.arrivalTime, selectedDropTime)
-        );
-      }
-
-      if (Array.isArray(selectedBoardingPoints) && selectedBoardingPoints.length > 0) {
-        results = results.filter((schedule) =>
-          Array.isArray(schedule.boardingPoints) &&
-          schedule.boardingPoints.some((bp) => selectedBoardingPoints.includes(bp.name))
-        );
-      }
-
-      if (Array.isArray(selectedDroppingPoints) && selectedDroppingPoints.length > 0) {
-        results = results.filter((schedule) =>
-          Array.isArray(schedule.droppingPoints) &&
-          schedule.droppingPoints.some((dp) => selectedDroppingPoints.includes(dp.name))
-        );
-      }
-
-      if (Array.isArray(selectedOperatorNames) && selectedOperatorNames.length > 0) {
-        results = results.filter((schedule) =>
-          selectedOperatorNames.includes(schedule.operator?.name)
-        );
-      }
-
-      setBuses(results);
+      const filtered = applyFilters(allResults, {
+        selectedAc,
+        selectedSeatType,
+        selectedPickupTime,
+        selectedDropTime,
+        selectedBoardingPoints,
+        selectedDroppingPoints,
+        selectedOperatorNames,
+      });
+      setBuses(filtered);
     } catch (err) {
       console.error(err);
       setBuses([]);
@@ -134,26 +187,78 @@ export default function BusBooking(){
 
   const handleDateSelect = (selectedDate) => {
     setDate(selectedDate);
-    handleFetchBus(
-      acFilter,
-      seatType,
-      pickupTimeFilter,
-      dropTimeFilter,
-      selectedPickupPoints,
-      selectedDropPoints,
-      selectedOperators,
-      selectedDate
-    );
+    const storageKey = getStorageKey(from, to, selectedDate);
+    const cachedData = sessionStorage.getItem(storageKey);
+
+    if (cachedData) {
+      const allBusesData = JSON.parse(cachedData);
+      setAllBuses(allBusesData);
+      const filtered = applyFilters(allBusesData, {
+        selectedAc: acFilter,
+        selectedSeatType: seatType,
+        selectedPickupTime: pickupTimeFilter,
+        selectedDropTime: dropTimeFilter,
+        selectedBoardingPoints: selectedPickupPoints,
+        selectedDroppingPoints: selectedDropPoints,
+        selectedOperatorNames: selectedOperators,
+      });
+      setBuses(filtered);
+    } else {
+      handleFetchBus(
+        acFilter,
+        seatType,
+        pickupTimeFilter,
+        dropTimeFilter,
+        selectedPickupPoints,
+        selectedDropPoints,
+        selectedOperators,
+        selectedDate
+      );
+    }
+  };
+
+  // Jump to the next day seamlessly if current selections produce no results
+  const handleNextDaySearch = () => {
+    const nextDate = new Date(date);
+    nextDate.setDate(nextDate.getDate() + 1);
+    const formattedDate = nextDate.toISOString().slice(0, 10);
+    handleDateSelect(formattedDate);
+  };
+
+  // Hard wipe active sub-filters back to initial values
+  const handleClearFilters = () => {
+    setAcFilter("ALL");
+    setSeatType("ALL");
+    setPickupTimeFilter("ALL");
+    setDropTimeFilter("ALL");
+    setSelectedPickupPoints([]);
+    setSelectedDropPoints([]);
+    setSelectedOperators([]);
+    setBuses(allBuses);
   };
 
   useEffect(() => {
     const fetchInitial = async () => {
+      const storageKey = getStorageKey(from, to, date);
+      const cachedData = sessionStorage.getItem(storageKey);
+
+      if (cachedData) {
+        const allBusesData = JSON.parse(cachedData);
+        setAllBuses(allBusesData);
+        const filtered = applyFilters(allBusesData);
+        setBuses(filtered);
+        return;
+      }
+
       setLoading(true);
       try {
         const res = await api.get("/api/v1/buses/search", {
           params: { from, to, date },
         });
-        setBuses(res?.data?.data || []);
+        const allResults = res?.data?.data || [];
+        sessionStorage.setItem(storageKey, JSON.stringify(allResults));
+        setAllBuses(allResults);
+        setBuses(allResults);
       } catch (err) {
         console.error(err);
         setBuses([]);
@@ -163,48 +268,25 @@ export default function BusBooking(){
     };
 
     fetchInitial();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const pickupPointOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          buses.flatMap((schedule) =>
-            (schedule.boardingPoints || []).map((point) => point.name)
-          )
-        )
-      ),
-    [buses]
+    () => Array.from(new Set(allBuses.flatMap((schedule) => (schedule.boardingPoints || []).map((point) => point.name)))),
+    [allBuses]
   );
 
   const dropPointOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          buses.flatMap((schedule) =>
-            (schedule.droppingPoints || []).map((point) => point.name)
-          )
-        )
-      ),
-    [buses]
+    () => Array.from(new Set(allBuses.flatMap((schedule) => (schedule.droppingPoints || []).map((point) => point.name)))),
+    [allBuses]
   );
 
   const operatorOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          buses
-            .map((schedule) => schedule.operator?.name)
-            .filter(Boolean)
-        )
-      ),
-    [buses]
+    () => Array.from(new Set(allBuses.map((schedule) => schedule.operator?.name).filter(Boolean))),
+    [allBuses]
   );
 
   const sortedBuses = useMemo(() => {
     const sorted = [...buses];
-
     if (sortBy === "Rating") {
       sorted.sort((a, b) => (b.bus?.rating || 0) - (a.bus?.rating || 0));
     } else if (sortBy === "Price") {
@@ -220,7 +302,6 @@ export default function BusBooking(){
     } else if (sortBy === "Arrival") {
       sorted.sort((a, b) => a.journey?.arrivalTime.localeCompare(b.journey?.arrivalTime));
     }
-
     return sorted;
   }, [buses, sortBy]);
 
@@ -228,13 +309,14 @@ export default function BusBooking(){
     setSortBy(option);
   };
 
-  console.log(buses);
+  const hasBuses = Array.isArray(sortedBuses) && sortedBuses.length > 0;
+
   return (
     <>
       <Nav />
-      <div className="pt-20">
+      <div className="pt-16 md:pt-20">
         <WhereToWhere
-          className="shadow-xl sticky top-20 mx-4 md:mx-10"
+          className="shadow-xl sticky top-16 md:top-20 mx-0 md:mx-10"
           from={from}
           setFrom={setFrom}
           to={to}
@@ -244,211 +326,233 @@ export default function BusBooking(){
           handleFetchBus={handleFetchBus}
         />
         
-        {/* Mobile Filter Toggle Button */}
-        <div className="lg:hidden px-4 mt-4 mb-2">
-          <button
-            onClick={() => setShowMobileFilters(!showMobileFilters)}
-            className="w-full bg-white rounded-lg shadow-md px-4 py-3 flex items-center justify-between font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            <span className="flex items-center gap-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+        {/* Mobile Filter Toggle Button (Only displays when buses exist) */}
+        {hasBuses && !loading && (
+          <div className="lg:hidden px-2 sm:px-4 mt-4 mb-2">
+            <button
+              onClick={() => setShowMobileFilters(!showMobileFilters)}
+              className="w-full bg-white rounded-lg shadow-md px-4 py-3 flex items-center justify-between font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <span className="flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
+                Filters
+              </span>
+              <svg className={`w-5 h-5 transition-transform ${showMobileFilters ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
-              Filters
-            </span>
-            <svg className={`w-5 h-5 transition-transform ${showMobileFilters ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-        </div>
+            </button>
+          </div>
+        )}
 
-        <div className="bg-mist-50 pt-20 h-auto my-5 mx-4 md:mx-[100px] flex flex-col lg:flex-row">
-                <div className={`filter bg-white-200 w-full lg:w-[25%] h-auto rounded-lg shadow-xl ${showMobileFilters ? 'block' : 'hidden lg:block'}`}>
-                    <div className = "flex justify-center mt-5 font-bold">FILTERS</div>
-                    <SelectBox
-                      title={"AC type"}
-                      text={['ALL', 'AC', 'NON-AC']}
-                      value={acFilter}
-                      onChange={(option) => {
-                        setAcFilter(option);
-                        handleFetchBus(option, seatType, pickupTimeFilter, dropTimeFilter, selectedPickupPoints, selectedDropPoints);
-                      }}
-                    />
-                    <SelectBox
-                      title ="Seat type"
-                      text = {["ALL", "seater", "sleeper"]}
-                      value={seatType}
-                      onChange={(option) => {
-                        setSeatType(option);
-                        handleFetchBus(acFilter, option, pickupTimeFilter, dropTimeFilter, selectedPickupPoints, selectedDropPoints);
-                      }}
-                    />
-                    <SelectBox
-                      text={["ALL", "12 AM - 6AM", "6 AM - 12 PM", "12 PM - 6 PM", "6 PM - 12 AM"]}
-                      title = {"Pick up time - Hyderabad, Telangana"}
-                      value={pickupTimeFilter}
-                      onChange={(option) => {
-                        setPickupTimeFilter(option);
-                        handleFetchBus(acFilter, seatType, option, dropTimeFilter, selectedPickupPoints, selectedDropPoints);
-                      }}
-                    />
-                    <SelectBox
-                      text={["ALL", "12 AM - 6AM", "6 AM - 12 PM", "12 PM - 6 PM", "6 PM - 12 AM"]}
-                      title ="Drop time - Bangalore, Karnataka"
-                      value={dropTimeFilter}
-                      onChange={(option) => {
-                        setDropTimeFilter(option);
-                        handleFetchBus(acFilter, seatType, pickupTimeFilter, option, selectedPickupPoints, selectedDropPoints);
-                      }}
-                    />
-                    <Checkbox title={"Single Seater/Sleeper"} text={"Single Seats"} />
-                    <SearchheckBox
-                      title={`Pick up point - ${from || "Source"}`}
-                      text={pickupPointOptions}
-                      selectedPoints={selectedPickupPoints}
-                      onChange={(point) => {
-                        const next = selectedPickupPoints.includes(point)
-                          ? selectedPickupPoints.filter((name) => name !== point)
-                          : [...selectedPickupPoints, point];
-                        setSelectedPickupPoints(next);
-                        handleFetchBus(acFilter, seatType, pickupTimeFilter, dropTimeFilter, next, selectedDropPoints);
-                      }}
-                      onClear={() => {
-                        setSelectedPickupPoints([]);
-                        handleFetchBus(acFilter, seatType, pickupTimeFilter, dropTimeFilter, [], selectedDropPoints);
-                      }}
-                    />
-                    <SearchheckBox
-                      title={"Operators"}
-                      text={operatorOptions}
-                      selectedPoints={selectedOperators}
-                      onChange={(point) => {
-                        const next = selectedOperators.includes(point)
-                          ? selectedOperators.filter((name) => name !== point)
-                          : [...selectedOperators, point];
-                        setSelectedOperators(next);
-                        handleFetchBus(acFilter, seatType, pickupTimeFilter, dropTimeFilter, selectedPickupPoints, selectedDropPoints, next);
-                      }}
-                      onClear={() => {
-                        setSelectedOperators([]);
-                        handleFetchBus(acFilter, seatType, pickupTimeFilter, dropTimeFilter, selectedPickupPoints, selectedDropPoints, []);
-                      }}
-                    />
-                    <SearchheckBox
-                      title={`Drop point - ${to || "Destination"}`}
-                      text={dropPointOptions}
-                      selectedPoints={selectedDropPoints}
-                      onChange={(point) => {
-                        const next = selectedDropPoints.includes(point)
-                          ? selectedDropPoints.filter((name) => name !== point)
-                          : [...selectedDropPoints, point];
-                        setSelectedDropPoints(next);
-                        handleFetchBus(acFilter, seatType, pickupTimeFilter, dropTimeFilter, selectedPickupPoints, next, selectedOperators);
-                      }}
-                      onClear={() => {
-                        setSelectedDropPoints([]);
-                        handleFetchBus(acFilter, seatType, pickupTimeFilter, dropTimeFilter, selectedPickupPoints, [], selectedOperators);
-                      }}
-                    />
-                    
-                    {/* Mobile Apply Filters Button */}
-                    <div className="lg:hidden px-4 py-4">
-                      <button
-                        onClick={() => setShowMobileFilters(false)}
-                        className="w-full bg-lime-600 text-white py-3 rounded-lg font-medium hover:bg-lime-700 transition-colors"
-                      >
-                        Apply Filters
-                      </button>
-                    </div>
-                </div>
-                <div className = "bg-neutral-200 w-full lg:w-[80%] lg:ml-[2%] px-3 md:px-5 rounded-lg shadow-xl flex flex-col">
-                    <div className = "bg-white w-full h-auto my-5 rounded-3xl shadow-xl">
-                        <BusFillterBar
-                          NoOfBus={sortedBuses.length}
-                          selectedDate={date}
-                          onDateSelect={handleDateSelect}
-                          selectedSort={sortBy}
-                          onSortSelect={handleSortSelect}
-                        />
-                    </div>
-                    {loading ? (
-                      <div className="flex flex-col items-center justify-center py-8 md:py-20">
-                        {/* Animated gradient background card */}
-                        <div className="relative p-6 md:p-12 rounded-2xl md:rounded-3xl bg-gradient-to-br from-blue-50 via-white to-indigo-50 shadow-2xl">
-                          {/* Multiple spinning rings with different speeds */}
-                          <div className="relative w-20 h-20 md:w-32 md:h-32">
-                            {/* Outer ring - slow spin */}
-                            <div className="absolute inset-0 rounded-full border-3 md:border-4 border-blue-200 border-t-blue-600 border-r-transparent border-b-indigo-400 border-l-transparent animate-spin" style={{ animationDuration: '3s' }}></div>
-                            {/* Middle ring - reverse spin */}
-                            <div className="absolute inset-1 md:inset-2 rounded-full border-2 md:border-3 border-indigo-200 border-b-indigo-600 border-t-transparent border-r-transparent border-l-transparent animate-spin" style={{ animationDuration: '2s', animationDirection: 'reverse' }}></div>
-                            {/* Inner ring - fast spin */}
-                            <div className="absolute inset-2 md:inset-4 rounded-full border-2 border-blue-300 border-l-blue-600 border-r-transparent border-t-transparent border-b-transparent animate-spin" style={{ animationDuration: '1.5s' }}></div>
-                            {/* Center pulsing icon */}
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <div className="relative">
-                                <div className="w-10 h-10 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 animate-pulse shadow-lg shadow-blue-500/50"></div>
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                  <svg className="w-5 h-5 md:w-8 md:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                                  </svg>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
+        <div className="bg-mist-50 pt-4 h-auto my-4 md:my-5 mx-2 sm:mx-4 md:mx-[100px] flex flex-col lg:flex-row">
+            
+            {/* LEFT FILTER PANEL (Hidden entirely when no buses exist or layout is loading) */}
+            {hasBuses && !loading && (
+              <div className={`filter bg-white-200 w-full lg:w-[25%] h-auto rounded-lg shadow-xl ${showMobileFilters ? 'block' : 'hidden lg:block'}`}>
+                  <div className = "flex justify-center mt-5 font-bold">FILTERS</div>
+                  <SelectBox
+                    title={"AC type"}
+                    text={['ALL', 'AC', 'NON-AC']}
+                    value={acFilter}
+                    onChange={(option) => {
+                      setAcFilter(option);
+                      const storageKey = getStorageKey(from, to, date);
+                      const cachedData = sessionStorage.getItem(storageKey);
+                      if (cachedData) setBuses(applyFilters(JSON.parse(cachedData), { selectedAc: option }));
+                    }}
+                  />
+                  <SelectBox
+                    title ="Seat type"
+                    text = {["ALL", "SEATER", "SLEEPER"]}
+                    value={seatType}
+                    onChange={(option) => {
+                      setSeatType(option);
+                      const storageKey = getStorageKey(from, to, date);
+                      const cachedData = sessionStorage.getItem(storageKey);
+                      if (cachedData) setBuses(applyFilters(JSON.parse(cachedData), { selectedSeatType: option }));
+                    }}
+                  />
+                  <SelectBox
+                    text={["ALL", "12 AM - 6AM", "6 AM - 12 PM", "12 PM - 6 PM", "6 PM - 12 AM"]}
+                    title = {"Pick up time"}
+                    value={pickupTimeFilter}
+                    onChange={(option) => {
+                      setPickupTimeFilter(option);
+                      const storageKey = getStorageKey(from, to, date);
+                      const cachedData = sessionStorage.getItem(storageKey);
+                      if (cachedData) setBuses(applyFilters(JSON.parse(cachedData), { selectedPickupTime: option }));
+                    }}
+                  />
+                  <SelectBox
+                    text={["ALL", "12 AM - 6AM", "6 AM - 12 PM", "12 PM - 6 PM", "6 PM - 12 AM"]}
+                    title ="Drop time"
+                    value={dropTimeFilter}
+                    onChange={(option) => {
+                      setDropTimeFilter(option);
+                      const storageKey = getStorageKey(from, to, date);
+                      const cachedData = sessionStorage.getItem(storageKey);
+                      if (cachedData) setBuses(applyFilters(JSON.parse(cachedData), { selectedDropTime: option }));
+                    }}
+                  />
+                  <Checkbox title={"Single Seater/Sleeper"} text={"Single Seats"} />
+                  <SearchheckBox
+                    title={`Pick up point - ${from || "Source"}`}
+                    text={pickupPointOptions}
+                    selectedPoints={selectedPickupPoints}
+                    onChange={(updatedPoints) => {
+                      setSelectedPickupPoints(updatedPoints);
+                      const storageKey = getStorageKey(from, to, date);
+                      const cachedData = sessionStorage.getItem(storageKey);
+                      if (cachedData) setBuses(applyFilters(JSON.parse(cachedData), { selectedBoardingPoints: updatedPoints }));
+                    }}
+                    onClear={() => {
+                      setSelectedPickupPoints([]);
+                      const storageKey = getStorageKey(from, to, date);
+                      const cachedData = sessionStorage.getItem(storageKey);
+                      if (cachedData) setBuses(applyFilters(JSON.parse(cachedData), { selectedBoardingPoints: [] }));
+                    }}
+                  />
+                  <SearchheckBox
+                    title={"Operators"}
+                    text={operatorOptions}
+                    selectedPoints={selectedOperators}
+                    onChange={(updatedPoints) => {
+                      setSelectedOperators(updatedPoints);
+                      const storageKey = getStorageKey(from, to, date);
+                      const cachedData = sessionStorage.getItem(storageKey);
+                      if (cachedData) setBuses(applyFilters(JSON.parse(cachedData), { selectedOperatorNames: updatedPoints }));
+                    }}
+                    onClear={() => {
+                      setSelectedOperators([]);
+                      const storageKey = getStorageKey(from, to, date);
+                      const cachedData = sessionStorage.getItem(storageKey);
+                      if (cachedData) setBuses(applyFilters(JSON.parse(cachedData), { selectedOperatorNames: [] }));
+                    }}
+                  />
+                  <SearchheckBox
+                    title={`Drop point - ${to || "Destination"}`}
+                    text={dropPointOptions}
+                    selectedPoints={selectedDropPoints}
+                    onChange={(updatedPoints) => {
+                      setSelectedDropPoints(updatedPoints);
+                      const storageKey = getStorageKey(from, to, date);
+                      const cachedData = sessionStorage.getItem(storageKey);
+                      if (cachedData) setBuses(applyFilters(JSON.parse(cachedData), { selectedDroppingPoints: updatedPoints }));
+                    }}
+                    onClear={() => {
+                      setSelectedDropPoints([]);
+                      const storageKey = getStorageKey(from, to, date);
+                      const cachedData = sessionStorage.getItem(storageKey);
+                      if (cachedData) setBuses(applyFilters(JSON.parse(cachedData), { selectedDroppingPoints: [] }));
+                    }}
+                  />
+                  <div className="lg:hidden px-4 py-4">
+                    <button onClick={() => setShowMobileFilters(false)} className="w-full bg-lime-600 text-white py-3 rounded-lg font-medium hover:bg-lime-700 transition-colors">
+                      Apply Filters
+                    </button>
+                  </div>
+              </div>
+            )}
 
-                          {/* Loading text with animation */}
-                          <div className="mt-6 md:mt-10 text-center">
-                            <h3 className="text-lg md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2 md:mb-3">
-                              Finding Best Bus Routes
-                            </h3>
-                            <p className="text-gray-600 font-medium text-sm md:text-lg mb-4 md:mb-6">
-                              Searching for available buses...
-                            </p>
+            {/* RIGHT MAIN LAYOUT WRAPPER */}
+            <div className={`w-full ${hasBuses && !loading ? 'lg:w-[80%] lg:ml-[2%]' : 'lg:w-full'} px-2 sm:px-3 md:px-5 flex flex-col`}>
+                
+                {/* BUS FILTER SUB-HEADER SLIDER BAR (Only shows if listings exist) */}
+                {hasBuses && !loading && (
+                  <div className = "bg-white w-full h-auto my-5 rounded-3xl shadow-xl">
+                      <BusFillterBar
+                        NoOfBus={sortedBuses.length}
+                        selectedDate={date}
+                        onDateSelect={handleDateSelect}
+                        selectedSort={sortBy}
+                        onSortSelect={handleSortSelect}
+                      />
+                  </div>
+                )}
 
-                            {/* Animated progress indicators */}
-                            <div className="flex items-center justify-center gap-2 mb-3 md:mb-4">
-                              <div className="flex items-center gap-1">
-                                <div className="w-2 h-2 md:w-2.5 md:h-2.5 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0ms', animationDuration: '0.6s' }}></div>
-                                <div className="w-2 h-2 md:w-2.5 md:h-2.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '100ms', animationDuration: '0.6s' }}></div>
-                                <div className="w-2 h-2 md:w-2.5 md:h-2.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '200ms', animationDuration: '0.6s' }}></div>
-                              </div>
-                            </div>
-
-                            {/* Shimmer effect text */}
-                            <div className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-blue-50 rounded-full">
-                              <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-green-500 rounded-full animate-pulse"></div>
-                              <span className="text-xs md:text-sm text-blue-700 font-medium">Please wait a moment</span>
-                            </div>
-                          </div>
-                        </div>
+                {loading ? (
+                  <div className="flex flex-col items-center justify-center py-8 md:py-20">
+                    <div className="relative p-4 md:p-12 rounded-2xl md:rounded-3xl bg-gradient-to-br from-blue-50 via-white to-indigo-50 shadow-2xl">
+                      <div className="relative w-16 h-16 md:w-32 md:h-32 mx-auto">
+                        <div className="absolute inset-0 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin"></div>
                       </div>
-                    ) : Array.isArray(sortedBuses) && sortedBuses.length > 0 ? (
-                      sortedBuses.map((schedule) => (
-                        <div key={schedule.scheduleId} className="bg-white w-full h-auto mb-3 rounded-3xl shadow-xl">
-                          <BusCard
-                            busName={schedule.bus?.name}
-                            busType={schedule.bus?.type}
-                            departureTime={schedule.journey?.departureTime}
-                            arrivalTime={schedule.journey?.arrivalTime}
-                            travelDuration={schedule.journey?.durationMinutes}
-                            availableSeats={schedule.seats?.available}
-                            calculatedFare={schedule.pricing?.calculatedFare}
-                            operatorName={schedule.operator?.name}
-                            averageRating={schedule.bus?.rating}
-                            totalRatings={0}
-                            amenities={schedule.bus?.amenities}
-                            scheduleId={schedule.scheduleId}
-                            boardingPoints={schedule.boardingPoints}
-                            droppingPoints={schedule.droppingPoints}
-                          />
-                        </div>
-                      ))
-                    ) : (
-                      <div className="p-8 text-center text-gray-600">No buses found for the selected route and date.</div>
-                    )}
-                </div>
+                      <div className="mt-4 md:mt-10 text-center">
+                        <h3 className="text-base md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-1">
+                          Finding Best Bus Routes
+                        </h3>
+                        <p className="text-gray-600 font-medium text-xs md:text-lg">Searching for available buses...</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : hasBuses ? (
+                  /* CARD RENDER GRID LAYOUT */
+                  sortedBuses.map((schedule) => (
+                    <div key={schedule.scheduleId} className="bg-white w-full h-auto mb-3 rounded-3xl shadow-xl">
+                      <BusCard
+                        busName={schedule.bus?.name}
+                        busType={schedule.bus?.type}
+                        departureTime={schedule.journey?.departureTime}
+                        arrivalTime={schedule.journey?.arrivalTime}
+                        travelDuration={schedule.journey?.durationMinutes}
+                        availableSeats={schedule.seats?.available}
+                        calculatedFare={schedule.pricing?.calculatedFare}
+                        operatorName={schedule.operator?.name}
+                        averageRating={schedule.bus?.rating}
+                        totalRatings={0}
+                        amenities={schedule.bus?.amenities}
+                        scheduleId={schedule.scheduleId}
+                        boardingPoints={schedule.boardingPoints}
+                        droppingPoints={schedule.droppingPoints}
+                      />
+                    </div>
+                  ))
+                ) : (
+                  /* HIGHLY INTERACTIVE NO BUSES FOUND EMPTY STATE SCREEN */
+                  <div className="max-w-xl mx-auto my-12 w-full px-4">
+                    <div className="bg-white border border-slate-200 rounded-3xl p-8 text-center shadow-md">
+                      <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-5 border border-amber-100">
+                        <AlertCircle size={32} className="text-amber-500" />
+                      </div>
+                      
+                      <h2 className="text-xl font-black text-slate-800 tracking-tight mb-2">
+                        No Buses Available
+                      </h2>
+                      <p className="text-sm text-slate-500 max-w-md mx-auto mb-6 leading-relaxed">
+                        We couldn't locate any direct bus schedules running between <span className="font-extrabold text-slate-700">{from || "your origin"}</span> and <span className="font-extrabold text-slate-700">{to || "your destination"}</span> on this date.
+                      </p>
+
+                      {/* Dynamic Strategy Tips */}
+                      <div className="bg-slate-50 rounded-xl p-4 text-left border border-slate-100 mb-6 text-xs text-slate-600 space-y-1.5 font-medium">
+                        <h4 className="text-[10px] font-black text-slate-400 tracking-wider uppercase mb-1">Suggested Solutions:</h4>
+                        <p>• If you applied active filtering sidebar checkboxes, try wiping them clean.</p>
+                        <p>• Schedules vary significantly by day; consider looking at the next calendar day.</p>
+                      </div>
+
+                      {/* Interactive Trigger Control Layout Track */}
+                      <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                        <button 
+                          onClick={handleClearFilters}
+                          className="w-full sm:flex-1 flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm px-4 py-3 rounded-xl transition-all"
+                        >
+                          <RefreshCw size={14} />
+                          Reset Filters
+                        </button>
+                        <button 
+                          onClick={handleNextDaySearch}
+                          className="w-full sm:flex-1 flex items-center justify-center gap-2 bg-sky-500 hover:bg-sky-600 text-white font-extrabold text-sm px-4 py-3 rounded-xl shadow-xs transition-all"
+                        >
+                          <CalendarDays size={14} />
+                          Check Next Day
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
             </div>
         </div>
-      </>
+      </div>
+    </>
   );
 }

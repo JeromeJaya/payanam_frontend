@@ -74,7 +74,6 @@ export default function Nav() {
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
-  // 2. Extracted Tailwind style functions to keep the JSX highly readable
   const getDesktopNavLinkStyle = ({ isActive }) => 
     isActive
       ? "rounded-xl bg-lime-100/70 px-4 py-2.5 text-lime-700 dark:bg-lime-900/30 dark:text-lime-300 transition block"
@@ -87,8 +86,8 @@ export default function Nav() {
 
   return (
     <>
-    <header className="fixed top-0 left-0 right-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-900/95">
-        {/* CHANGED: 'justify-around' to 'justify-between' to push elements to opposite edges */}
+    {/* FIXED: Enforced strict h-20 size property matching on header shell level container wrapper */}
+    <header className="fixed top-0 left-0 right-0 h-20 z-50 border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 shadow-xs">
         <div className="flex h-20 max-w-screen-2xl items-center justify-between px-4 sm:px-6 lg:px-8 mx-auto">
           
           {/* Left Side Branding & Aligned Search Input */}
@@ -96,12 +95,9 @@ export default function Nav() {
             <Link className="flex shrink-0 items-center gap-1 text-teal-600 dark:text-teal-500" to="/" onClick={closeMobileMenu}>
               <span className="text-2xl font-black tracking-widest text-slate-800 dark:text-slate-200">PAYANAM</span>
             </Link>
-
-            
           </div>
 
           {/* Right Side Navigation Utilities */}
-          {/* CHANGED: 'items-end' to 'items-center' to vertically balance elements properly */}
           <div className="flex items-center gap-6 shrink-0">
             <nav aria-label="Global" className="hidden md:block">
               <ul className="flex items-center gap-2 lg:gap-4 text-base font-bold">
@@ -167,7 +163,7 @@ export default function Nav() {
       {/* Mobile Dropdown Drawer Menu Layout */}
       <div
         id="mobile-menu"
-        className={`fixed inset-0 z-40 md:hidden transition-transform duration-300 ease-in-out bg-white dark:bg-slate-900 ${
+        className={`fixed inset-0 z-50 md:hidden transition-transform duration-300 ease-in-out bg-white dark:bg-slate-900 ${
           isMobileMenuOpen ? "translate-x-0" : "translate-x-full"
         }`}
         role="dialog"
@@ -200,7 +196,6 @@ export default function Nav() {
               </button>
             </form>
 
-            {/* 4. Integrated Dynamic Mobile Navigation Layout (Note: Fixed typo from 'tainbooking' to 'trainbooking') */}
             <ul className="space-y-2 text-lg">
               <li><NavLink to="/flightbooking" className={getMobileNavLinkStyle} onClick={closeMobileMenu}> Flights </NavLink></li>
               <li><NavLink to="/hotelbooking" className={getMobileNavLinkStyle} onClick={closeMobileMenu}> Hotels </NavLink></li>
@@ -217,10 +212,7 @@ export default function Nav() {
                 <button className="block w-full rounded-xl bg-red-100 py-3.5 font-bold text-red-700 text-base hover:bg-red-200" onClick={handleLogout}>
                   Logout
                 </button>
-
               )}
-              
-              
             </div>
           </nav>
         </div>

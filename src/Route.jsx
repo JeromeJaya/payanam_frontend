@@ -31,7 +31,6 @@ import BookingSummary from "./booking/BusBooking/BookingSummary.jsx";
 import UserProfile from "./UserProfile.jsx";
 import FlightBooking from "./booking/FlightBooking/FlightBooking.jsx";
 import HotelBooking from "./booking/HotelBooking/HotelBooking.jsx";
-import TrainBooking from "./booking/TrainBooking/TrainBooking.jsx";
 import VendorDashboard from "./VendorDashboard.jsx";
 //import VendorEmailLogin from "./Authentication/vendor/VendorEmailLogin.jsx";
 import TicketDetails from "./booking/BusBooking/TicketDetails.jsx";
@@ -73,7 +72,6 @@ export function Router (){
     <Route path='/BookingSummary' element={<BookingSummary/>}/>  
     <Route path='/flightbooking' element={<FlightBooking/>}/>  
     <Route path='/hotelbooking' element={<HotelBooking/>}/>  
-    <Route path='/trainbooking' element={<TrainBooking/>}/>  
     <Route path='/TicketDetails' element={<TicketDetails/>}/>  
     <Route path='/checkout' element={<CheckoutPage/>}/>  
     <Route path='/seatconfirmation' element={<SeatConfirmation/>}/>  
