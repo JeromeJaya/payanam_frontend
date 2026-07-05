@@ -81,141 +81,134 @@ export function EmailLogin() {
     <>
     <Nav/>
     
-<div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-end  px-12 py-12 pr-50 pt-10 ">
+    {/* Responsiveness fixed here: centered by default, right-aligned on large screens, safe padding throughout */}
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center lg:justify-end px-4 sm:px-6 md:px-12 lg:pr-24 py-12 pt-20 relative overflow-hidden">
         <div
-        className={` absolute inset-0 bg-cover bg-center mt-15  opacity-0
+        className={`absolute inset-0 bg-cover bg-center mt-15 opacity-0
         transform transition-all duration-1000 ease-out
           ${show ? "opacity-100" : "opacity-0"}`}
         style={{
           backgroundImage: `url(${bgImage})`,
         }}
       ></div>
-  <div
+      
+      <div
         className={`
-          max-w-md w-full
+          max-w-md w-full z-10
           transform transition-all duration-1000 ease-in
           ${show ? "translate-x-0 opacity-100" : "-translate-x-40 opacity-0"}
         `}
       >
-    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8">
-      <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-12 h-12 bg-lime-100 dark:bg-lime-900/40 rounded-xl mb-4">
-          <svg className="w-6 h-6 text-lime-600 dark:text-lime-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
-            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-          </svg>
-        </div>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome back</h2>
-        <p className="text-gray-600 dark:text-gray-400 mt-2">Sign in to your account</p>
-      </div>
-
-      <form className="space-y-6" onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="email" className="block text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Email address
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={handleEmailChange}
-            className={`w-full px-4 py-3 bg-white dark:bg-gray-700 border ${
-              emailError ? "border-red-500" : "border-gray-300 dark:border-gray-600"
-            } rounded-lg focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-400 focus:border-lime-500 dark:focus:border-lime-400 outline-none transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400`}
-            placeholder="example@gmail.com"
-          />
-          {emailError && (
-            <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+        {/* Adjusted inner padding slightly for micro-screens (p-6 to p-8) */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 sm:p-8">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-12 h-12 bg-lime-100 dark:bg-lime-900/40 rounded-xl mb-4">
+              <svg className="w-6 h-6 text-lime-600 dark:text-lime-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
               </svg>
-              {emailError}
-            </p>
-          )}
-          {!emailError && email.length > 0 && (
-            <p className="mt-2 text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              Valid email address
-            </p>
-          )}
-        </div>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome back</h2>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">Sign in to your account</p>
+          </div>
 
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <label htmlFor="password" className="block text-lg font-medium text-gray-700 dark:text-gray-300">
-              Password
-            </label>
-            <div className = "flex flex-rows gap-1">
-              <Link to="/forgotpassword" className="text-sm font-medium text-lime-600 dark:text-lime-400 hover:text-lime-500 dark:hover:text-lime-300">Forgot password?</Link>
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            <div>
+              <label htmlFor="email" className="block text-base sm:text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Email address
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={handleEmailChange}
+                onKeyDown={(e) => e.key === "Enter" && !loading && handleSubmit(e)}
+                className={`w-full px-4 py-3 bg-white dark:bg-gray-700 border ${
+                  emailError ? "border-red-500" : "border-gray-300 dark:border-gray-600"
+                } rounded-lg focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-400 focus:border-lime-500 dark:focus:border-lime-400 outline-none transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400`}
+                placeholder="example@gmail.com"
+              />
+              {emailError && (
+                <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {emailError}
+                </p>
+              )}
+              {!emailError && email.length > 0 && (
+                <p className="mt-2 text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  Valid email address
+                </p>
+              )}
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label htmlFor="password" className="block text-base sm:text-lg font-medium text-gray-700 dark:text-gray-300">
+                  Password
+                </label>
+                <div className = "flex flex-rows gap-1">
+                  <Link to="/forgotpassword" className="text-xs sm:text-sm font-medium text-lime-600 dark:text-lime-400 hover:text-lime-500 dark:hover:text-lime-300">Forgot password?</Link>
+                </div>
+              </div>
+              <PasswordInput
+                id="password"
+                name="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !loading && handleSubmit(e)}
+                autoComplete="current-password"
+                required
+                placeholder="••••••••"
+                className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-400 focus:border-lime-500 dark:focus:border-lime-400 outline-none transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+              />
+            </div>
+            <div className="flex justify-center w-full">
+            {loading ? (
+              <div className="w-full sm:w-fit bg-lime-600 dark:bg-lime-300 text-white dark:text-gray-900 py-3 px-4 rounded-lg font-medium flex items-center justify-center gap-2">
+                <div className="relative w-6 h-6">
+                  <div className="absolute inset-0 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
+                </div>
+                <span>Signing in...</span>
+              </div>
+            ) : (
+              <But3
+                type = "submit"
+                text ="Sign in"
+                className="w-full sm:w-fit block mx-auto bg-lime-600 dark:bg-lime-300 text-white dark:text-gray-900 py-3 px-4 rounded-lg font-medium hover:bg-lime-700 dark:hover:bg-lime-400 justify-center transition-colors"
+              />
+            )}
+            </div>
+          </form>
+
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300 dark:border-gray-700"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                  Or continue with
+                </span>
+              </div>
             </div>
           </div>
-          <PasswordInput
-            id="password"
-            name="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
-            required
-            placeholder="••••••••"
-            className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-400 focus:border-lime-500 dark:focus:border-lime-400 outline-none transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
-          />
-        </div>
-        <div className="flex justify-center w-full">
-        {loading ? (
-          <div className="w-fit block mx-auto bg-lime-600 dark:bg-lime-300 text-white dark:text-gray-900 py-3 px-4 rounded-lg font-medium flex items-center justify-center gap-2">
-            <div className="relative w-6 h-6">
-              <div className="absolute inset-0 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
-            </div>
-            <span>Signing in...</span>
-          </div>
-        ) : (
-          <But3
-            type = "submit"
-            text ="Sign in"
-            className="w-fit block mx-auto bg-lime-600 dark:bg-lime-300 text-white dark:text-gray-900 py-3 px-4 rounded-lg font-medium hover:bg-lime-700 dark:hover:bg-lime-400  justify-center transition-colors"
-          />
-        )}
-        </div>
-      </form>
 
-      <div className="mt-6">
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300 dark:border-gray-700"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
-              Or continue with
-            </span>
-          </div>
-        </div>
-
-        {/* <div className="mt-6 grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            className="w-full inline-flex justify-center py-2.5 px-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm bg-white dark:bg-gray-700 text-lg font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
-            onClick = {()=>setShowMobileLogin(true)}
-          >
-            Login with mobile
+          <p className="mt-8 text-center text-sm text-gray-600 dark:text-gray-400 flex flex-wrap justify-center gap-1">
+            <span>Don't have an account?</span>
+            <Link to="/EmailSignUp" className="font-medium text-lime-600 dark:text-lime-400 hover:text-lime-500 dark:hover:text-lime-300">Sign up</Link>
             <Outlet/>
-          </button>
-        </div> */}
+          </p>
+        </div>
       </div>
-
-      <p className="mt-8 text-center text-sm text-gray-600 dark:text-gray-400">
-        Don't have an account?
-        <Link to="/EmailSignUp" className="font-medium text-lime-600 dark:text-lime-400 hover:text-lime-500 dark:hover:text-lime-300">Sign up</Link>
-        <Outlet/>
-      </p>
     </div>
-  </div>
-</div>
-</>
+  </>
   );
-
 }

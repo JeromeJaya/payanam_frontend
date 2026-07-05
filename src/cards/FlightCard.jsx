@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Plus, MoveRight, Lock, Check } from "lucide-react";
+import FlightPriceModal from "../booking/FlightBooking/FlightPriceModal.jsx";
 
 /**
  * Formats duration from minutes to "Xh Ym" format
@@ -52,6 +53,7 @@ export default function FlightCard({
   onToggleCompareSidebar = () => {}
 }) {
   const [showDetails, setShowDetails] = useState(false);
+  const [showPriceModal, setShowPriceModal] = useState(false);
 
   // Extract flight data with defaults
   const airlineName = flight?.flight?.airlineName || flight?.operator?.name || "Unknown Airline";
@@ -82,6 +84,7 @@ export default function FlightCard({
   // Aircraft details
   const aircraftType = flight?.flight?.aircraftType || flight?.aircraft?.type || "";
   const aircraftModel = flight?.flight?.aircraftModel || flight?.aircraft?.model || "";
+  const cabinClass = flight?.cabin?.class || flight?.cabinClass || flight?.flight?.cabinClasses?.[0] || "";
   
   // Available seats
   const availableSeats = flight?.seats?.available ?? flight?.availableSeats ?? flight?.seatAvailability ?? "N/A";
@@ -110,12 +113,21 @@ export default function FlightCard({
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L6 12zm0 0h7.5" />
             </svg>
           </div>
-          <div className="min-w-0">
+            <div className="min-w-0">
             <h3 className="font-extrabold text-base text-gray-900 leading-tight truncate">{airlineName}</h3>
             <p className="text-xs text-gray-400 font-medium tracking-tight mt-0.5">{flightNumber}</p>
-            {aircraftType && (
-              <p className="text-[11px] text-gray-500 font-medium truncate mt-0.5 hidden xs:block">{aircraftType} {aircraftModel}</p>
-            )}
+            <div className="flex flex-wrap gap-1.5 mt-1.5">
+              {aircraftType && (
+                <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                  {aircraftType}
+                </span>
+              )}
+              {cabinClass && (
+                <span className="text-[10px] font-semibold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
+                  {cabinClass}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -189,7 +201,10 @@ export default function FlightCard({
               <MoveRight size={12} />
             </button>
 
-            <button className="bg-blue-600 border border-blue-600 text-white hover:bg-blue-700 active:scale-[0.98] font-extrabold text-xs px-4 sm:px-5 py-2.5 rounded-xl transition-all uppercase tracking-wide shadow-md shadow-blue-100 whitespace-nowrap focus:outline-none">
+            <button 
+              onClick={() => setShowPriceModal(true)}
+              className="bg-blue-600 border border-blue-600 text-white hover:bg-blue-700 active:scale-[0.98] font-extrabold text-xs px-4 sm:px-5 py-2.5 rounded-xl transition-all uppercase tracking-wide shadow-md shadow-blue-100 whitespace-nowrap focus:outline-none"
+            >
               View Prices
             </button>
           </div>
@@ -257,6 +272,14 @@ export default function FlightCard({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Flight Price Modal */}
+      {showPriceModal && (
+        <FlightPriceModal 
+          flight={flight} 
+          onClose={() => setShowPriceModal(false)} 
+        />
       )}
     </div>
   );

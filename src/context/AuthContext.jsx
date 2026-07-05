@@ -33,14 +33,23 @@ export function AuthProvider({ children }) {
     } catch (e) {}
   };
 
+  // Merge partial updates into the current user (e.g. after profile image upload)
+  const updateUser = (updates) => {
+    setUser((prev) => {
+      const merged = prev ? { ...prev, ...updates } : updates;
+      try { localStorage.setItem("payanam_user", JSON.stringify(merged)); } catch {}
+      return merged;
+    });
+  };
+
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const res = await api.get("/api/users/profile");
-        const payload = res.data?.user ?? res.data;
-        // keep local user if backend confirms, otherwise update
-        setUser(payload || JSON.parse(localStorage.getItem("payanam_user")) || null);
-        setIsAuthenticated(Boolean(payload) || Boolean(localStorage.getItem("payanam_user")));
+        // backend returns { success, data: { ...user } }
+        const payload = res.data?.data ?? res.data?.user ?? null;
+        setUser(payload);
+        setIsAuthenticated(Boolean(payload));
       } catch (error) {
         // if backend check fails, keep client-side user if present (allows offline UI), otherwise clear
         const cached = (() => {
@@ -68,6 +77,7 @@ export function AuthProvider({ children }) {
         authLoading,
         login,
         logout,
+        updateUser,
       }}
     >
       {children}

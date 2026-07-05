@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export default function PasswordInput({ id, name, value, onChange, placeholder, autoComplete, required, className }) {
+export default function PasswordInput({ id, name, value, onChange, placeholder, autoComplete, required, className, onKeyDown }) {
   const [visible, setVisible] = useState(false);
   return (
     <div className="relative">
@@ -10,6 +10,7 @@ export default function PasswordInput({ id, name, value, onChange, placeholder, 
         type={visible ? "text" : "password"}
         value={value}
         onChange={onChange}
+        onKeyDown={onKeyDown}
         placeholder={placeholder}
         autoComplete={autoComplete}
         required={required}

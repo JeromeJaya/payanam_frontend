@@ -163,6 +163,7 @@ export default function ResetLogin() {
             pattern="\d{6}"
             value={otp}
             onChange={handleOTPChange}
+            onKeyDown={(e) => e.key === "Enter" && !loading && handleSubmit(e)}
             required
             placeholder="Enter 6-digit OTP"
             className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-400 focus:border-lime-500 dark:focus:border-lime-400 outline-none transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
@@ -199,6 +200,7 @@ export default function ResetLogin() {
             name="newPassword"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && !loading && handleSubmit(e)}
             autoComplete="current-password"
             required
             className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-400 focus:border-lime-500 dark:focus:border-lime-400 outline-none transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
@@ -216,6 +218,7 @@ export default function ResetLogin() {
             name="ConfirmPassword"
             value={confirmPass}
             onChange={(e) => setConfirmPass(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && !loading && handleSubmit(e)}
             autoComplete="current-password"
             required
             placeholder="••••••••"

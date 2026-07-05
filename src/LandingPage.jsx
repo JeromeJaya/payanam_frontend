@@ -141,7 +141,7 @@ export default function LandingPage() {
             {isVendor ? (
               // Vendor is logged in - show Vendor Dashboard
               <button 
-                onClick={() => navigate("/vendor-dashboard")}
+                onClick={() => navigate("/vendordashboard")}
                 className="text-sm font-bold text-slate-700 hover:text-lime-600 border border-slate-200 hover:border-lime-200 bg-white hover:bg-lime-50/30 px-5 py-2.5 rounded-xl transition-all duration-200 shadow-sm focus:ring-4 focus:ring-slate-100"
               >
                 Vendor Dashboard
@@ -149,7 +149,7 @@ export default function LandingPage() {
             ) : isAuthenticated ? (
               // Regular user is logged in - show Switch to Vendor
               <button 
-                onClick={() => navigate("/vendor-dashboard")}
+                onClick={() => navigate("/vendordashboard")}
                 className="text-sm font-bold text-lime-600 hover:text-lime-700 border border-lime-200 hover:border-lime-300 bg-lime-50 hover:bg-lime-100 px-5 py-2.5 rounded-xl transition-all duration-200 shadow-sm focus:ring-4 focus:ring-lime-500/20"
               >
                 Switch to Vendor
@@ -157,7 +157,7 @@ export default function LandingPage() {
             ) : (
               // No user logged in - show Login as Vendor
               <button 
-                onClick={() => navigate("/vendor-dashboard")}
+                onClick={() => navigate("/vendordashboard")}
                 className="text-sm font-bold text-lime-600 hover:text-lime-700 border border-lime-200 hover:border-lime-300 bg-lime-50 hover:bg-lime-100 px-5 py-2.5 rounded-xl transition-all duration-200 shadow-sm focus:ring-4 focus:ring-lime-500/20"
               >
                 Login as Vendor

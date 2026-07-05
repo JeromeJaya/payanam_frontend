@@ -17,9 +17,14 @@ export function VendorProtectedRoute({ children }) {
 
   if (authLoading) return null; // or spinner
 
-  // If not authenticated or not a vendor, redirect to vendor login
-  if (!isAuthenticated || user?.role !== 'vendor') {
-    return <Navigate to="/VendorEmailLogin" replace />;
+  // If not authenticated, redirect to login
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // If authenticated but not a vendor, redirect to main page
+  if (user?.role !== 'vendor') {
+    return <Navigate to="/MainPage" replace />;
   }
 
   return children;

@@ -35,6 +35,41 @@ export default function SearchBar({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Validation
+    const errors = [];
+    
+    // Validate From and To
+    if (!from || from.trim() === "") {
+      errors.push("Please enter a departure location");
+    }
+    if (!to || to.trim() === "") {
+      errors.push("Please enter a destination location");
+    }
+    
+    // Validate From != To
+    if (from && to && from.trim().toLowerCase() === to.trim().toLowerCase()) {
+      errors.push("Departure and destination cannot be the same");
+    }
+    
+    // Validate Passenger count if it exists in searchData
+    if (searchData?.NoOfSeats !== undefined && searchData.NoOfSeats !== "") {
+      const passengerCount = parseInt(searchData.NoOfSeats, 10);
+      if (isNaN(passengerCount)) {
+        errors.push("Please enter a valid number for passenger count");
+      } else if (passengerCount < 1) {
+        errors.push("Passenger count must be at least 1");
+      } else if (passengerCount > 20) {
+        errors.push("Maximum 20 passengers allowed per booking");
+      }
+    }
+    
+    // If there are validation errors, show them and don't proceed
+    if (errors.length > 0) {
+      alert(errors[0]);
+      return;
+    }
+    
     handleFetchBus(undefined, undefined, undefined, undefined, undefined, undefined, undefined, date);
     // Auto-collapse on mobile after performing search
     setIsMobileMaximized(false);

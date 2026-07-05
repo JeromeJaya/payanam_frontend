@@ -59,6 +59,9 @@ export default function SearchBar({ input, service }) {
   const [to, setTo] = useState("");
   const [lang, setLang] = useState('en-IN');
 
+  // NEW: State to track if microphone is actively listening
+  const [isListening, setIsListening] = useState(false);
+
   // Suggestions Visibility Layers
   const [showFromDropdown, setShowFromDropdown] = useState(false);
   const [showToDropdown, setShowToDropdown] = useState(false);
@@ -214,6 +217,43 @@ export default function SearchBar({ input, service }) {
       }
     });
     
+    // Validation
+    const errors = [];
+    
+    // Validate From and To
+    if (!formData.from || formData.from.trim() === "") {
+      errors.push("Please enter a departure location");
+    }
+    if (!formData.to || formData.to.trim() === "") {
+      errors.push("Please enter a destination location");
+    }
+    
+    // Validate From != To
+    if (formData.from && formData.to && formData.from.trim().toLowerCase() === formData.to.trim().toLowerCase()) {
+      errors.push("Departure and destination cannot be the same");
+    }
+    
+    // Validate Passenger count (NoOfSeats) if it exists
+    if (formData.NoOfSeats !== undefined && formData.NoOfSeats !== "") {
+      const passengerCount = parseInt(formData.NoOfSeats, 10);
+      if (isNaN(passengerCount)) {
+        errors.push("Please enter a valid number for passenger count");
+      } else if (passengerCount < 1) {
+        errors.push("Passenger count must be at least 1");
+      } else if (passengerCount > 20) {
+        errors.push("Maximum 20 passengers allowed per booking");
+      }
+    }
+    
+    // If there are validation errors, show them and don't navigate
+    if (errors.length > 0) {
+      // Display first error to user
+      const errorMessage = errors[0];
+      // Use native alert for now - can be replaced with a toast/notification
+      alert(errorMessage);
+      return;
+    }
+    
     const queryParams = new URLSearchParams();
     Object.entries(formData).forEach(([key, value]) => {
       if (value) {
@@ -266,7 +306,12 @@ export default function SearchBar({ input, service }) {
   }
 
    const handleMic = () => {
+      setIsListening(true); // Start listening animation state
       recognition.start();
+      
+      recognition.onerror = () => setIsListening(false);
+      recognition.onend = () => setIsListening(false);
+
       recognition.onresult = async (event) => {
         const speechresult = event.results[event.resultIndex]
         const transcript = speechresult[0].transcript
@@ -369,14 +414,11 @@ export default function SearchBar({ input, service }) {
           navigate(`${route}?${queryParams.toString()}`);
         } catch (err) {
           console.error('AI chat error:', err);
+        } finally {
+          setIsListening(false);
         }
       };
     }
-
-  // recognition.onEnd
-  // onSoundStart = () => {
-  //   console.log('Sound detected');
-  // }
 
   return (
     <div className="w-full">
@@ -478,19 +520,29 @@ export default function SearchBar({ input, service }) {
           );
         })}
       </div>
-
-      <button
-        onClick={handleSearch}
-        className="w-full bg-gradient-to-r from-lime-500 to-lime-600 hover:from-lime-600 hover:to-lime-700 text-white font-semibold py-2.5 px-6 rounded-lg transition-all shadow-md hover:shadow-lg text-sm uppercase tracking-wide"
-      >
-        Search {service ? service.charAt(0).toUpperCase() + service.slice(1) : ""}
-      </button>
-      <button
-        onClick={() => handleMic()}
-        className="w-full bg-gradient-to-r from-lime-500 to-lime-600 hover:from-lime-600 hover:to-lime-700 text-white font-semibold py-2.5 px-6 rounded-lg transition-all shadow-md hover:shadow-lg text-sm uppercase tracking-wide"
-      >
-        micSearch {service ? service.charAt(0).toUpperCase() + service.slice(1) : ""}
-      </button>
+      
+      <div className="flex flex-row gap-3">
+        <button
+          onClick={handleSearch}
+          className="w-[70%] bg-gradient-to-r from-lime-500 to-lime-600 hover:from-lime-600 hover:to-lime-700 text-white font-semibold py-2.5 px-6 rounded-lg transition-all shadow-md hover:shadow-lg text-sm uppercase tracking-wide"
+        >
+          Search {service ? service.charAt(0).toUpperCase() + service.slice(1) : ""}
+        </button>
+        
+        {/* ENHANCED UNIQUE VOICE SEARCH BUTTON */}
+        <button
+          onClick={() => handleMic()}
+          className={`w-[30%] flex items-center justify-center gap-2 font-semibold py-2.5 px-6 rounded-lg transition-all text-sm uppercase tracking-wide border-2 text-white
+            ${isListening 
+              ? 'bg-rose-600 border-rose-600 shadow-[0_0_20px_rgba(225,29,72,0.7)] animate-pulse' 
+              : 'bg-slate-900 border-slate-900 hover:bg-rose-600 hover:border-rose-600 shadow-[0_0_15px_rgba(15,23,42,0.2)] hover:shadow-[0_0_25px_rgba(225,29,72,0.6)]'
+            }`}
+        >
+          {/* Animated red recording dot / Mic icon indicator */}
+          <span className={`w-2.5 h-2.5 rounded-full bg-current ${isListening ? 'animate-ping' : ''}`} />
+          {isListening ? 'Listening...' : 'Voice search'}
+        </button>
+      </div>
     </div>
   );
 }

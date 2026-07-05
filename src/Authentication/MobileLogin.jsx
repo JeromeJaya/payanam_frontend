@@ -108,6 +108,7 @@ export function MobileLogin() {
             required
             value={phoneNumber}
             onChange={handlePhoneChange}
+            onKeyDown={(e) => e.key === "Enter" && !loading && handleSubmit(e)}
             className={`w-full px-4 py-3 bg-white dark:bg-gray-700 border ${
               phoneError ? "border-red-500" : "border-gray-300 dark:border-gray-600"
             } rounded-lg focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-400 focus:border-lime-500 dark:focus:border-lime-400 outline-none transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400`}

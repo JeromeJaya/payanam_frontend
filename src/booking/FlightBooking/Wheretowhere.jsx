@@ -234,6 +234,33 @@ export default function Wheretowhere({
 
   // Handle search - ensure we send IATA codes to the API
   const handleSearch = async () => {
+    // Validation
+    const errors = [];
+    
+    // Validate From and To
+    if (!fromLocation || fromLocation.trim() === "") {
+      errors.push("Please enter a departure location");
+    }
+    if (!toLocation || toLocation.trim() === "") {
+      errors.push("Please enter a destination location");
+    }
+    
+    // Validate From != To
+    if (fromLocation && toLocation && fromLocation.trim().toLowerCase() === toLocation.trim().toLowerCase()) {
+      errors.push("Departure and destination cannot be the same");
+    }
+    
+    // Validate Date
+    if (!departDate || departDate.trim() === "") {
+      errors.push("Please select a departure date");
+    }
+    
+    // If there are validation errors, show them and don't proceed
+    if (errors.length > 0) {
+      alert(errors[0]);
+      return;
+    }
+    
     // If the user typed a city name without picking from the dropdown,
     // resolve it to an IATA code first.
     let fromValue = fromIata || fromLocation;

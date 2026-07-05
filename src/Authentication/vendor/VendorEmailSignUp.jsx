@@ -92,6 +92,7 @@ export default function VendorEmailSignUp() {
             className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-400 focus:border-lime-500 dark:focus:border-lime-400 outline-none transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
             placeholder="Enter your Name"
             onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSubmit(e)}
           />
         </div>
         <div className = "flex flex-row gap-5 justify-around">
@@ -104,6 +105,7 @@ export default function VendorEmailSignUp() {
             className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-400 focus:border-lime-500 dark:focus:border-lime-400 outline-none transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
             placeholder="Enter Your Email address"
             onChange={(e) => setEmail(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSubmit(e)}
           />
         </div>
 
@@ -113,6 +115,7 @@ export default function VendorEmailSignUp() {
             name="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSubmit(e)}
             autoComplete="current-password"
             required
             placeholder="Enter a Strong Password"
@@ -126,6 +129,7 @@ export default function VendorEmailSignUp() {
             name="ConfirmPassword"
             value={confirmPass}
             onChange={(e) => setConfirmPass(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSubmit(e)}
             autoComplete="current-password"
             required
             placeholder="Confirm the Password Again"
@@ -142,6 +146,7 @@ export default function VendorEmailSignUp() {
             name="phone"
             value={phoneNo}
             onChange={(e) => setPhoneNo(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSubmit(e)}
             required
             placeholder="Enter your Phone Number"
             className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-400 focus:border-lime-500 dark:focus:border-lime-400 outline-none transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
@@ -156,12 +161,14 @@ export default function VendorEmailSignUp() {
             placeholder="Enter your  Company Name"
             className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-400 focus:border-lime-500 dark:focus:border-lime-400 outline-none transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
             onChange={(e) => setCompanyName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSubmit(e)}
           />
           <input
             id="GST"
             name="GST"
             value={gstNumber}
             onChange={(e) => setGstNumber(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSubmit(e)}
             required
             placeholder="Enter your GST Number"
             className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-400 focus:border-lime-500 dark:focus:border-lime-400 outline-none transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"

@@ -8,11 +8,12 @@ import SelectBox from "../../filter/SelectBox.jsx"
 import Checkbox from "../../filter/Checkbox.jsx"
 import { Loader2, CalendarDays, RefreshCw, AlertCircle } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import api from "../../api/axios.js";
 
 export default function BusBooking(){
 
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const fromParam = searchParams.get("from") || "";
   const toParam = searchParams.get("to") || "";
@@ -20,10 +21,17 @@ export default function BusBooking(){
     const d = new Date();
     return d.toISOString().slice(0, 10);
   })();
-  
+   
   const [from, setFrom] = useState(fromParam);
   const [to, setTo] = useState(toParam);
   const [date, setDate] = useState(dateParam);
+
+  // Redirect to main page if from or to is missing
+  useEffect(() => {
+    if (!from || !to) {
+      navigate("/");
+    }
+  }, [from, to, navigate]);
   const [acFilter, setAcFilter] = useState("ALL");
   const [seatType, setSeatType] = useState("ALL");
   const [pickupTimeFilter, setPickupTimeFilter] = useState("ALL");

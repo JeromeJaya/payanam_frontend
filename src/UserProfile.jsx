@@ -1,22 +1,26 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom"; // IMPORTED useNavigate
-import { Calendar, Armchair, Ticket, MapPin, Eye, Trash2 } from "lucide-react"; 
+import { Calendar, Armchair, Ticket, MapPin, Eye, Trash2, Camera } from "lucide-react"; 
 import Nav from "./NavComponent.jsx";
 import api from "./api/axios.js";
 import { useAuth } from "./context/AuthContext.jsx";
 
 export default function UserProfile() {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const navigate = useNavigate(); // Hook initialized
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [bookingsLoading, setBookingsLoading] = useState(true); 
   const [saving, setSaving] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(null); // Tracks active canceling booking ID
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [form, setForm] = useState({ name: "", email: "", phoneNo: "", address: "", role: "" });
-  const [bookings, setBookings] = useState([]); 
+  const [bookings, setBookings] = useState([]);
+  const [profileImage, setProfileImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const fileInputRef = useRef(null);
 
   const fetchProfileAndBookings = async () => {
     // 1. Fetch User Profile Details
@@ -30,6 +34,11 @@ export default function UserProfile() {
         address: u.address || "",
         role: u.role || "",
       });
+      // Restore profile image from backend so it persists across reloads
+      if (u.profileImage) {
+        setProfileImage(u.profileImage);
+        setImagePreview(u.profileImage);
+      }
     } catch (err) {
       const local = (() => {
         try { return JSON.parse(localStorage.getItem("payanam_user")); } catch { return null; }
@@ -164,6 +173,67 @@ export default function UserProfile() {
     logout();
   };
 
+  // Handle image upload
+  const handleImageUpload = async (e) => {
+    e.preventDefault();
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setError('Please select a valid image file');
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Image size must be less than 5MB');
+      return;
+    }
+
+    setUploadingImage(true);
+    setError("");
+
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const res = await api.post('/api/users/profile/upload-image', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (res.data?.success) {
+        const imageUrl = res.data.data.profileImage;
+        setProfileImage(imageUrl);
+        setImagePreview(imageUrl);
+        setSuccess('Profile image uploaded successfully!');
+        
+        // Sync image to AuthContext so navbar updates immediately
+        updateUser({ profileImage: imageUrl });
+        
+        // Force refresh profile to update initials fallback
+        await fetchProfileAndBookings();
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to upload image');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  // Handle image removal
+  const handleRemoveImage = async () => {
+    setProfileImage(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    // Note: Backend automatically deletes from Cloudinary on next upload
+    // For complete removal, you could add a DELETE endpoint
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
@@ -229,9 +299,45 @@ export default function UserProfile() {
             <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-lg relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-32 h-32 bg-lime-600 rounded-full blur-3xl -mr-5 -mt-5 transition-all"></div>
               
-              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-tr from-lime-600 to-lime-500 text-xl font-bold text-lime-950 shadow-md">
-                {initials}
+              {/* Profile Image */}
+              <div className="relative mx-auto inline-block">
+                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-tr from-lime-600 to-lime-500 text-xl font-bold text-lime-950 shadow-md overflow-hidden">
+                  {imagePreview || profileImage ? (
+                    <img 
+                      src={imagePreview || profileImage} 
+                      alt="Profile" 
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    initials
+                  )}
+                </div>
+                
+                {/* Camera Icon Button */}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingImage}
+                  className="absolute bottom-0 right-0 rounded-full bg-lime-600 p-2 text-white shadow-md hover:bg-lime-700 transition-colors disabled:opacity-50"
+                  title="Upload profile picture"
+                >
+                  {uploadingImage ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  ) : (
+                    <Camera size={14} />
+                  )}
+                </button>
               </div>
+
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+              
               <h3 className="mt-4 text-lg font-bold text-slate-900">{form.name || "Adventurer"}</h3>
               <p className="text-xs text-slate-500">{form.email}</p>
               
@@ -247,10 +353,6 @@ export default function UserProfile() {
                   <p className="text-xl font-extrabold text-slate-900 mt-0.5">
                     {bookingsLoading ? "..." : bookings.length}
                   </p>
-                </div>
-                <div className="rounded-xl bg-lime-50/60 p-3 border border-lime-100/50">
-                  <p className="text-[10px] uppercase font-bold tracking-wider text-lime-700">Payanam Coins</p>
-                  <p className="text-xl font-extrabold text-lime-800 mt-0.5">2,450</p>
                 </div>
               </div>
             </div>
@@ -385,15 +487,23 @@ export default function UserProfile() {
                 <div className="space-y-4 max-h-[450px] overflow-y-auto pr-1 scrollbar-thin">
                   {bookings.map((b, i) => {
                     const bookingId = b.bookingId || `BK-${1000 + i}`;
-                    const source = b.boardingPoint?.city || b.source || "Origin";
-                    const destination = b.droppingPoint?.city || b.destination || "Destination";
-                    const travelDate = b.travelDate ? new Date(b.travelDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : "Date TBD";
-                    const totalFare = b.totalAmount || b.fare || 0;
+                    const source = b.boardingPoint?.city || b.routeId?.source || b.source || "Origin";
+                    const destination = b.droppingPoint?.city || b.routeId?.destination || b.destination || "Destination";
+                    const totalFare = b.totalFare || b.totalAmount || b.fare || 0;
                     const isCancelled = b.status?.toLowerCase() === 'cancelled' || b.bookingStatus?.toLowerCase() === 'cancelled';
-                    
-                    const seats = Array.isArray(b.passengerDetails) 
-                      ? b.passengerDetails.map(p => p.seatNumber).join(", ") 
-                      : (b.seatNumbers || []).join(", ") || "N/A";
+
+                    // Departure / arrival date+time from the populated schedule
+                    const depDate = b.scheduleId?.departureDate
+                      ? new Date(b.scheduleId.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                      : b.travelDate
+                        ? new Date(b.travelDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                        : "Date TBD";
+                    const depTime = b.scheduleId?.departureTime || b.boardingPoint?.time || "--:--";
+                    const arrTime = b.scheduleId?.arrivalTime || b.droppingPoint?.time || "--:--";
+
+                    const seats = Array.isArray(b.passengerDetails)
+                      ? b.passengerDetails.map(p => p.seatNumber).join(", ")
+                      : (b.seatNumbers || b.bookedSeats || []).join(", ") || "N/A";
 
                     return (
                       <div 
@@ -420,27 +530,38 @@ export default function UserProfile() {
                         </div>
 
                         <div className="flex items-center justify-between">
+                          {/* Departure */}
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-bold text-slate-400 flex items-center gap-1">
-                              <MapPin size={11} className="text-slate-400" /> Source
+                              <MapPin size={11} className="text-lime-500" /> Departure
                             </p>
                             <p className="text-base font-extrabold text-slate-900 truncate mt-0.5">{source}</p>
                             <p className="text-[10px] font-medium text-slate-500 truncate">{b.boardingPoint?.name || ""}</p>
-                          </div>
-                          
-                          <div className="flex flex-col items-center px-4 flex-1 max-w-[120px]">
-                            <div className="w-full h-[1px] bg-slate-200 relative my-1">
-                              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-xs bg-slate-50 group-hover:bg-white px-1 text-slate-400 transition-colors">🚌</div>
-                            </div>
-                            <span className="text-[10px] text-slate-500 font-medium flex items-center gap-1 mt-1 whitespace-nowrap">
-                              <Calendar size={10} /> {travelDate}
-                            </span>
+                            <p className="mt-1 text-[11px] font-bold text-slate-700">
+                              <span className="inline-flex items-center gap-1"><Calendar size={10} /> {depDate}</span>
+                              <span className="ml-2 text-lime-600">{depTime}</span>
+                            </p>
                           </div>
 
+                          {/* Journey indicator */}
+                          <div className="flex flex-col items-center px-3 flex-shrink-0 max-w-[100px]">
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">{b.busId?.busType || "Bus"}</span>
+                            <div className="w-full h-[2px] bg-slate-200 relative my-1">
+                              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-sm bg-slate-50 group-hover:bg-white px-1 transition-colors">🚌</div>
+                            </div>
+                            <span className="text-[9px] text-slate-400 font-medium mt-0.5">{b.busId?.busName || b.busName || ""}</span>
+                          </div>
+
+                          {/* Arrival */}
                           <div className="text-right flex-1 min-w-0">
-                            <p className="text-xs font-bold text-slate-400">Destination</p>
+                            <p className="text-xs font-bold text-slate-400 flex items-center gap-1 justify-end">
+                              Arrival <MapPin size={11} className="text-red-400" />
+                            </p>
                             <p className="text-base font-extrabold text-slate-900 truncate mt-0.5">{destination}</p>
                             <p className="text-[10px] font-medium text-slate-500 truncate">{b.droppingPoint?.name || ""}</p>
+                            <p className="mt-1 text-[11px] font-bold text-slate-700">
+                              <span className="text-red-500">{arrTime}</span>
+                            </p>
                           </div>
                         </div>
 

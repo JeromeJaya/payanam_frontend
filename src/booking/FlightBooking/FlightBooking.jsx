@@ -8,17 +8,18 @@ import SearchheckBox from "../../filter/SearchheckBox.jsx"
 import SelectBox from "../../filter/SelectBox.jsx"
 import Checkbox from "../../filter/Checkbox.jsx"
 import { useState, useEffect, useMemo } from "react";
-import { useLocation, useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams, useNavigate } from "react-router-dom";
 import api from "../../api/axios.js"
 
 
 export default function FlightBooking(){
 
+  const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const serviceType = location.state?.serviceType || "flight";
   const searchData = location.state?.searchData || {};
-  
+   
   // Read from query parameters
   // Flight service uses "departure" field name in SearchBar, other services use "date"
   const fromParam = searchParams.get('from') || searchData.from || "";
@@ -27,10 +28,14 @@ export default function FlightBooking(){
     const d = new Date();
     return d.toISOString().slice(0, 10);
   })();
-  
+   
   const [from, setFrom] = useState(fromParam);
   const [to, setTo] = useState(toParam);
   const [date, setDate] = useState(dateParam);
+  const [hasSearched, setHasSearched] = useState(false);
+
+  // Show message if required fields are missing (don't redirect to allow filters to work)
+  const showSearchPrompt = !from || !to || !date;
   const [flights, setFlights] = useState([]);
   const [allFlights, setAllFlights] = useState([]); // Store full unfiltered data
   const [loading, setLoading] = useState(false);
@@ -54,13 +59,13 @@ export default function FlightBooking(){
   const applyFilters = (data, currentFilters = filters) => {
     let filteredData = [...data];
 
-    if (currentFilters.aircraftType) {
+    if (currentFilters.aircraftType && currentFilters.aircraftType !== "ANY") {
       filteredData = filteredData.filter(flight => 
         (flight.flight?.aircraftType || flight.aircraft?.type) === currentFilters.aircraftType
       );
     }
 
-    if (currentFilters.cabinClass) {
+    if (currentFilters.cabinClass && currentFilters.cabinClass !== "ANY") {
       filteredData = filteredData.filter(flight => 
         (flight.cabin?.class || flight.cabinClass) === currentFilters.cabinClass
       );
@@ -251,6 +256,17 @@ export default function FlightBooking(){
     return Array.from(new Set(allFlights.map(f => f.flight?.aircraftType || f.aircraft?.type).filter(Boolean)));
   }, [allFlights]);
 
+  // Get unique cabin classes for filter
+  const cabinClassOptions = useMemo(() => {
+    const classes = new Set();
+    allFlights.forEach(f => {
+      if (f.flight?.cabinClasses && Array.isArray(f.flight.cabinClasses)) {
+        f.flight.cabinClasses.forEach(c => classes.add(c));
+      }
+    });
+    return Array.from(classes);
+  }, [allFlights]);
+
   // Get price range
   const priceRange = useMemo(() => {
     if (allFlights.length === 0) return { min: 0, max: 0 };
@@ -286,13 +302,13 @@ export default function FlightBooking(){
                     <div className = "flex justify-center mb-4 font-bold text-lg">FILTERS</div>
                   
                     <SelectBox
-                      text={["", "AIRBUS_A320", "AIRBUS_A321", "BOEING_737", "BOEING_777", "BOEING_787", "ATR_72", "EMBRAER_E175"]}
+                      text={aircraftTypeOptions}
                       title="Aircraft Type"
                       value={filters.aircraftType}
                       onChange={(option) => handleFilterChange("aircraftType", option)}
                     />
                     <SelectBox
-                      text={["", "ECONOMY", "BUSINESS", "PREMIUM_ECONOMY", "FIRST"]}
+                      text={["ANY", ...cabinClassOptions]}
                       title="Cabin Class"
                       value={filters.cabinClass}
                       onChange={(option) => handleFilterChange("cabinClass", option)}

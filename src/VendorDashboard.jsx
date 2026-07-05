@@ -49,28 +49,10 @@ const SERVICE_CATEGORIES = [
     color: "sky",
     description: "Manage your flight inventory and bookings"
   },
-  {
-    id: "train",
-    label: "Train Services",
-    icon: Train,
-    gradient: "from-orange-500 to-orange-600",
-    hoverBorder: "hover:border-orange-500",
-    color: "orange",
-    description: "Manage your train schedules and routes"
-  },
-  {
-    id: "hotel",
-    label: "Hotel Services",
-    icon: Hotel,
-    gradient: "from-purple-500 to-purple-600",
-    hoverBorder: "hover:border-purple-500",
-    color: "purple",
-    description: "Manage your hotel properties and rooms"
-  },
 ];
 
 export default function VendorDashboard() {
-  const { user, logout } = useAuth();
+  const { user, logout, authLoading } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
   const [showCreateBusForm, setShowCreateBusForm] = useState(false);
@@ -208,10 +190,10 @@ export default function VendorDashboard() {
   };
 
   useEffect(() => {
-    if (!user || user.role !== "vendor") {
+    if (!authLoading && user && user.role !== "vendor") {
       navigate("/");
     }
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
 
   const fetchBuses = async () => {
     setBusesLoading(true);
@@ -310,7 +292,14 @@ export default function VendorDashboard() {
   }, [user]);
 
 
-  if (!user || user.role !== "vendor") {
+  // Redirect non-vendors (safety check in case route protection is bypassed)
+  if (!authLoading && (!user || user.role !== "vendor")) {
+    navigate("/");
+    return null;
+  }
+
+  // Still loading auth — show nothing until we know the user
+  if (authLoading || !user) {
     return null;
   }
 
@@ -1086,6 +1075,77 @@ export default function VendorDashboard() {
     );
   };
 
+  // Full page loading state
+  if (dashboardLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col">
+        {/* Header */}
+        <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
+          <div className="w-full px-6 sm:px-12 lg:px-20 h-20 flex items-center justify-between">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-lime-600 to-lime-500 flex items-center justify-center text-white font-black text-xl shadow-md">
+                V
+              </div>
+              <div>
+                <h1 className="text-xl font-black tracking-tight text-slate-900">Vendor Dashboard</h1>
+                <p className="text-xs text-slate-500">Loading dashboard...</p>
+              </div>
+            </div>
+          </div>
+        </header>
+        
+        {/* Loading Content */}
+        <div className="flex-1 w-full px-6 sm:px-12 lg:px-20 py-8">
+          {/* Quick Search Bar - Skeleton */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-4 mb-6 shadow-sm">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 bg-slate-200 rounded animate-pulse"></div>
+                <div className="h-4 w-32 bg-slate-200 rounded animate-pulse"></div>
+              </div>
+              <div className="flex-1 flex gap-2">
+                <div className="h-10 bg-slate-200 rounded-lg animate-pulse flex-1"></div>
+                <div className="h-10 w-24 bg-lime-300 rounded-lg animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Stats Grid - Skeleton (already exists but keeping for consistency) */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-slate-200 animate-pulse"></div>
+                  <div className="h-6 w-16 bg-slate-200 rounded animate-pulse"></div>
+                </div>
+                <div className="h-8 bg-slate-200 rounded animate-pulse mb-2"></div>
+                <div className="h-4 bg-slate-200 rounded animate-pulse w-24"></div>
+              </div>
+            ))}
+          </div>
+          
+          {/* Tabs Area - Skeleton */}
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm mb-8">
+            <div className="border-b border-slate-200 px-6">
+              <div className="flex gap-8">
+                {["overview", "bookings", "routes", "services", "schedule", "analytics"].map((tab) => (
+                  <div key={tab} className="py-4 h-10 bg-slate-200 rounded animate-pulse w-20"></div>
+                ))}
+              </div>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="h-6 w-32 bg-slate-200 rounded animate-pulse"></div>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="bg-slate-100 rounded-xl p-6 h-48 animate-pulse"></div>
+                <div className="bg-slate-100 rounded-xl p-6 h-48 animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
@@ -1194,7 +1254,7 @@ export default function VendorDashboard() {
                      )}
                    </div>
                    <h3 className="text-2xl font-black text-slate-900 mb-1">{stat.value}</h3>
-                   <p className="text-sm text-slate-600">{stat.label}</p>
+                   <p className="text-base text-slate-600">{stat.label}</p>
                  </div>
                );
              })}

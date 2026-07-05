@@ -102,16 +102,10 @@ export default function Nav() {
             <nav aria-label="Global" className="hidden md:block">
               <ul className="flex items-center gap-2 lg:gap-4 text-base font-bold">
                 <li>
-                  <NavLink className={getDesktopNavLinkStyle} to="/flightbooking" onClick={closeMobileMenu}> Flights </NavLink>
+                  <button onClick={() => { navigate("/", { state: { service: 'flight' } }); closeMobileMenu(); }} className={getDesktopNavLinkStyle({ isActive: false })}> Flights </button>
                 </li>
                 <li>
-                  <NavLink className={getDesktopNavLinkStyle} to="/hotelbooking" onClick={closeMobileMenu}> Hotels </NavLink>
-                </li>
-                <li>
-                  <NavLink className={getDesktopNavLinkStyle} to="/trainbooking" onClick={closeMobileMenu}> Trains </NavLink>
-                </li>
-                <li>
-                  <NavLink className={getDesktopNavLinkStyle} to="/busbooking" onClick={closeMobileMenu}> Buses </NavLink>
+                  <button onClick={() => { navigate("/", { state: { service: 'bus' } }); closeMobileMenu(); }} className={getDesktopNavLinkStyle({ isActive: false })}> Buses </button>
                 </li>
               </ul>
             </nav>
@@ -120,7 +114,17 @@ export default function Nav() {
 
             <Link className="flex items-center gap-3 shrink-0 group" to="/profile" onClick={closeMobileMenu}>
               <span className="sr-only">Profile</span>
-              <img alt="Profile avatar" src="https://images.unsplash.com/photo-1600486913747-55e5470d6f40?ixlib=rb-1.2.1&auto=format&fit=crop&w=80&q=80" className="h-9 w-9 rounded-full object-cover border border-slate-200 dark:border-slate-700 group-hover:border-lime-500 transition-colors" />
+              {user?.profileImage ? (
+                <img
+                  alt="Profile avatar"
+                  src={user.profileImage}
+                  className="h-9 w-9 rounded-full object-cover border border-slate-200 dark:border-slate-700 group-hover:border-lime-500 transition-colors"
+                />
+              ) : (
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-tr from-lime-600 to-lime-500 text-xs font-bold text-lime-950 border border-slate-200 dark:border-slate-700 group-hover:border-lime-500 transition-colors">
+                  {(user?.name || user?.userName || "TR").split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
+                </span>
+              )}
               <span className="hidden sm:inline text-base font-extrabold text-slate-700 dark:text-slate-200 max-w-[130px] truncate group-hover:text-slate-900">
                 {user?.name || user?.userName || "My Account"}
               </span>
@@ -135,10 +139,6 @@ export default function Nav() {
                 Logout
               </button>
             )}
-
-             <button className="rounded-xl bg-lime-50 dark:bg-lime-950/30 text-lime-700 px-4 py-3.5 font-bold" onClick={()=> navigate("/login")}>
-                  Login as vendor
-                </button>
 
             <button
               className="md:hidden rounded-xl p-2.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
@@ -197,10 +197,8 @@ export default function Nav() {
             </form>
 
             <ul className="space-y-2 text-lg">
-              <li><NavLink to="/flightbooking" className={getMobileNavLinkStyle} onClick={closeMobileMenu}> Flights </NavLink></li>
-              <li><NavLink to="/hotelbooking" className={getMobileNavLinkStyle} onClick={closeMobileMenu}> Hotels </NavLink></li>
-              <li><NavLink to="/trainbooking" className={getMobileNavLinkStyle} onClick={closeMobileMenu}> Trains </NavLink></li>
-              <li><NavLink to="/busbooking" className={getMobileNavLinkStyle} onClick={closeMobileMenu}> Buses </NavLink></li>
+              <li><button onClick={() => { navigate("/", { state: { service: 'flight' } }); closeMobileMenu(); }} className={getMobileNavLinkStyle({ isActive: false })}> Flights </button></li>
+              <li><button onClick={() => { navigate("/", { state: { service: 'bus' } }); closeMobileMenu(); }} className={getMobileNavLinkStyle({ isActive: false })}> Buses </button></li>
             </ul>
 
             <div className="pt-6 border-t border-slate-200 dark:border-slate-800">
@@ -219,7 +217,7 @@ export default function Nav() {
       </div>
 
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-30 bg-black/40 md:hidden backdrop-blur-xs" onClick={closeMobileMenu} aria-hidden="true" />
+        <div className="fixed inset-0 z-30 bg-black/40 md:hidden backdrop:blur-xs" onClick={closeMobileMenu} aria-hidden="true" />
       )}
     </>
   );

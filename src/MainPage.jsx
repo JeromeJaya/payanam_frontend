@@ -1,18 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Category from "./components/category.jsx";
-import InputBox from "./components/InputBox.jsx";
 import OfferCard from "./Carousels/offer1.jsx";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import buses from "./assets/buses.png";
 import flight from "./assets/flight.png";
-import hotel from "./assets/hotel.png";
-import train from "./assets/train.png";
 import NavComponent from "./NavComponent.jsx";
 import SearchBar from "./search/SearchBar.jsx";
 import flightBG from "./assets/flight_bg.png";
 import trainBG from "./assets/train bg.png";
 import busBG from "./assets/bus bg.png";
 import hotelBG from "./assets/hotel bg.png";
+import { useAuth } from "./context/AuthContext";
 
 
 
@@ -126,13 +124,27 @@ const getAnimationClasses = (index, isVisible, baseDelay = 0) => {
     window.speechSynthesis.speak(new SpeechSynthesisUtterance(msg));
   }
 
- 
-
 
 export default function App() {
   const [service, setService] = useState("bus");
   const navigate = useNavigate();
+  const { user, authLoading } = useAuth();
   const visibleElements = useScrollAnimation();
+  
+  // Read service from location state when navigating from navbar
+  const location = useLocation();
+
+  // Redirect vendors to their dashboard — vendors must never see MainPage
+  useEffect(() => {
+    if (!authLoading && user && user.role === "vendor") {
+      navigate("/vendordashboard", { replace: true });
+    }
+  }, [user, authLoading, navigate]);
+  useEffect(() => {
+    if (location.state?.service) {
+      setService(location.state.service);
+    }
+  }, [location.state]);
   
   // Service-specific background images
   const serviceBackgrounds = {
@@ -308,16 +320,16 @@ export default function App() {
               style={{ transitionDelay: '400ms' }}
             >
               <button 
-                onClick={() => document.getElementById('search-section')?.scrollIntoView({ behavior: 'smooth' })}
+                onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })}
                 className="bg-lime-500 hover:bg-lime-600 text-white px-8 py-4 rounded-full font-bold shadow-lg transition-all hover:shadow-xl"
               >
-                Book Now
+               Our services
               </button>
               <button 
-                className="bg-white text-slate-800 px-8 py-4 rounded-full font-bold shadow-lg hover:shadow-xl transition-all"
-                onClick={() => handleMic()}
+                onClick={() => document.getElementById('offers')?.scrollIntoView({ behavior: 'smooth' })}
+                className="bg-white hover:bg-lime-600 text-lime-500 px-8 py-4 rounded-full font-bold shadow-lg transition-all hover:shadow-xl"
               >
-                Voice search
+                Latest offers
               </button>
             </div>
           </div>
@@ -344,22 +356,10 @@ export default function App() {
               active={service === 'flight'} 
             />
             <Category 
-              icon={<img src={train} alt="Trains" />} 
-              title="Trains" 
-              onClick={() => setService('train')} 
-              active={service === 'train'} 
-            />
-            <Category 
               icon={<img src={buses} alt="Buses" />} 
               title="Buses" 
               onClick={() => setService('bus')} 
               active={service === 'bus'} 
-            />
-            <Category 
-              icon={<img src={hotel} alt="hotel" />} 
-              title="Hotel" 
-              onClick={() => setService('hotel')} 
-              active={service === 'hotel'} 
             />
           </div>
 
@@ -370,12 +370,11 @@ export default function App() {
         </div>
       </div>
 
-
-
       {/* Service Features Section */}
       <section 
+      id = "services"
         data-animation-id="features"
-        className={`max-w-7xl mx-auto px-6 py-16 transition-all duration-700 ${
+        className={`max-w-7xl mx-auto px-6 py-3 transition-all duration-700 ${
           visibleElements.has('features') 
             ? 'opacity-100 translate-y-0' 
             : 'opacity-0 translate-y-10'
@@ -402,76 +401,6 @@ export default function App() {
         </div>
       </section>
 
-      {/* Popular Routes/Destinations Section */}
-      <section 
-        data-animation-id="popular"
-        className={`max-w-7xl mx-auto px-6 py-16 transition-all duration-700 ${
-          visibleElements.has('popular') 
-            ? 'opacity-100 translate-y-0' 
-            : 'opacity-0 translate-y-10'
-        }`}
-      >
-        <div className="text-center mb-12">
-          <h2 
-            data-animation-id="popular-title"
-            className={`text-4xl font-bold text-slate-800 mb-4 transition-all duration-700 ${
-              visibleElements.has('popular-title') 
-                ? 'opacity-100 translate-y-0' 
-                : 'opacity-0 translate-y-8'
-            }`}
-          >
-            Popular {service === 'flight' ? 'Routes' : service === 'hotel' ? 'Destinations' : 'Routes'}
-          </h2>
-          <p 
-            data-animation-id="popular-subtitle"
-            className={`text-xl text-slate-600 transition-all duration-700 ${
-              visibleElements.has('popular-subtitle') 
-                ? 'opacity-100 translate-y-0' 
-                : 'opacity-0 translate-y-8'
-            }`}
-            style={{ transitionDelay: '100ms' }}
-          >
-            Discover the most booked {service} options
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {(service === 'hotel' ? currentServiceData.popularDestinations : currentServiceData.popularRoutes).map((item, index) => {
-            const isVisible = visibleElements.has(`popular-${index}`);
-            const animClasses = getAnimationClasses(index, isVisible, 2);
-            
-            return (
-              <div 
-                key={index}
-                data-animation-id={`popular-${index}`}
-                className={`bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-500 border border-slate-200 hover:border-lime-300 cursor-pointer group ${animClasses.container}`}
-                style={animClasses.style}
-              >
-                {service === 'hotel' ? (
-                  <>
-                    <h3 className="text-xl font-bold text-slate-800 mb-2 group-hover:text-lime-600 transition-colors">
-                      {item.city}
-                    </h3>
-                    <p className="text-slate-600 mb-2">{item.hotels} hotels available</p>
-                    <p className="text-2xl font-bold text-lime-600">Starting {item.startingPrice}</p>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-lg font-semibold text-slate-800">{item.from}</span>
-                      <span className="text-slate-400">→</span>
-                      <span className="text-lg font-semibold text-slate-800">{item.to}</span>
-                    </div>
-                    <p className="text-3xl font-bold text-lime-600">{item.price}</p>
-                    <p className="text-sm text-slate-500 mt-2">Starting price per person</p>
-                  </>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
       {/* Why Choose Us Section */}
       <section 
         data-animation-id="why-us"
@@ -481,7 +410,7 @@ export default function App() {
             : 'opacity-0 translate-y-10'
         }`}
       >
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="max-w-7xl mx-auto px-3">
           <div className="text-center mb-12">
             <h2 
               data-animation-id="why-us-title"
@@ -536,6 +465,7 @@ export default function App() {
 
       {/* Special Offers Section */}
       <section 
+      id ="offers"
         data-animation-id="offers"
         className={`max-w-7xl mx-auto px-6 py-16 transition-all duration-700 ${
           visibleElements.has('offers') 
