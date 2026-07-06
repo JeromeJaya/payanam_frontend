@@ -94,11 +94,11 @@ export default function FlightCard({
   const bottomPromoText = flight?.promotions?.[0] || "";
 
   return (
-    <div className="w-full bg-white border border-gray-100 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 font-sans text-gray-900 overflow-hidden mb-4">
+    <div className="w-full bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-xl shadow-md dark:shadow-slate-900/30 hover:shadow-lg transition-all duration-300 font-sans text-gray-900 dark:text-slate-100 overflow-hidden mb-4">
       
       {/* 1. Top Mini Banner Accent */}
       {topPromoText && (
-        <div className="bg-amber-50/80 px-4 py-1.5 text-xs font-bold text-amber-900 border-b border-gray-100/60 tracking-wide uppercase">
+        <div className="bg-amber-50/80 dark:bg-amber-900/20 px-4 py-1.5 text-xs font-bold text-amber-900 dark:text-amber-300 border-b border-gray-100/60 dark:border-slate-700 tracking-wide uppercase">
           {topPromoText}
         </div>
       )}
@@ -114,16 +114,16 @@ export default function FlightCard({
             </svg>
           </div>
             <div className="min-w-0">
-            <h3 className="font-extrabold text-base text-gray-900 leading-tight truncate">{airlineName}</h3>
-            <p className="text-xs text-gray-400 font-medium tracking-tight mt-0.5">{flightNumber}</p>
+            <h3 className="font-extrabold text-base text-gray-900 dark:text-slate-100 leading-tight truncate">{airlineName}</h3>
+            <p className="text-xs text-gray-400 dark:text-slate-500 font-medium tracking-tight mt-0.5">{flightNumber}</p>
             <div className="flex flex-wrap gap-1.5 mt-1.5">
               {aircraftType && (
-                <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-800">
                   {aircraftType}
                 </span>
               )}
               {cabinClass && (
-                <span className="text-[10px] font-semibold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
+                <span className="text-[10px] font-semibold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-2 py-0.5 rounded-md border border-purple-200 dark:border-purple-800">
                   {cabinClass}
                 </span>
               )}
@@ -132,38 +132,38 @@ export default function FlightCard({
         </div>
 
         {/* Dynamic Route/Timeline Grid Block */}
-        <div className="flex flex-row items-center justify-between sm:justify-center gap-2 sm:gap-6 lg:flex-1 w-full border-y border-dashed border-gray-100 py-3 lg:py-0 lg:border-none">
+        <div className="flex flex-row items-center justify-between sm:justify-center gap-2 sm:gap-6 lg:flex-1 w-full border-y border-dashed border-gray-100 dark:border-slate-700 py-3 lg:py-0 lg:border-none">
           
           {/* Departure block element */}
           <div className="text-left sm:text-center min-w-[75px] xs:min-w-[90px]">
-            <h2 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">{departureTime}</h2>
-            <p className="text-xs text-gray-500 font-bold mt-0.5 truncate">{departureLocation}</p>
+            <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-slate-100 tracking-tight">{departureTime}</h2>
+            <p className="text-xs text-gray-500 dark:text-slate-400 font-bold mt-0.5 truncate">{departureLocation}</p>
             {departureIATA && (
-              <p className="text-[10px] text-gray-400 font-semibold uppercase">({departureIATA})</p>
+              <p className="text-[10px] text-gray-400 dark:text-slate-500 font-semibold uppercase">({departureIATA})</p>
             )}
           </div>
 
           {/* Graphical Duration Vector */}
           <div className="flex-1 max-w-[160px] text-center px-1">
-            <span className="text-[11px] text-gray-500 font-bold whitespace-nowrap">{durationText}</span>
+            <span className="text-[11px] text-gray-500 dark:text-slate-400 font-bold whitespace-nowrap">{durationText}</span>
             <div className="relative my-1.5 flex items-center justify-center">
               <div className="w-full h-[3px] bg-amber-400 rounded-full" />
               {stopsCount > 0 && (
-                <div className="absolute w-2 h-2 bg-orange-500 rounded-full border border-white shadow-sm" style={{ left: '50%' }} />
+                <div className="absolute w-2 h-2 bg-orange-500 rounded-full border border-white dark:border-slate-800 shadow-sm" style={{ left: '50%' }} />
               )}
-              <div className="absolute w-2 h-2 bg-gray-400 rounded-full border border-white shadow-sm right-0" />
+              <div className="absolute w-2 h-2 bg-gray-400 dark:bg-slate-500 rounded-full border border-white dark:border-slate-800 shadow-sm right-0" />
             </div>
-            <span className="text-[11px] text-blue-600 font-bold block hover:underline cursor-pointer transition whitespace-nowrap">
+            <span className="text-[11px] text-blue-600 dark:text-blue-400 font-bold block hover:underline cursor-pointer transition whitespace-nowrap">
               {stopsInfo}
             </span>
           </div>
 
           {/* Arrival block element */}
           <div className="text-right sm:text-center min-w-[75px] xs:min-w-[90px]">
-            <h2 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">{arrivalTime}</h2>
-            <p className="text-xs text-gray-900 font-bold mt-0.5 truncate">{arrivalLocation}</p>
+            <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-slate-100 tracking-tight">{arrivalTime}</h2>
+            <p className="text-xs text-gray-900 dark:text-slate-300 font-bold mt-0.5 truncate">{arrivalLocation}</p>
             {arrivalIATA && (
-              <p className="text-[10px] text-gray-400 font-semibold uppercase">({arrivalIATA})</p>
+              <p className="text-[10px] text-gray-400 dark:text-slate-500 font-semibold uppercase">({arrivalIATA})</p>
             )}
           </div>
         </div>
@@ -175,18 +175,18 @@ export default function FlightCard({
           <div className="flex flex-col lg:items-end">
             <div className="flex items-baseline gap-2">
               {originalPrice && originalPrice !== calculatedFare && (
-                <span className="text-xs line-through text-gray-400 font-medium">
+                <span className="text-xs line-through text-gray-400 dark:text-slate-500 font-medium">
                   ₹{originalPrice.toLocaleString('en-IN')}
                 </span>
               )}
-              <span className="text-xl sm:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight">
+              <span className="text-xl sm:text-2xl lg:text-3xl font-black text-gray-900 dark:text-slate-100 tracking-tight">
                 ₹{calculatedFare.toLocaleString('en-IN')}
               </span>
             </div>
             <div className="flex items-center gap-1.5 lg:justify-end mt-0.5">
-              <span className="text-[10px] text-gray-400 font-medium">/adult</span>
+              <span className="text-[10px] text-gray-400 dark:text-slate-500 font-medium">/adult</span>
               {availableSeats !== "N/A" && (
-                <span className="text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded">
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded">
                   {availableSeats} left
                 </span>
               )}
@@ -195,7 +195,7 @@ export default function FlightCard({
 
           {/* Interactive Action CTA Matrix */}
           <div className="flex items-center gap-2 max-w-[60%] lg:max-w-none">
-            <button className="hidden sm:flex items-center gap-1.5 bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100/80 transition-colors px-3 py-2 rounded-xl text-xs font-bold focus:outline-none">
+            <button className="hidden sm:flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800 hover:bg-blue-100/80 dark:hover:bg-blue-900/30 transition-colors px-3 py-2 rounded-xl text-xs font-bold focus:outline-none">
               <Lock size={12} className="text-blue-500" />
               <span className="whitespace-nowrap">Lock Price</span>
               <MoveRight size={12} />
@@ -237,10 +237,10 @@ export default function FlightCard({
 
       {/* 4. Bottom Custom Promotion Strip Element */}
       {bottomPromoText && (
-        <div className="bg-orange-50/60 border-t border-orange-100/60 px-4 sm:px-5 lg:px-6 py-2.5 flex flex-col xs:flex-row xs:items-center justify-between gap-2 text-xs text-gray-800 font-medium">
+        <div className="bg-orange-50/60 dark:bg-orange-900/10 border-t border-orange-100/60 dark:border-slate-700 px-4 sm:px-5 lg:px-6 py-2.5 flex flex-col xs:flex-row xs:items-center justify-between gap-2 text-xs text-gray-800 dark:text-slate-300 font-medium">
           <div className="flex items-center gap-2 min-w-0">
             <span className="w-1.5 h-1.5 rounded-full bg-orange-500 inline-block shrink-0" />
-            <p className="truncate text-gray-700">{bottomPromoText}</p>
+            <p className="truncate text-gray-700 dark:text-slate-300">{bottomPromoText}</p>
           </div>
           
           <button 
@@ -254,20 +254,20 @@ export default function FlightCard({
 
       {/* Dynamic Expansion Drawer Panel */}
       {showDetails && (
-        <div className="p-4 sm:p-5 bg-gray-50/80 border-t border-gray-200 text-xs text-gray-600 transition-all duration-300">
+        <div className="p-4 sm:p-5 bg-gray-50/80 dark:bg-slate-700/50 border-t border-gray-200 dark:border-slate-700 text-xs text-gray-600 dark:text-slate-400 transition-all duration-300">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <p className="font-bold text-gray-900 mb-1">Flight Spec Information</p>
-              <p><span className="text-gray-400 font-medium">Aircraft:</span> {aircraftType || "N/A"} {aircraftModel}</p>
-              <p><span className="text-gray-400 font-medium">Flight Number:</span> {flightNumber}</p>
-              <p><span className="text-gray-400 font-medium">Total Duration:</span> {durationText}</p>
+              <p className="font-bold text-gray-900 dark:text-slate-200 mb-1">Flight Spec Information</p>
+              <p><span className="text-gray-400 dark:text-slate-500 font-medium">Aircraft:</span> {aircraftType || "N/A"} {aircraftModel}</p>
+              <p><span className="text-gray-400 dark:text-slate-500 font-medium">Flight Number:</span> {flightNumber}</p>
+              <p><span className="text-gray-400 dark:text-slate-500 font-medium">Total Duration:</span> {durationText}</p>
             </div>
             <div className="space-y-1">
-              <p className="font-bold text-gray-900 mb-1">Transit & Route Map</p>
-              <p><span className="text-gray-400 font-medium">From:</span> {departureLocation} ({departureIATA})</p>
-              <p><span className="text-gray-400 font-medium">To:</span> {arrivalLocation} ({arrivalIATA})</p>
+              <p className="font-bold text-gray-900 dark:text-slate-200 mb-1">Transit & Route Map</p>
+              <p><span className="text-gray-400 dark:text-slate-500 font-medium">From:</span> {departureLocation} ({departureIATA})</p>
+              <p><span className="text-gray-400 dark:text-slate-500 font-medium">To:</span> {arrivalLocation} ({arrivalIATA})</p>
               {stopsCount > 0 && (
-                <p className="truncate"><span className="text-gray-400 font-medium">Layovers:</span> {layovers.map(l => l.city || l.iataCode).join(', ')}</p>
+                <p className="truncate"><span className="text-gray-400 dark:text-slate-500 font-medium">Layovers:</span> {layovers.map(l => l.city || l.iataCode).join(', ')}</p>
               )}
             </div>
           </div>

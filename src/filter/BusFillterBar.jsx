@@ -41,15 +41,15 @@ export default function BusFilterBar({ NoOfBus = 0, selectedDate, onDateSelect, 
   ];
 
   return (
-    <div className="w-full bg-white rounded-2xl md:rounded-3xl overflow-hidden shadow-xs">
+    <div className="w-full bg-white dark:bg-slate-800 rounded-2xl md:rounded-3xl overflow-hidden shadow-xs">
       {/* Date Slider Row - HIDDEN ON MOBILE (`hidden md:flex`) */}
-      <div className="hidden md:flex items-center border-b border-slate-100">
+      <div className="hidden md:flex items-center border-b border-slate-100 dark:border-slate-700">
         <button 
           onClick={handlePrevious}
-          className="p-3 md:p-6 hover:bg-slate-50 transition shrink-0"
+          className="p-3 md:p-6 hover:bg-slate-50 dark:hover:bg-slate-700 transition shrink-0"
           type="button"
         >
-          <ChevronLeft className="text-sky-500 w-4 h-4 md:w-5 md:h-5" />
+          <ChevronLeft className="text-sky-500 dark:text-sky-400 w-4 h-4 md:w-5 md:h-5" />
         </button>
 
         <div className="flex flex-1 overflow-x-auto justify-between gap-1 md:gap-0 px-1 scrollbar-none">
@@ -62,8 +62,8 @@ export default function BusFilterBar({ NoOfBus = 0, selectedDate, onDateSelect, 
                 onClick={() => onDateSelect?.(item.value)}
                 className={`px-3 md:px-6 py-3 md:py-5 text-center whitespace-nowrap transition text-xs md:text-sm font-semibold tracking-wide shrink-0 md:shrink border-b-2 ${
                   active 
-                    ? "border-sky-500 text-sky-600 font-bold bg-sky-50/40 md:bg-transparent" 
-                    : "border-transparent text-slate-500 hover:text-sky-600"
+                    ? "border-sky-500 dark:border-sky-400 text-sky-600 dark:text-sky-400 font-bold bg-sky-50/40 dark:bg-sky-900/20 md:bg-transparent" 
+                    : "border-transparent text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400"
                 }`}
               >
                 {item.label}
@@ -74,21 +74,21 @@ export default function BusFilterBar({ NoOfBus = 0, selectedDate, onDateSelect, 
 
         <button 
           onClick={handleNext}
-          className="p-3 md:p-6 hover:bg-slate-50 transition shrink-0"
+          className="p-3 md:p-6 hover:bg-slate-50 dark:hover:bg-slate-700 transition shrink-0"
           type="button"
         >
-          <ChevronRight className="text-sky-500 w-4 h-4 md:w-5 md:h-5" />
+          <ChevronRight className="text-sky-500 dark:text-sky-400 w-4 h-4 md:w-5 md:h-5" />
         </button>
       </div>
 
       {/* Sort Section - Always Visible */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center px-4 md:px-6 py-3 md:py-2 gap-3 md:gap-0 bg-white md:bg-slate-50/50">
-        <h3 className="font-extrabold text-xs md:text-base text-slate-800 mr-0 md:mr-8 whitespace-nowrap self-center">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center px-4 md:px-6 py-3 md:py-2 gap-3 md:gap-0 bg-white dark:bg-slate-800 md:bg-slate-50/50 dark:md:bg-slate-900/50">
+        <h3 className="font-extrabold text-xs md:text-base text-slate-800 dark:text-slate-200 mr-0 md:mr-8 whitespace-nowrap self-center">
           {NoOfBus} Buses Found
         </h3>
 
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <span className="font-black text-[10px] tracking-wider text-slate-400 uppercase shrink-0">
+          <span className="font-black text-[10px] tracking-wider text-slate-400 dark:text-slate-500 uppercase shrink-0">
             SORT BY:
           </span>
 
@@ -103,8 +103,8 @@ export default function BusFilterBar({ NoOfBus = 0, selectedDate, onDateSelect, 
                   onClick={() => onSortSelect?.(option)}
                   className={`px-3 py-1.5 rounded-lg transition text-xs font-bold whitespace-nowrap shrink-0 ${
                     active
-                      ? "bg-sky-500 text-white shadow-xs shadow-sky-500/20"
-                      : "text-slate-600 bg-white border border-slate-200/80 hover:border-sky-500 hover:text-sky-500"
+                      ? "bg-sky-500 dark:bg-sky-600 text-white shadow-xs shadow-sky-500/20"
+                      : "text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-700 border border-slate-200/80 dark:border-slate-600 hover:border-sky-500 dark:hover:border-sky-400 hover:text-sky-500 dark:hover:text-sky-400"
                   }`}
                 >
                   {option}

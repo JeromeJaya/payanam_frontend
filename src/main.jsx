@@ -7,11 +7,14 @@ import Nav from "./NavComponent.jsx";
 import {Banner} from "./cards/Banner.jsx";
 import {Router} from "./Route.jsx"
 import { AuthProvider } from "./context/AuthContext";
+import { ThemeProvider } from "./context/ThemeContext";
 
 createRoot(document.getElementById('root')).render(
   <BrowserRouter>
     <AuthProvider>
-      <Router />
+      <ThemeProvider>
+        <Router />
+      </ThemeProvider>
     </AuthProvider>
   </BrowserRouter>
 )

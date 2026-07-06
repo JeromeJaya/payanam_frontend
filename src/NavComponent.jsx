@@ -1,12 +1,14 @@
 // 1. Import NavLink instead of Link from react-router-dom
 import { useNavigate, NavLink, Link } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
+import { useTheme } from "./context/ThemeContext";
 import { useState } from "react";
 import api from "./api/axios";
 
 export default function Nav() {
   const navigate = useNavigate();
   const { isAuthenticated, logout, user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const [pnrQuery, setPnrQuery] = useState("");
@@ -98,7 +100,26 @@ export default function Nav() {
           </div>
 
           {/* Right Side Navigation Utilities */}
-          <div className="flex items-center gap-6 shrink-0">
+          <div className="flex items-center gap-4 shrink-0">
+            {/* Theme Toggle Button */}
+            <button
+              onClick={toggleTheme}
+              className="p-2.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              aria-label={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+            >
+              {theme === "light" ? (
+                // Moon icon for dark mode
+                <svg xmlns="http://www.w3.org/2000/svg" className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+              ) : (
+                // Sun icon for light mode
+                <svg xmlns="http://www.w3.org/2000/svg" className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m8.66-9H21m-9-9V3m-6.364 2.364l-.707.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              )}
+            </button>
+
             <nav aria-label="Global" className="hidden md:block">
               <ul className="flex items-center gap-2 lg:gap-4 text-base font-bold">
                 <li>
@@ -200,6 +221,30 @@ export default function Nav() {
               <li><button onClick={() => { navigate("/", { state: { service: 'flight' } }); closeMobileMenu(); }} className={getMobileNavLinkStyle({ isActive: false })}> Flights </button></li>
               <li><button onClick={() => { navigate("/", { state: { service: 'bus' } }); closeMobileMenu(); }} className={getMobileNavLinkStyle({ isActive: false })}> Buses </button></li>
             </ul>
+
+            {/* Theme Toggle in Mobile Menu */}
+            <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
+              <button
+                onClick={toggleTheme}
+                className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold"
+              >
+                {theme === "light" ? (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    </svg>
+                    Dark Mode
+                  </>
+                ) : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m8.66-9H21m-9-9V3m-6.364 2.364l-.707.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    Light Mode
+                  </>
+                )}
+              </button>
+            </div>
 
             <div className="pt-6 border-t border-slate-200 dark:border-slate-800">
               {!isAuthenticated ? (

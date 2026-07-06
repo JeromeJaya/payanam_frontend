@@ -13,14 +13,14 @@ export default function Category({ icon, title, onClick, active }) {
         touch-manipulation select-none
         ${active
           ? "bg-gradient-to-br from-blue-600 to-sky-500 text-white shadow-lg shadow-blue-500/25 scale-100 hover:scale-[1.02] active:scale-[0.98]"
-          : "bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900 border border-slate-200 hover:border-slate-300"
+          : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-100 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
         }
       `}
     >
       <div className={`
         w-8 h-8 sm:w-10 sm:h-10 md:w-11 md:h-11 lg:w-12 lg:h-12
         flex items-center justify-center rounded-lg
-        ${active ? "bg-white/20" : "bg-slate-50"}
+        ${active ? "bg-white/20" : "bg-slate-50 dark:bg-slate-700"}
         transition-colors duration-200
       `}>
         {/* Support both string icons and React components */}

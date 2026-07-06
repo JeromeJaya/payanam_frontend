@@ -273,7 +273,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <NavComponent />
 
       {/* Hero Section with Dynamic Background */}
@@ -286,7 +286,7 @@ export default function App() {
         }`}
         style={{ backgroundImage: `url(${photo})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
       >
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-slate-50"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-slate-50 dark:to-slate-900"></div>
         <div className="relative max-w-7xl mx-auto h-full flex items-center px-6">
           <div className="text-white max-w-3xl">
             <h1 
@@ -327,7 +327,7 @@ export default function App() {
               </button>
               <button 
                 onClick={() => document.getElementById('offers')?.scrollIntoView({ behavior: 'smooth' })}
-                className="bg-white hover:bg-lime-600 text-lime-500 px-8 py-4 rounded-full font-bold shadow-lg transition-all hover:shadow-xl"
+                className="bg-white dark:bg-slate-800 hover:bg-lime-600 text-lime-500 px-8 py-4 rounded-full font-bold shadow-lg transition-all hover:shadow-xl"
               >
                 Latest offers
               </button>
@@ -346,7 +346,7 @@ export default function App() {
             : 'opacity-0 translate-y-10'
         }`}
       >
-        <div className="bg-white rounded-2xl shadow-2xl p-8 border border-slate-200">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-8 border border-slate-200 dark:border-slate-700">
           {/* Service Category Tabs */}
           <div className="flex flex-wrap justify-center gap-10 mb-8">
             <Category 
@@ -389,12 +389,12 @@ export default function App() {
               <div 
                 key={index}
                 data-animation-id={`feature-${index}`}
-                className={`bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all duration-500 border border-slate-200 hover:border-lime-300 ${animClasses.container}`}
+                className={`bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all duration-500 border border-slate-200 dark:border-slate-700 hover:border-lime-300 ${animClasses.container}`}
                 style={animClasses.style}
               >
                 <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="text-xl font-bold text-slate-800 mb-2">{feature.title}</h3>
-                <p className="text-slate-600">{feature.desc}</p>
+                <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">{feature.title}</h3>
+                <p className="text-slate-600 dark:text-slate-400">{feature.desc}</p>
               </div>
             );
           })}
@@ -404,7 +404,7 @@ export default function App() {
       {/* Why Choose Us Section */}
       <section 
         data-animation-id="why-us"
-        className={`bg-white py-16 transition-all duration-700 ${
+        className={`bg-white dark:bg-slate-800 py-16 transition-all duration-700 ${
           visibleElements.has('why-us') 
             ? 'opacity-100 translate-y-0' 
             : 'opacity-0 translate-y-10'
@@ -414,7 +414,7 @@ export default function App() {
           <div className="text-center mb-12">
             <h2 
               data-animation-id="why-us-title"
-              className={`text-4xl font-bold text-slate-800 mb-4 transition-all duration-700 ${
+              className={`text-4xl font-bold text-slate-800 dark:text-slate-100 mb-4 transition-all duration-700 ${
                 visibleElements.has('why-us-title') 
                   ? 'opacity-100 translate-y-0' 
                   : 'opacity-0 translate-y-8'
@@ -424,7 +424,7 @@ export default function App() {
             </h2>
             <p 
               data-animation-id="why-us-subtitle"
-              className={`text-xl text-slate-600 transition-all duration-700 ${
+              className={`text-xl text-slate-600 dark:text-slate-400 transition-all duration-700 ${
                 visibleElements.has('why-us-subtitle') 
                   ? 'opacity-100 translate-y-0' 
                   : 'opacity-0 translate-y-8'
@@ -451,11 +451,11 @@ export default function App() {
                   className={`text-center transition-all duration-500 ${animClasses.container}`}
                   style={animClasses.style}
                 >
-                  <div className="bg-lime-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <div className="bg-lime-100 dark:bg-lime-900/30 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
                     <span className="text-4xl">{item.icon}</span>
                   </div>
-                  <h3 className="text-xl font-bold text-slate-800 mb-2">{item.title}</h3>
-                  <p className="text-slate-600">{item.desc}</p>
+                  <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">{item.title}</h3>
+                  <p className="text-slate-600 dark:text-slate-400">{item.desc}</p>
                 </div>
               );
             })}
@@ -476,7 +476,7 @@ export default function App() {
         <div className="text-center mb-12">
           <h2 
             data-animation-id="offers-title"
-            className={`text-4xl font-bold text-slate-800 mb-4 transition-all duration-700 ${
+            className={`text-4xl font-bold text-slate-800 dark:text-slate-100 mb-4 transition-all duration-700 ${
               visibleElements.has('offers-title') 
                 ? 'opacity-100 translate-y-0' 
                 : 'opacity-0 translate-y-8'
@@ -486,7 +486,7 @@ export default function App() {
           </h2>
           <p 
             data-animation-id="offers-subtitle"
-            className={`text-xl text-slate-600 transition-all duration-700 ${
+            className={`text-xl text-slate-600 dark:text-slate-400 transition-all duration-700 ${
               visibleElements.has('offers-subtitle') 
                 ? 'opacity-100 translate-y-0' 
                 : 'opacity-0 translate-y-8'
@@ -517,16 +517,16 @@ export default function App() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-slate-800 text-white py-12 mt-16">
+      <footer className="bg-slate-800 dark:bg-slate-950 text-white py-12 mt-16">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
               <h3 className="text-2xl font-bold mb-4">PAYANAM</h3>
-              <p className="text-slate-300">Your trusted travel partner for flights, hotels, buses, and trains.</p>
+              <p className="text-slate-300 dark:text-slate-400">Your trusted travel partner for flights, hotels, buses, and trains.</p>
             </div>
             <div>
               <h4 className="text-lg font-semibold mb-3">Services</h4>
-              <ul className="space-y-2 text-slate-300">
+              <ul className="space-y-2 text-slate-300 dark:text-slate-400">
                 <li><Link to="/flightbooking" className="hover:text-lime-400">Flight Booking</Link></li>
                 <li><Link to="/hotelbooking" className="hover:text-lime-400">Hotel Booking</Link></li>
                 <li><Link to="/busbooking" className="hover:text-lime-400">Bus Booking</Link></li>
@@ -535,7 +535,7 @@ export default function App() {
             </div>
             <div>
               <h4 className="text-lg font-semibold mb-3">Support</h4>
-              <ul className="space-y-2 text-slate-300">
+              <ul className="space-y-2 text-slate-300 dark:text-slate-400">
                 <li><a href="#" className="hover:text-lime-400">Help Center</a></li>
                 <li><a href="#" className="hover:text-lime-400">Contact Us</a></li>
                 <li><a href="#" className="hover:text-lime-400">FAQs</a></li>
@@ -544,14 +544,14 @@ export default function App() {
             </div>
             <div>
               <h4 className="text-lg font-semibold mb-3">Contact</h4>
-              <ul className="space-y-2 text-slate-300">
+              <ul className="space-y-2 text-slate-300 dark:text-slate-400">
                 <li>📧 support@payanam.com</li>
                 <li>📞 1800-123-4567</li>
                 <li>📍 Chennai, India</li>
               </ul>
             </div>
           </div>
-          <div className="border-t border-slate-700 mt-8 pt-8 text-center text-slate-400">
+          <div className="border-t border-slate-700 dark:border-slate-700 mt-8 pt-8 text-center text-slate-400">
             <p>&copy; 2026 Payanam. All rights reserved.</p>
           </div>
         </div>

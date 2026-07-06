@@ -1,6 +1,6 @@
 import {Routes, Route} from 'react-router-dom';
 import {EmailLogin} from './Authentication/EmailLogin.jsx';
-import {GetUserDetail} from "./forms ui/GetUserDetail.jsx";
+import {EmailSignUp} from './Authentication/EmailSignUp.jsx';
 import MainPage from "./MainPage.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import { VendorProtectedRoute } from "./components/ProtectedRoute.jsx";
@@ -20,6 +20,7 @@ import TicketDetails from "./booking/BusBooking/TicketDetails.jsx";
 import CheckoutPage from "./booking/BusBooking/CheckoutPage.jsx";
 import SeatConfirmation from "./booking/BusBooking/SeatConfirmation.jsx";
 import VendorEmailSignUp from "./Authentication/vendor/VendorEmailSignUp.jsx";
+import NotFound from "./components/NotFound.jsx";
 
 
 export function Router (){
@@ -27,7 +28,7 @@ export function Router (){
 <Routes>
     <Route path='/' element={<MainPage/>}/>
     <Route path='/login' element={<EmailLogin/>}/>
-    <Route path='/GetUserDetail' element={<GetUserDetail/>}/>
+    <Route path='/emailSignup' element={<EmailSignUp/>}/>
     <Route path='/MainPage' element={<MainPage/>}/>
     <Route path='/profile' element={<ProtectedRoute><UserProfile/></ProtectedRoute>}/>
     <Route path='/ExplorePlace' element={<ExplorePlace/>}/>
@@ -45,9 +46,10 @@ export function Router (){
     <Route path='/seatconfirmation' element={<SeatConfirmation/>}/>  
     <Route path='/vendordashboard' element={<VendorProtectedRoute><VendorDashboard/></VendorProtectedRoute>}/>  
     {/* <Route path='/VendorEmailLogin' element={<VendorEmailLogin/>}/>   */}
-    <Route path='/VendorEmailSignUp' element={<VendorEmailSignUp/>}/>  
+    <Route path='/VendorEmailSignUp' element={<VendorEmailSignUp/>}/>
 
-
+    {/* Catch-all 404 — must be the last route */}
+    <Route path='*' element={<NotFound/>}/>
 
 </Routes>
     );

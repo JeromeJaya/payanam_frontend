@@ -21,7 +21,7 @@ export default function ResetLogin() {
     const [loading, setLoading] = useState(false);
     const [resendLoading, setResendLoading] = useState(false);
     const { login } = useAuth();
-    const emaill = location.state.email
+    const emaill = location.state?.email || "";
     const strongRe = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
 
     const handleOTPChange = (event) => {
@@ -103,7 +103,8 @@ export default function ResetLogin() {
     <>
     <Nav/>
     
-<div className="h-auto bg-gray-50 dark:bg-gray-900 flex items-center justify-end  px-12 pt-12 pr-50 pt-20 ">
+    {/* Responsiveness fixed here: dynamic margins/padding, flex alignment shifts gracefully */}
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center lg:justify-end px-4 sm:px-6 md:px-12 lg:pr-24 py-12 pt-20 relative overflow-hidden">
         <div
         className={`  absolute inset-0 bg-cover bg-center mt-15  opacity-0
         transform transition-all duration-1000 ease-out 
@@ -112,174 +113,169 @@ export default function ResetLogin() {
           backgroundImage: `url(${bgImage})`,
         }}
       ></div>
-  <div
+      
+      <div
         className={`
-          max-w-md w-full
+          max-w-md w-full z-10
           transform transition-all duration-1000 ease-in
           ${show ? "translate-x-0 opacity-100" : "-translate-x-40 opacity-0"}
         `}
       >
-    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg px-8 mt-2 pt-2 pb-4">
-      <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-12 h-12 bg-lime-100 dark:bg-lime-900/40 rounded-xl mb-4">
-          <svg className="w-6 h-6 text-lime-600 dark:text-lime-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
-            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-          </svg>
-        </div>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Reset Password</h2>
-        <p className="text-gray-600 dark:text-gray-400 mt-2">Enter the OTP within 5 minutes</p>
-      </div>
-
-      <form className="space-y-6" onSubmit={handleSubmit}>
-        <div>
-          <div className = "flex flex-row justify-between">
-            <label htmlFor="email" className="block text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Email address
-            </label>
-            <button htmlFor="email" className="block  font-medium text-gray-700 dark:text-gray-300 mb-2"
-            onClick ={ ()=> navigate("/forgotpassword")}>
-             Change email
-            </button>
-          </div>
-          <label htmlFor="email" className="block text-md font-medium text-gray-500 ml-5 dark:text-gray-300 mb-2">
-            {emaill}
-          </label>
-          
-        </div>
-
-        <div className="flex items-center justify-between mb-2">
-            <label htmlFor="OTP" className="block text-lg font-medium text-gray-700 dark:text-gray-300">
-              Enter OTP 
-            </label>
-          </div>
-          <input
-            id="OTP"
-            name="OTP"
-            type="text"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            maxLength={6}
-            pattern="\d{6}"
-            value={otp}
-            onChange={handleOTPChange}
-            onKeyDown={(e) => e.key === "Enter" && !loading && handleSubmit(e)}
-            required
-            placeholder="Enter 6-digit OTP"
-            className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-400 focus:border-lime-500 dark:focus:border-lime-400 outline-none transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
-          />
-          {!isOTPValid && otp.length > 0 && (
-            <p className="text-red-500 text-sm mt-1">OTP must be exactly 6 digits.</p>
-          )}
-        {resendLoading ? (
-          <div className="w-fit block mx-auto bg-lime-100 dark:bg-lime-100 text-white dark:text-gray-900 py-3 px-4 rounded-lg font-medium flex items-center justify-center gap-2">
-            <div className="relative w-5 h-5">
-              <div className="absolute inset-0 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 sm:p-8">
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center justify-center w-12 h-12 bg-lime-100 dark:bg-lime-900/40 rounded-xl mb-3">
+              <svg className="w-6 h-6 text-lime-600 dark:text-lime-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+              </svg>
             </div>
-            <span>Sending...</span>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Reset Password</h2>
+            <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm">Enter the OTP within 5 minutes</p>
           </div>
-        ) : (
-          <But3
-            type="button"
-            onClick={handleResendOTP}
-            disabled={resendCountdown > 0}
-            text={`Resend OTP${resendCountdown > 0 ? ` (${formatTime(resendCountdown)})` : ""}`}
-            className={`w-fit block mx-auto py-3 px-4 rounded-lg font-medium justify-center transition-colors ${resendCountdown > 0 ? "bg-gray-400 dark:bg-gray-600 cursor-not-allowed opacity-70 hover:bg-gray-400 dark:hover:bg-gray-600" : "bg-lime-100 dark:bg-lime-100 text-white dark:text-gray-900 hover:bg-lime-200 dark:hover:bg-lime-400"}`}
-          />
-        )}
 
-        {/* ...new pass */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <label htmlFor="password" className="block text-lg font-medium text-gray-700 dark:text-gray-300">
-              New Password
-            </label>
-          </div>
-          <PasswordInput
-            id="new-password"
-            name="newPassword"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && !loading && handleSubmit(e)}
-            autoComplete="current-password"
-            required
-            className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-400 focus:border-lime-500 dark:focus:border-lime-400 outline-none transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
-          />
-          {newPassword && strongRe.test(newPassword) === false &&(
-            <p className="text-red-500 text-sm mt-1">Password must be 8+ chars with upper, lower, digit, special</p>
-          )}
-          <div className="flex items-center justify-between mb-2">
-            <label htmlFor="newPassword" className="block text-lg font-medium text-gray-700 dark:text-gray-300">
-              Confirm new Password
-            </label>
-          </div>
-          <PasswordInput
-            id="ConfirmPassword"
-            name="ConfirmPassword"
-            value={confirmPass}
-            onChange={(e) => setConfirmPass(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && !loading && handleSubmit(e)}
-            autoComplete="current-password"
-            required
-            placeholder="••••••••"
-            className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-400 focus:border-lime-500 dark:focus:border-lime-400 outline-none transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
-          />
-          {confirmPass && newPassword !== confirmPass && (
-            <p className="text-red-500 text-sm mt-1">Passwords do not match</p>
-          )}
-        </div>
-
-        <div className="flex justify-center w-full">
-        {loading ? (
-          <div className="w-fit block mx-auto bg-lime-600 dark:bg-lime-300 text-white dark:text-gray-900 py-3 px-4 rounded-lg font-medium flex items-center justify-center gap-2">
-            <div className="relative w-6 h-6">
-              <div className="absolute inset-0 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
+          <form className="space-y-4 sm:space-y-5" onSubmit={handleSubmit}>
+            <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl border border-gray-100 dark:border-gray-700">
+              <div className = "flex flex-row justify-between items-center mb-1">
+                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Email address
+                </span>
+                <button type="button" className="text-xs font-semibold text-lime-600 dark:text-lime-400 hover:underline"
+                onClick ={ ()=> navigate("/forgotpassword")}>
+                 Change
+                </button>
+              </div>
+              <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                {emaill || "No email provided"}
+              </p>
             </div>
-            <span>Resetting password...</span>
-          </div>
-        ) : (
-          <But3
-            type="submit"
-            text="Sign in"
-            className="w-fit block mx-auto bg-lime-600 dark:bg-lime-300 text-white dark:text-gray-900 py-3 px-4 rounded-lg font-medium hover:bg-lime-700 dark:hover:bg-lime-400  justify-center transition-colors"
-          />
-        )}
-        </div>
-      </form>
 
-      <div className="mt-6">
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300 dark:border-gray-700"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
-              Or continue with
-            </span>
-          </div>
-        </div>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label htmlFor="OTP" className="block text-base sm:text-lg font-medium text-gray-700 dark:text-gray-300">
+                  Enter OTP 
+                </label>
+              </div>
+              <input
+                id="OTP"
+                name="OTP"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                pattern="\d{6}"
+                value={otp}
+                onChange={handleOTPChange}
+                onKeyDown={(e) => e.key === "Enter" && !loading && handleSubmit(e)}
+                required
+                placeholder="Enter 6-digit OTP"
+                className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-400 focus:border-lime-500 dark:focus:border-lime-400 outline-none transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+              />
+              {!isOTPValid && otp.length > 0 && (
+                <p className="text-red-500 text-xs mt-1">OTP must be exactly 6 digits.</p>
+              )}
+            </div>
 
-        {/* <div className="mt-6 grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            className="w-full inline-flex justify-center py-2.5 px-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm bg-white dark:bg-gray-700 text-lg font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
-            onClick = {()=>setShowMobileLogin(true)}
-          >
-            Login with mobile
+            <div className="w-full">
+            {resendLoading ? (
+              <div className="w-full sm:w-fit block mx-auto bg-lime-100 dark:bg-lime-900/20 text-lime-700 dark:text-lime-300 py-2.5 px-4 rounded-lg font-medium flex items-center justify-center gap-2">
+                <div className="relative w-4 h-4">
+                  <div className="absolute inset-0 rounded-full border-2 border-lime-600 border-t-transparent animate-spin"></div>
+                </div>
+                <span className="text-sm">Sending...</span>
+              </div>
+            ) : (
+              <But3
+                type="button"
+                onClick={handleResendOTP}
+                disabled={resendCountdown > 0}
+                text={`Resend OTP${resendCountdown > 0 ? ` (${formatTime(resendCountdown)})` : ""}`}
+                className={`w-full sm:w-fit block mx-auto py-2.5 px-4 rounded-lg font-medium text-sm justify-center transition-colors ${resendCountdown > 0 ? "bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-70" : "bg-lime-100 dark:bg-lime-900/40 text-lime-700 dark:text-lime-400 hover:bg-lime-200 dark:hover:bg-lime-900/60"}`}
+              />
+            )}
+            </div>
+
+            <div>
+              <div className="mb-1.5">
+                <label htmlFor="new-password" className="block text-base sm:text-lg font-medium text-gray-700 dark:text-gray-300">
+                  New Password
+                </label>
+              </div>
+              <PasswordInput
+                id="new-password"
+                name="newPassword"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !loading && handleSubmit(e)}
+                autoComplete="new-password"
+                required
+                className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-400 focus:border-lime-500 dark:focus:border-lime-400 outline-none transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+              />
+              {newPassword && !strongRe.test(newPassword) && (
+                <p className="text-red-500 text-xs mt-1">Password must be 8+ chars with upper, lower, digit, special</p>
+              )}
+            </div>
+
+            <div>
+              <div className="mb-1.5">
+                <label htmlFor="ConfirmPassword" className="block text-base sm:text-lg font-medium text-gray-700 dark:text-gray-300">
+                  Confirm New Password
+                </label>
+              </div>
+              <PasswordInput
+                id="ConfirmPassword"
+                name="ConfirmPassword"
+                value={confirmPass}
+                onChange={(e) => setConfirmPass(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !loading && handleSubmit(e)}
+                autoComplete="new-password"
+                required
+                placeholder="••••••••"
+                className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-400 focus:border-lime-500 dark:focus:border-lime-400 outline-none transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+              />
+              {confirmPass && newPassword !== confirmPass && (
+                <p className="text-red-500 text-xs mt-1">Passwords do not match</p>
+              )}
+            </div>
+
+            <div className="flex justify-center w-full pt-2">
+            {loading ? (
+              <div className="w-full sm:w-fit bg-lime-600 dark:bg-lime-300 text-white dark:text-gray-900 py-3 px-4 rounded-lg font-medium flex items-center justify-center gap-2">
+                <div className="relative w-6 h-6">
+                  <div className="absolute inset-0 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
+                </div>
+                <span>Resetting password...</span>
+              </div>
+            ) : (
+              <But3
+                type="submit"
+                text="Sign in"
+                className="w-full sm:w-fit block mx-auto bg-lime-600 dark:bg-lime-300 text-white dark:text-gray-900 py-3 px-4 rounded-lg font-medium hover:bg-lime-700 dark:hover:bg-lime-400 justify-center transition-colors"
+              />
+            )}
+            </div>
+          </form>
+
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300 dark:border-gray-700"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                  Or continue with
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400 flex flex-wrap justify-center gap-1">
+            <span>Don't have an account?</span>
+            <Link to="/EmailSignUp" className="font-medium text-lime-600 dark:text-lime-400 hover:text-lime-500 dark:hover:text-lime-300">Sign up</Link>
             <Outlet/>
-          </button>
-        </div> */}
+          </p>
+        </div>
       </div>
-
-      <p className="mt-3 text-center text-sm text-gray-600 dark:text-gray-400">
-        Don't have an account?
-        <Link to="/EmailSignUp" className="font-medium text-lime-600 dark:text-lime-400 hover:text-lime-500 dark:hover:text-lime-300">Sign up</Link>
-        <Outlet/>
-      </p>
     </div>
-  </div>
-</div>
 </>
   );
-
 }

@@ -44,10 +44,10 @@ export default function SearchheckBox({
   const displayedPoints = showAll ? filteredPoints : filteredPoints.slice(0, 4);
 
   return (
-    <div className="w-full h-auto rounded-3xl shadow-3xl bg-grey-50 hover:bg-slate-200 max-w-md p-2 md:p-3">
+    <div className="w-full h-auto rounded-3xl shadow-3xl bg-grey-50 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 max-w-md p-2 md:p-3">
       {/* Header */}
       <div className="flex items-center justify-between mb-2 md:mb-4">
-        <h2 className="font-semibold text-sm md:text-xl text-gray-700">
+        <h2 className="font-semibold text-sm md:text-xl text-gray-700 dark:text-slate-200">
           {title}
         </h2>
 
@@ -60,13 +60,13 @@ export default function SearchheckBox({
                 setSelectedPointsLocal([]);
               }
             }}
-            className="text-[10px] md:text-sm font-semibold text-gray-400 hover:text-gray-600"
+            className="text-[1px] md:text-sm font-semibold text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300"
           >
             CLEAR
           </button>
 
           <button onClick={() => setOpen(!open)}>
-            {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            {open ? <ChevronUp size={16} className="text-gray-600 dark:text-slate-400" /> : <ChevronDown size={16} className="text-gray-600 dark:text-slate-400" />}
           </button>
         </div>
       </div>
@@ -77,7 +77,7 @@ export default function SearchheckBox({
           <div className="relative mb-2 md:mb-4">
             <Search
               size={14}
-              className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 text-gray-400"
+              className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500"
             />
 
             <input
@@ -88,7 +88,7 @@ export default function SearchheckBox({
                 setSearch(e.target.value);
                 setShowAll(false);
               }}
-              className="w-full border rounded-lg md:rounded-xl py-2 md:py-3 pl-8 md:pl-12 pr-3 md:pr-4 outline-none focus:border-blue-500 text-xs md:text-sm"
+              className="w-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-lg md:rounded-xl py-2 md:py-3 pl-8 md:pl-12 pr-3 md:pr-4 outline-none focus:border-blue-500 dark:focus:border-blue-400 text-xs md:text-sm text-gray-900 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500"
             />
           </div>
 
@@ -111,10 +111,10 @@ export default function SearchheckBox({
                       togglePoint(point);
                     }
                   }}
-                  className={`h-3.5 w-3.5 md:h-5 md:w-5 accent-blue-600 ${selectionType === "one" ? "rounded-full" : "rounded"}`}
+                  className={`h-3.5 w-3.5 md:h-5 md:w-5 accent-blue-600 dark:accent-blue-400 ${selectionType === "one" ? "rounded-full" : "rounded"}`}
                 />
 
-                <span className="text-xs md:text-lg text-gray-700 truncate">
+                <span className="text-xs md:text-lg text-gray-700 dark:text-slate-300 truncate">
                   {point}
                 </span>
               </label>
@@ -125,7 +125,7 @@ export default function SearchheckBox({
           {filteredPoints.length > 4 && (
             <button 
               onClick={() => setShowAll(!showAll)}
-              className="mt-3 md:mt-5 text-blue-600 font-medium flex items-center gap-1 hover:text-blue-700 text-xs md:text-sm"
+              className="mt-3 md:mt-5 text-blue-600 dark:text-blue-400 font-medium flex items-center gap-1 hover:text-blue-700 dark:hover:text-blue-300 text-xs md:text-sm"
             >
               {showAll ? (
                 <>

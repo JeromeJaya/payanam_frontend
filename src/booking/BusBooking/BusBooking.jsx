@@ -36,6 +36,7 @@ export default function BusBooking(){
   const [seatType, setSeatType] = useState("ALL");
   const [pickupTimeFilter, setPickupTimeFilter] = useState("ALL");
   const [dropTimeFilter, setDropTimeFilter] = useState("ALL");
+  const [passengerCount, setPassengerCount] = useState("1");
   const [selectedPickupPoints, setSelectedPickupPoints] = useState([]);
   const [selectedDropPoints, setSelectedDropPoints] = useState([]);
   const [selectedOperators, setSelectedOperators] = useState([]);
@@ -80,6 +81,7 @@ export default function BusBooking(){
     selectedBoardingPoints = selectedPickupPoints,
     selectedDroppingPoints = selectedDropPoints,
     selectedOperatorNames = selectedOperators,
+    selectedPassengerCount = passengerCount,
   } = {}) => {
     let results = [...data];
 
@@ -131,6 +133,17 @@ export default function BusBooking(){
       );
     }
 
+    // Passenger count filter — only show buses with enough available seats
+    if (selectedPassengerCount && selectedPassengerCount !== "ANY" && selectedPassengerCount !== "") {
+      const required = parseInt(selectedPassengerCount, 10);
+      if (!isNaN(required) && required >= 1) {
+        results = results.filter((schedule) => {
+          const avail = schedule.seats?.available ?? 0;
+          return avail >= required;
+        });
+      }
+    }
+
     return results;
   };
 
@@ -158,6 +171,7 @@ export default function BusBooking(){
         selectedBoardingPoints,
         selectedDroppingPoints,
         selectedOperatorNames,
+        selectedPassengerCount: passengerCount,
       });
       setBuses(filtered);
       return;
@@ -183,6 +197,7 @@ export default function BusBooking(){
         selectedBoardingPoints,
         selectedDroppingPoints,
         selectedOperatorNames,
+        selectedPassengerCount: passengerCount,
       });
       setBuses(filtered);
     } catch (err) {
@@ -209,6 +224,7 @@ export default function BusBooking(){
         selectedBoardingPoints: selectedPickupPoints,
         selectedDroppingPoints: selectedDropPoints,
         selectedOperatorNames: selectedOperators,
+        selectedPassengerCount: passengerCount,
       });
       setBuses(filtered);
     } else {
@@ -239,6 +255,7 @@ export default function BusBooking(){
     setSeatType("ALL");
     setPickupTimeFilter("ALL");
     setDropTimeFilter("ALL");
+    setPassengerCount("1");
     setSelectedPickupPoints([]);
     setSelectedDropPoints([]);
     setSelectedOperators([]);
@@ -332,6 +349,13 @@ export default function BusBooking(){
           date={date}
           setDate={setDate}
           handleFetchBus={handleFetchBus}
+          passengerCount={passengerCount}
+          onPassengerCountChange={(val) => {
+            setPassengerCount(val);
+            const storageKey = getStorageKey(from, to, date);
+            const cachedData = sessionStorage.getItem(storageKey);
+            if (cachedData) setBuses(applyFilters(JSON.parse(cachedData), { selectedPassengerCount: val }));
+          }}
         />
         
         {/* Mobile Filter Toggle Button (Only displays when buses exist) */}
@@ -339,7 +363,7 @@ export default function BusBooking(){
           <div className="lg:hidden px-2 sm:px-4 mt-4 mb-2">
             <button
               onClick={() => setShowMobileFilters(!showMobileFilters)}
-              className="w-full bg-white rounded-lg shadow-md px-4 py-3 flex items-center justify-between font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              className="w-full bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/30 px-4 py-3 flex items-center justify-between font-medium text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
             >
               <span className="flex items-center gap-2">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -354,12 +378,12 @@ export default function BusBooking(){
           </div>
         )}
 
-        <div className="bg-mist-50 pt-4 h-auto my-4 md:my-5 mx-2 sm:mx-4 md:mx-[100px] flex flex-col lg:flex-row">
+        <div className="bg-slate-50 dark:bg-slate-900 pt-4 h-auto my-4 md:my-5 mx-2 sm:mx-4 md:mx-[100px] flex flex-col lg:flex-row">
             
             {/* LEFT FILTER PANEL (Hidden entirely when no buses exist or layout is loading) */}
             {hasBuses && !loading && (
-              <div className={`filter bg-white-200 w-full lg:w-[25%] h-auto rounded-lg shadow-xl ${showMobileFilters ? 'block' : 'hidden lg:block'}`}>
-                  <div className = "flex justify-center mt-5 font-bold">FILTERS</div>
+              <div className={`filter bg-white dark:bg-slate-800 w-full lg:w-[25%] h-auto rounded-lg shadow-xl dark:shadow-slate-900/30 ${showMobileFilters ? 'block' : 'hidden lg:block'}`}>
+                  <div className = "flex justify-center mt-5 font-bold text-slate-800 dark:text-slate-200">FILTERS</div>
                   <SelectBox
                     title={"AC type"}
                     text={['ALL', 'AC', 'NON-AC']}
@@ -402,6 +426,17 @@ export default function BusBooking(){
                       const storageKey = getStorageKey(from, to, date);
                       const cachedData = sessionStorage.getItem(storageKey);
                       if (cachedData) setBuses(applyFilters(JSON.parse(cachedData), { selectedDropTime: option }));
+                    }}
+                  />
+                  <SelectBox
+                    title={"Passengers"}
+                    text={["1", "2", "3", "4", "5", "6", "7", "8"]}
+                    value={passengerCount}
+                    onChange={(option) => {
+                      setPassengerCount(option);
+                      const storageKey = getStorageKey(from, to, date);
+                      const cachedData = sessionStorage.getItem(storageKey);
+                      if (cachedData) setBuses(applyFilters(JSON.parse(cachedData), { selectedPassengerCount: option }));
                     }}
                   />
                   <Checkbox title={"Single Seater/Sleeper"} text={"Single Seats"} />
@@ -469,7 +504,7 @@ export default function BusBooking(){
                 
                 {/* BUS FILTER SUB-HEADER SLIDER BAR (Only shows if listings exist) */}
                 {hasBuses && !loading && (
-                  <div className = "bg-white w-full h-auto my-5 rounded-3xl shadow-xl">
+                  <div className = "bg-white dark:bg-slate-800 w-full h-auto my-5 rounded-3xl shadow-xl dark:shadow-slate-900/30">
                       <BusFillterBar
                         NoOfBus={sortedBuses.length}
                         selectedDate={date}
@@ -482,22 +517,22 @@ export default function BusBooking(){
 
                 {loading ? (
                   <div className="flex flex-col items-center justify-center py-8 md:py-20">
-                    <div className="relative p-4 md:p-12 rounded-2xl md:rounded-3xl bg-gradient-to-br from-blue-50 via-white to-indigo-50 shadow-2xl">
+                    <div className="relative p-4 md:p-12 rounded-2xl md:rounded-3xl bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-slate-800 dark:via-slate-800 dark:to-slate-700 shadow-2xl">
                       <div className="relative w-16 h-16 md:w-32 md:h-32 mx-auto">
-                        <div className="absolute inset-0 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin"></div>
+                        <div className="absolute inset-0 rounded-full border-4 border-blue-200 dark:border-slate-600 border-t-blue-600 dark:border-t-lime-500 animate-spin"></div>
                       </div>
                       <div className="mt-4 md:mt-10 text-center">
-                        <h3 className="text-base md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-1">
+                        <h3 className="text-base md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-lime-400 dark:to-teal-400 bg-clip-text text-transparent mb-1">
                           Finding Best Bus Routes
                         </h3>
-                        <p className="text-gray-600 font-medium text-xs md:text-lg">Searching for available buses...</p>
+                        <p className="text-gray-600 dark:text-slate-400 font-medium text-xs md:text-lg">Searching for available buses...</p>
                       </div>
                     </div>
                   </div>
                 ) : hasBuses ? (
                   /* CARD RENDER GRID LAYOUT */
                   sortedBuses.map((schedule) => (
-                    <div key={schedule.scheduleId} className="bg-white w-full h-auto mb-3 rounded-3xl shadow-xl">
+                    <div key={schedule.scheduleId} className="bg-white dark:bg-slate-800 w-full h-auto mb-3 rounded-3xl shadow-xl dark:shadow-slate-900/30">
                       <BusCard
                         busName={schedule.bus?.name}
                         busType={schedule.bus?.type}
@@ -519,21 +554,21 @@ export default function BusBooking(){
                 ) : (
                   /* HIGHLY INTERACTIVE NO BUSES FOUND EMPTY STATE SCREEN */
                   <div className="max-w-xl mx-auto my-12 w-full px-4">
-                    <div className="bg-white border border-slate-200 rounded-3xl p-8 text-center shadow-md">
-                      <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-5 border border-amber-100">
+                    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl p-8 text-center shadow-md dark:shadow-slate-900/30">
+                      <div className="w-16 h-16 bg-amber-50 dark:bg-amber-900/20 rounded-2xl flex items-center justify-center mx-auto mb-5 border border-amber-100 dark:border-amber-800">
                         <AlertCircle size={32} className="text-amber-500" />
                       </div>
                       
-                      <h2 className="text-xl font-black text-slate-800 tracking-tight mb-2">
+                      <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight mb-2">
                         No Buses Available
                       </h2>
-                      <p className="text-sm text-slate-500 max-w-md mx-auto mb-6 leading-relaxed">
-                        We couldn't locate any direct bus schedules running between <span className="font-extrabold text-slate-700">{from || "your origin"}</span> and <span className="font-extrabold text-slate-700">{to || "your destination"}</span> on this date.
+                      <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto mb-6 leading-relaxed">
+                        We couldn't locate any direct bus schedules running between <span className="font-extrabold text-slate-700 dark:text-slate-200">{from || "your origin"}</span> and <span className="font-extrabold text-slate-700 dark:text-slate-200">{to || "your destination"}</span> on this date.
                       </p>
 
                       {/* Dynamic Strategy Tips */}
-                      <div className="bg-slate-50 rounded-xl p-4 text-left border border-slate-100 mb-6 text-xs text-slate-600 space-y-1.5 font-medium">
-                        <h4 className="text-[10px] font-black text-slate-400 tracking-wider uppercase mb-1">Suggested Solutions:</h4>
+                      <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4 text-left border border-slate-100 dark:border-slate-600 mb-6 text-xs text-slate-600 dark:text-slate-300 space-y-1.5 font-medium">
+                        <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 tracking-wider uppercase mb-1">Suggested Solutions:</h4>
                         <p>• If you applied active filtering sidebar checkboxes, try wiping them clean.</p>
                         <p>• Schedules vary significantly by day; consider looking at the next calendar day.</p>
                       </div>
@@ -542,7 +577,7 @@ export default function BusBooking(){
                       <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                         <button 
                           onClick={handleClearFilters}
-                          className="w-full sm:flex-1 flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm px-4 py-3 rounded-xl transition-all"
+                          className="w-full sm:flex-1 flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold text-sm px-4 py-3 rounded-xl transition-all"
                         >
                           <RefreshCw size={14} />
                           Reset Filters

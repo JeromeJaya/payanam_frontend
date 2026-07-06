@@ -1078,17 +1078,17 @@ export default function VendorDashboard() {
   // Full page loading state
   if (dashboardLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col">
         {/* Header */}
-        <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
+        <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-40">
           <div className="w-full px-6 sm:px-12 lg:px-20 h-20 flex items-center justify-between">
             <div className="flex items-center gap-3.5">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-lime-600 to-lime-500 flex items-center justify-center text-white font-black text-xl shadow-md">
                 V
               </div>
               <div>
-                <h1 className="text-xl font-black tracking-tight text-slate-900">Vendor Dashboard</h1>
-                <p className="text-xs text-slate-500">Loading dashboard...</p>
+                <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-slate-100">Vendor Dashboard</h1>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Loading dashboard...</p>
               </div>
             </div>
           </div>
@@ -1097,7 +1097,7 @@ export default function VendorDashboard() {
         {/* Loading Content */}
         <div className="flex-1 w-full px-6 sm:px-12 lg:px-20 py-8">
           {/* Quick Search Bar - Skeleton */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-4 mb-6 shadow-sm">
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 mb-6 shadow-sm">
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               <div className="flex items-center gap-2">
                 <div className="w-5 h-5 bg-slate-200 rounded animate-pulse"></div>
@@ -1113,20 +1113,20 @@ export default function VendorDashboard() {
           {/* Stats Grid - Skeleton (already exists but keeping for consistency) */}
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+              <div key={i} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-slate-200 animate-pulse"></div>
-                  <div className="h-6 w-16 bg-slate-200 rounded animate-pulse"></div>
+                  <div className="w-12 h-12 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse"></div>
+                  <div className="h-6 w-16 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div>
                 </div>
-                <div className="h-8 bg-slate-200 rounded animate-pulse mb-2"></div>
-                <div className="h-4 bg-slate-200 rounded animate-pulse w-24"></div>
+                <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded animate-pulse mb-2"></div>
+                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-24"></div>
               </div>
             ))}
           </div>
           
           {/* Tabs Area - Skeleton */}
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm mb-8">
-            <div className="border-b border-slate-200 px-6">
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm mb-8">
+            <div className="border-b border-slate-200 dark:border-slate-700 px-6">
               <div className="flex gap-8">
                 {["overview", "bookings", "routes", "services", "schedule", "analytics"].map((tab) => (
                   <div key={tab} className="py-4 h-10 bg-slate-200 rounded animate-pulse w-20"></div>
@@ -1147,22 +1147,22 @@ export default function VendorDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
+      <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-40">
         <div className="w-full px-6 sm:px-12 lg:px-20 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3.5">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-lime-600 to-lime-500 flex items-center justify-center text-white font-black text-xl shadow-md">
               V
             </div>
             <div>
-              <h1 className="text-xl font-black tracking-tight text-slate-900">Vendor Dashboard</h1>
-              <p className="text-xs text-slate-500">Welcome back, {user?.name || "Vendor"}</p>
+              <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-slate-100">Vendor Dashboard</h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Welcome back, {user?.name || "Vendor"}</p>
             </div>
           </div>
           <button 
             onClick={handleLogout}
-            className="flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-red-600 border border-slate-200 hover:border-red-200 bg-white hover:bg-red-50 px-5 py-2.5 rounded-xl transition-all duration-200"
+            className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 border border-slate-200 dark:border-slate-600 hover:border-red-200 bg-white dark:bg-slate-700 hover:bg-red-50 dark:hover:bg-red-900/20 px-5 py-2.5 rounded-xl transition-all duration-200"
           >
             <LogOut className="w-4 h-4" />
             Logout
@@ -1172,18 +1172,18 @@ export default function VendorDashboard() {
 
       <div className="w-full px-6 sm:px-12 lg:px-20 py-8">
         {/* Quick Search Bar */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-4 mb-6 shadow-sm">
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 mb-6 shadow-sm">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <div className="flex items-center gap-2">
               <Search className="w-5 h-5 text-slate-400" />
-              <span className="text-sm font-bold text-slate-700 whitespace-nowrap">Quick Search</span>
+              <span className="text-sm font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">Quick Search</span>
             </div>
             <div className="flex-1 flex flex-col sm:flex-row gap-2">
               <div className="flex gap-2">
                 <select
                   value={searchServiceType}
                   onChange={(e) => setSearchServiceType(e.target.value)}
-                  className="px-3 py-2 border-2 border-slate-200 rounded-lg text-sm font-medium text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-lime-400 focus:border-transparent"
+                  className="px-3 py-2 border-2 border-slate-200 dark:border-slate-600 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-lime-400 focus:border-transparent"
                 >
                   <option value="bus">Bus</option>
                   <option value="flight">Flight</option>
@@ -1197,7 +1197,7 @@ export default function VendorDashboard() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={handleSearchKeyDown}
                   placeholder={`Enter ${searchServiceType} ID...`}
-                  className="flex-1 px-3 py-2 border-2 border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-lime-400 focus:border-transparent"
+                  className="flex-1 px-3 py-2 border-2 border-slate-200 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-lime-400 focus:border-transparent"
                 />
               </div>
               <button
@@ -1215,7 +1215,7 @@ export default function VendorDashboard() {
             </div>
           </div>
           {searchError && (
-            <div className="mt-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+            <div className="mt-3 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
               {searchError}
             </div>
           )}
@@ -1225,12 +1225,12 @@ export default function VendorDashboard() {
          {dashboardLoading ? (
            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
              {[1, 2, 3, 4].map((i) => (
-               <div key={i} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+               <div key={i} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm">
                  <div className="flex items-center justify-between mb-4">
-                   <div className="w-12 h-12 rounded-xl bg-slate-200 animate-pulse"></div>
+                   <div className="w-12 h-12 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse"></div>
                  </div>
-                 <div className="h-8 bg-slate-200 rounded animate-pulse mb-2"></div>
-                 <div className="h-4 bg-slate-200 rounded animate-pulse w-24"></div>
+                 <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded animate-pulse mb-2"></div>
+                 <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-24"></div>
                </div>
              ))}
            </div>
@@ -1241,20 +1241,20 @@ export default function VendorDashboard() {
                return (
                  <div 
                    key={idx}
-                   className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300"
+                   className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300"
                  >
                    <div className="flex items-center justify-between mb-4">
                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${colorClasses[stat.color]} flex items-center justify-center shadow-lg`}>
                        <Icon className="w-6 h-6 text-white" />
                      </div>
                      {stat.change && (
-                       <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                       <span className="text-xs font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-full">
                          {stat.change}
                        </span>
                      )}
                    </div>
-                   <h3 className="text-2xl font-black text-slate-900 mb-1">{stat.value}</h3>
-                   <p className="text-base text-slate-600">{stat.label}</p>
+                   <h3 className="text-2xl font-black text-slate-900 dark:text-slate-100 mb-1">{stat.value}</h3>
+                   <p className="text-base text-slate-600 dark:text-slate-400">{stat.label}</p>
                  </div>
                );
              })}
@@ -1262,8 +1262,8 @@ export default function VendorDashboard() {
          )}
 
         {/* Tabs */}
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm mb-8">
-          <div className="border-b border-slate-200 px-6">
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm mb-8">
+          <div className="border-b border-slate-200 dark:border-slate-700 px-6">
             <nav className="flex gap-8">
               {["overview", "bookings", "routes", "services", "schedule", "analytics"].map((tab) => (
                 <button
@@ -1275,8 +1275,8 @@ export default function VendorDashboard() {
                   }}
                   className={`py-4 text-sm font-bold capitalize border-b-2 transition-all duration-200 ${
                     activeTab === tab
-                      ? "border-lime-500 text-lime-600"
-                      : "border-transparent text-slate-600 hover:text-slate-900"
+                      ? "border-lime-500 text-lime-600 dark:text-lime-400"
+                      : "border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                   }`}
                 >
                   {tab}
@@ -2229,20 +2229,20 @@ export default function VendorDashboard() {
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6">
             <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
-                <Trash2 className="w-8 h-8 text-red-600" />
+              <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="w-8 h-8 text-red-600 dark:text-red-400" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Delete Bus</h3>
-              <p className="text-sm text-slate-600 mb-6">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">Delete Bus</h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
                 Are you sure you want to delete <strong>{deleteConfirm.busName}</strong> ({deleteConfirm.busNumber})?
                 This will also delete all associated routes and schedules. This action cannot be undone.
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setDeleteConfirm(null)}
-                  className="flex-1 px-4 py-3 border-2 border-slate-200 text-slate-700 font-bold rounded-lg hover:bg-slate-50 transition-colors"
+                  className="flex-1 px-4 py-3 border-2 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 font-bold rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                 >
                   Cancel
                 </button>
@@ -2261,20 +2261,20 @@ export default function VendorDashboard() {
       {/* Delete Flight Confirmation Modal */}
       {deleteFlightConfirm && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6">
             <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
-                <Trash2 className="w-8 h-8 text-red-600" />
+              <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="w-8 h-8 text-red-600 dark:text-red-400" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Delete Flight</h3>
-              <p className="text-sm text-slate-600 mb-6">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">Delete Flight</h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
                 Are you sure you want to delete <strong>{deleteFlightConfirm.airlineName}</strong> ({deleteFlightConfirm.registrationNumber})?
                 This will also delete all associated routes and schedules. This action cannot be undone.
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setDeleteFlightConfirm(null)}
-                  className="flex-1 px-4 py-3 border-2 border-slate-200 text-slate-700 font-bold rounded-lg hover:bg-slate-50 transition-colors"
+                  className="flex-1 px-4 py-3 border-2 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 font-bold rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                 >
                   Cancel
                 </button>
@@ -2366,15 +2366,15 @@ export default function VendorDashboard() {
       {/* View Flight Routes Modal */}
       {viewFlightRoutes && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             {/* Header */}
-            <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-slate-900">Flight Routes</h2>
+            <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Flight Routes</h2>
               <button
                 onClick={() => setViewFlightRoutes(null)}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
               >
-                <X className="w-5 h-5 text-slate-600" />
+                <X className="w-5 h-5 text-slate-600 dark:text-slate-400" />
               </button>
             </div>
 
@@ -2382,18 +2382,18 @@ export default function VendorDashboard() {
               {flightRoutesLoading ? (
                 <div className="text-center py-12">
                   <div className="w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                  <p className="text-sm text-slate-600">Loading routes...</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">Loading routes...</p>
                 </div>
               ) : flightRoutes.length === 0 ? (
                 <div className="text-center py-12">
-                  <Route className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-bold text-slate-900 mb-2">No Routes Found</h3>
-                  <p className="text-sm text-slate-600">This flight doesn't have any routes yet. Create a route to get started.</p>
+                  <Route className="w-16 h-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">No Routes Found</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">This flight doesn't have any routes yet. Create a route to get started.</p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {flightRoutes.map((route, index) => (
-                    <div key={route._id || index} className="border border-slate-200 rounded-xl p-5 hover:border-sky-500 hover:shadow-md transition-all duration-300">
+                    <div key={route._id || index} className="border border-slate-200 dark:border-slate-700 rounded-xl p-5 hover:border-sky-500 dark:hover:border-sky-600 hover:shadow-md transition-all duration-300">
                       <div className="flex items-center gap-3 mb-4">
                         <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-sky-500 to-sky-600 flex items-center justify-center">
                           <Route className="w-5 h-5 text-white" />

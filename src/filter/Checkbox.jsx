@@ -32,7 +32,7 @@ export default function SingleSeaterFilter({ title, text, value = {}, onChange, 
       if (type === "single") {
         const next = {};
         items.forEach((it) => {
-          next[it] = it === item ? !prev[item] : false;
+          next[it] = it === item ? !prev[it] : false;
         });
         return { ...prev, ...next };
       }
@@ -42,8 +42,8 @@ export default function SingleSeaterFilter({ title, text, value = {}, onChange, 
 
   return (
     /* Enforces a stable min-width on the component so it never collapses into a narrow vertical strip */
-    <div className="w-full min-w-[240px] h-auto rounded-xl sm:rounded-2xl border border-gray-100 bg-gray-50 p-3 shadow-sm transition-all">
-      <h2 className="text-xs sm:text-sm font-bold text-gray-800 mb-2.5 tracking-wide uppercase text-left truncate">
+    <div className="w-full min-w-[240px] h-auto rounded-xl sm:rounded-2xl border border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 p-3 shadow-sm transition-all">
+      <h2 className="text-xs sm:text-sm font-bold text-gray-800 dark:text-slate-200 mb-2.5 tracking-wide uppercase text-left truncate">
         {title}
       </h2>
       
@@ -53,7 +53,7 @@ export default function SingleSeaterFilter({ title, text, value = {}, onChange, 
           <div
             key={index}
             onClick={() => handleToggle(txt)}
-            className="flex items-start gap-2.5 cursor-pointer select-none group p-1.5 rounded-lg hover:bg-slate-200/60 transition-colors duration-150 w-full min-w-0"
+            className="flex items-start gap-2.5 cursor-pointer select-none group p-1.5 rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-700/60 transition-colors duration-150 w-full min-w-0"
           >
             {/* Control Wrapper (Checkbox / Radio Indicator) */}
             {/* Added explicit min-w-4 (min-width: 1rem) so layout engines can't shrink the checkbox down */}
@@ -62,8 +62,8 @@ export default function SingleSeaterFilter({ title, text, value = {}, onChange, 
                 type === "single" ? "rounded-full" : "rounded-md"
               } ${
                 value[txt] 
-                  ? "border-blue-600 bg-blue-600 shadow-sm" 
-                  : "border-gray-300 group-hover:border-gray-400 bg-white"
+                  ? "border-blue-600 dark:border-blue-400 bg-blue-600 dark:bg-blue-500 shadow-sm" 
+                  : "border-gray-300 dark:border-slate-600 group-hover:border-gray-400 dark:group-hover:border-slate-500 bg-white dark:bg-slate-700"
               }`}
             >
               {value[txt] && (
@@ -81,11 +81,11 @@ export default function SingleSeaterFilter({ title, text, value = {}, onChange, 
             <div className="min-w-0 flex-1 break-words text-left">
               {txt.split("\n").map((line, i) =>
                 i === 0 ? (
-                  <h3 key={i} className="font-semibold text-gray-700 text-xs md:text-sm leading-snug">
+                  <h3 key={i} className="font-semibold text-gray-700 dark:text-slate-300 text-xs md:text-sm leading-snug">
                     {line}
                   </h3>
                 ) : (
-                  <p key={i} className="text-[10px] md:text-xs text-gray-500 leading-normal mt-0.5 whitespace-pre-line">
+                  <p key={i} className="text-[10px] md:text-xs text-gray-500 dark:text-slate-400 leading-normal mt-0.5 whitespace-pre-line">
                     {line}
                   </p>
                 )

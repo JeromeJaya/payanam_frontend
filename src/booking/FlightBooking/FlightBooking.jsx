@@ -46,6 +46,7 @@ export default function FlightBooking(){
     minPrice: "",
     maxPrice: "",
     airlines: [],
+    passengerCount: "1",
   });
   const [comparedFlights, setComparedFlights] = useState([]);
   const [showCompareSidebar, setShowCompareSidebar] = useState(false);
@@ -89,6 +90,17 @@ export default function FlightBooking(){
       filteredData = filteredData.filter(flight => 
         currentFilters.airlines.includes(flight.flight?.airlineName || flight.operator?.name)
       );
+    }
+
+    // Passenger count filter — only show flights with enough available seats
+    if (currentFilters.passengerCount && currentFilters.passengerCount !== "ANY" && currentFilters.passengerCount !== "") {
+      const required = parseInt(currentFilters.passengerCount, 10);
+      if (!isNaN(required) && required >= 1) {
+        filteredData = filteredData.filter(flight => {
+          const avail = flight.seats?.available ?? flight.availableSeats ?? flight.seatAvailability ?? 0;
+          return avail >= required;
+        });
+      }
     }
 
     return filteredData;
@@ -297,9 +309,9 @@ export default function FlightBooking(){
           onClose={() => setShowCompareSidebar(false)}
           onRemoveFromCompare={handleRemoveFromCompare}
         />
-        <div className="bg-mist-50 h-auto my-4 md:my-5 mx-2 sm:mx-4 md:mx-[100px] flex flex-col lg:flex-row">
-                <div className = "filter bg-white w-full lg:w-[25%] h-auto rounded-lg shadow-xl p-4">
-                    <div className = "flex justify-center mb-4 font-bold text-lg">FILTERS</div>
+        <div className="bg-slate-50 dark:bg-slate-900 h-auto my-4 md:my-5 mx-2 sm:mx-4 md:mx-[100px] flex flex-col lg:flex-row">
+                <div className = "filter bg-white dark:bg-slate-800 w-full lg:w-[25%] h-auto rounded-lg shadow-xl dark:shadow-slate-900/30 p-4">
+                    <div className = "flex justify-center mb-4 font-bold text-lg text-slate-800 dark:text-slate-200">FILTERS</div>
                   
                     <SelectBox
                       text={aircraftTypeOptions}
@@ -315,26 +327,26 @@ export default function FlightBooking(){
                     />
                     
                     {/* Price Range Filter */}
-                    <div className="p-4 bg-white/50 rounded-lg m-2">
-                      <label className="block text-xs font-bold text-gray-700 mb-2">Price Range</label>
+                    <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg m-2">
+                      <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 mb-2">Price Range</label>
                       <div className="flex gap-2">
                         <input
                           type="number"
                           placeholder="Min"
                           value={filters.minPrice}
                           onChange={(e) => handleFilterChange("minPrice", e.target.value)}
-                          className="w-1/2 p-2 border border-gray-300 rounded text-sm"
+                          className="w-1/2 p-2 border border-gray-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500"
                         />
                         <input
                           type="number"
                           placeholder="Max"
                           value={filters.maxPrice}
                           onChange={(e) => handleFilterChange("maxPrice", e.target.value)}
-                          className="w-1/2 p-2 border border-gray-300 rounded text-sm"
+                          className="w-1/2 p-2 border border-gray-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500"
                         />
                       </div>
                       {priceRange.min > 0 && (
-                        <p className="text-xs text-gray-500 mt-1">Range: ₹{priceRange.min.toLocaleString('en-IN')} - ₹{priceRange.max.toLocaleString('en-IN')}</p>
+                        <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">Range: ₹{priceRange.min.toLocaleString('en-IN')} - ₹{priceRange.max.toLocaleString('en-IN')}</p>
                       )}
                     </div>
                     <SearchheckBox
@@ -343,6 +355,12 @@ export default function FlightBooking(){
                       selectedPoints={filters.airlines}
                       onChange={(selected) => handleFilterChange("airlines", selected)}
                       onClear={() => handleFilterChange("airlines", [])}
+                    />
+                    <SelectBox
+                      text={["1", "2", "3", "4", "5", "6", "7", "8"]}
+                      title="Passengers"
+                      value={filters.passengerCount}
+                      onChange={(option) => handleFilterChange("passengerCount", option)}
                     />
                     
                     {/* Filter Actions */}
@@ -355,35 +373,36 @@ export default function FlightBooking(){
                             cabinClass: "",
                             minPrice: "",
                             maxPrice: "",
-                            airlines: []
+                            airlines: [],
+                            passengerCount: "1",
                           });
                         }}
-                        className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-300 transition-colors"
+                        className="flex-1 bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-200 py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-300 dark:hover:bg-slate-600 transition-colors"
                       >
                         Reset Filters
                       </button>
                     </div>
                 </div>
-                <div className = "bg-neutral-200 w-full lg:w-[80%] lg:ml-[2%] px-2 sm:px-3 md:px-5 rounded-lg shadow-xl flex flex-col">
-                    <div className = "bg-white w-full h-auto my-5 rounded-3xl shadow-xl">
+                <div className = "bg-slate-100 dark:bg-slate-800 w-full lg:w-[80%] lg:ml-[2%] px-2 sm:px-3 md:px-5 rounded-lg shadow-xl dark:shadow-slate-900/30 flex flex-col">
+                    <div className = "bg-white dark:bg-slate-800 w-full h-auto my-5 rounded-3xl shadow-xl dark:shadow-slate-900/30">
                         <FlightFareSelector sortBy={sortBy} onSortChange={handleSortChange} />
                     </div>
                     {loading ? (
                       <div className="flex flex-col items-center justify-center py-20">
                         {/* Animated gradient background card */}
-                        <div className="relative p-12 rounded-3xl bg-gradient-to-br from-sky-50 via-white to-blue-50 shadow-2xl">
+                        <div className="relative p-12 rounded-3xl bg-gradient-to-br from-sky-50 via-white to-blue-50 dark:from-slate-800 dark:via-slate-800 dark:to-slate-700 shadow-2xl">
                           {/* Multiple spinning rings with different speeds */}
                           <div className="relative w-32 h-32">
                             {/* Outer ring - slow spin */}
-                            <div className="absolute inset-0 rounded-full border-4 border-sky-200 border-t-sky-600 border-r-transparent border-b-blue-400 border-l-transparent animate-spin" style={{ animationDuration: '3s' }}></div>
+                            <div className="absolute inset-0 rounded-full border-4 border-sky-200 dark:border-slate-600 border-t-sky-600 dark:border-t-lime-500 border-r-transparent border-b-blue-400 dark:border-b-teal-500 border-l-transparent animate-spin" style={{ animationDuration: '3s' }}></div>
                             {/* Middle ring - reverse spin */}
-                            <div className="absolute inset-2 rounded-full border-3 border-blue-200 border-b-blue-600 border-t-transparent border-r-transparent border-l-transparent animate-spin" style={{ animationDuration: '2s', animationDirection: 'reverse' }}></div>
+                            <div className="absolute inset-2 rounded-full border-3 border-blue-200 dark:border-slate-500 border-b-blue-600 dark:border-b-lime-400 border-t-transparent border-r-transparent border-l-transparent animate-spin" style={{ animationDuration: '2s', animationDirection: 'reverse' }}></div>
                             {/* Inner ring - fast spin */}
-                            <div className="absolute inset-4 rounded-full border-2 border-sky-300 border-l-sky-600 border-r-transparent border-t-transparent border-b-transparent animate-spin" style={{ animationDuration: '1.5s' }}></div>
+                            <div className="absolute inset-4 rounded-full border-2 border-sky-300 dark:border-slate-500 border-l-sky-600 dark:border-l-teal-400 border-r-transparent border-t-transparent border-b-transparent animate-spin" style={{ animationDuration: '1.5s' }}></div>
                             {/* Center pulsing icon */}
                             <div className="absolute inset-0 flex items-center justify-center">
                               <div className="relative">
-                                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-sky-600 to-blue-600 animate-pulse shadow-lg shadow-sky-500/50"></div>
+                                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-sky-600 to-blue-600 dark:from-lime-500 dark:to-teal-500 animate-pulse shadow-lg shadow-sky-500/50"></div>
                                 <div className="absolute inset-0 flex items-center justify-center">
                                   <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
@@ -395,33 +414,33 @@ export default function FlightBooking(){
 
                           {/* Loading text with animation */}
                           <div className="mt-10 text-center">
-                            <h3 className="text-2xl font-bold bg-gradient-to-r from-sky-600 to-blue-600 bg-clip-text text-transparent mb-3">
+                            <h3 className="text-2xl font-bold bg-gradient-to-r from-sky-600 to-blue-600 dark:from-lime-400 dark:to-teal-400 bg-clip-text text-transparent mb-3">
                               Searching for Flights
                             </h3>
-                            <p className="text-gray-600 font-medium text-lg mb-6">
+                            <p className="text-gray-600 dark:text-slate-400 font-medium text-lg mb-6">
                               Finding the best flight options for you...
                             </p>
 
                             {/* Animated progress indicators */}
                             <div className="flex items-center justify-center gap-2 mb-4">
                               <div className="flex items-center gap-1">
-                                <div className="w-2.5 h-2.5 bg-sky-600 rounded-full animate-bounce" style={{ animationDelay: '0ms', animationDuration: '0.6s' }}></div>
-                                <div className="w-2.5 h-2.5 bg-sky-500 rounded-full animate-bounce" style={{ animationDelay: '100ms', animationDuration: '0.6s' }}></div>
-                                <div className="w-2.5 h-2.5 bg-sky-400 rounded-full animate-bounce" style={{ animationDelay: '200ms', animationDuration: '0.6s' }}></div>
+                                <div className="w-2.5 h-2.5 bg-sky-600 dark:bg-lime-500 rounded-full animate-bounce" style={{ animationDelay: '0ms', animationDuration: '0.6s' }}></div>
+                                <div className="w-2.5 h-2.5 bg-sky-500 dark:bg-teal-500 rounded-full animate-bounce" style={{ animationDelay: '100ms', animationDuration: '0.6s' }}></div>
+                                <div className="w-2.5 h-2.5 bg-sky-400 dark:bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '200ms', animationDuration: '0.6s' }}></div>
                               </div>
                             </div>
 
                             {/* Shimmer effect text */}
-                            <div className="inline-flex items-center gap-2 px-4 py-2 bg-sky-50 rounded-full">
+                            <div className="inline-flex items-center gap-2 px-4 py-2 bg-sky-50 dark:bg-slate-700 rounded-full">
                               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                              <span className="text-sm text-sky-700 font-medium">Please wait a moment</span>
+                              <span className="text-sm text-sky-700 dark:text-slate-300 font-medium">Please wait a moment</span>
                             </div>
                           </div>
                         </div>
                       </div>
                     ) : Array.isArray(flights) && flights.length > 0 ? (
                       flights.map((flight) => (
-                        <div key={flight.scheduleId || flight.id || flight.flightNumber} className="bg-white w-full h-auto mb-3 rounded-3xl shadow-xl">
+                        <div key={flight.scheduleId || flight.id || flight.flightNumber} className="bg-white dark:bg-slate-800 w-full h-auto mb-3 rounded-3xl shadow-xl dark:shadow-slate-900/30">
                          <FlightCard 
                            flight={flight} 
                            isCompared={isFlightCompared(flight)}
@@ -432,7 +451,7 @@ export default function FlightBooking(){
                         </div>
                       ))
                     ) : (
-                      <div className="p-4 md:p-8 text-center text-gray-600">No flights found for the selected route and date.</div>
+                      <div className="p-4 md:p-8 text-center text-gray-600 dark:text-slate-400">No flights found for the selected route and date.</div>
                     )}
                 </div>
             </div>

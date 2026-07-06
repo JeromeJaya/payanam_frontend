@@ -240,8 +240,8 @@ export default function SearchBar({ input, service }) {
         errors.push("Please enter a valid number for passenger count");
       } else if (passengerCount < 1) {
         errors.push("Passenger count must be at least 1");
-      } else if (passengerCount > 20) {
-        errors.push("Maximum 20 passengers allowed per booking");
+      } else if (passengerCount > 35) {
+        errors.push("Maximum 35 passengers allowed per booking");
       }
     }
     
