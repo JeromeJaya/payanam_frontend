@@ -29,3 +29,21 @@ export function VendorProtectedRoute({ children }) {
 
   return children;
 }
+
+export function AdminProtectedRoute({ children }) {
+  const { isAuthenticated, authLoading, user } = useAuth();
+
+  if (authLoading) return null; // or spinner
+
+  // If not authenticated, redirect to admin login
+  if (!isAuthenticated) {
+    return <Navigate to="/admin/login" replace />;
+  }
+
+  // If authenticated but not an admin, redirect to main page
+  if (user?.role !== 'admin') {
+    return <Navigate to="/MainPage" replace />;
+  }
+
+  return children;
+}

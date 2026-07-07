@@ -3,7 +3,7 @@ import {EmailLogin} from './Authentication/EmailLogin.jsx';
 import {EmailSignUp} from './Authentication/EmailSignUp.jsx';
 import MainPage from "./MainPage.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
-import { VendorProtectedRoute } from "./components/ProtectedRoute.jsx";
+import { VendorProtectedRoute, AdminProtectedRoute } from "./components/ProtectedRoute.jsx";
 import ExplorePlace from "./ExplorePlace.jsx";
 import BusBooking from "./booking/BusBooking/BusBooking.jsx"
 import SeatSelection from "./booking/BusBooking/SeatSelection.jsx"
@@ -21,6 +21,9 @@ import CheckoutPage from "./booking/BusBooking/CheckoutPage.jsx";
 import SeatConfirmation from "./booking/BusBooking/SeatConfirmation.jsx";
 import VendorEmailSignUp from "./Authentication/vendor/VendorEmailSignUp.jsx";
 import NotFound from "./components/NotFound.jsx";
+import AdminLogin from "./admin/AdminLogin.jsx";
+import AdminSignUp from "./admin/AdminSignUp.jsx";
+import AdminDashboard from "./admin/AdminDashboard.jsx";
 
 
 export function Router (){
@@ -46,8 +49,10 @@ export function Router (){
     <Route path='/seatconfirmation' element={<SeatConfirmation/>}/>  
     <Route path='/vendordashboard' element={<VendorProtectedRoute><VendorDashboard/></VendorProtectedRoute>}/> 
     <Route path='/VendorEmailSignUp' element={<VendorEmailSignUp/>}/>
+    <Route path='/admin/login' element={<AdminLogin/>}/>
+    <Route path='/admin/signup' element={<AdminSignUp/>}/>
+    <Route path='/admin/dashboard' element={<AdminProtectedRoute><AdminDashboard/></AdminProtectedRoute>}/>
     <Route path='*' element={<NotFound/>}/>
-
 </Routes>
     );
 }
