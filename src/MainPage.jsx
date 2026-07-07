@@ -340,7 +340,7 @@ export default function App() {
       <div 
         id="search-section" 
         data-animation-id="search"
-        className={`relative z-20 w-full mx-auto px-6 -mt-8 mb-16 transition-all duration-700 ${
+        className={`relative z-20 w-full mx-auto px-6 -mt-8 mb-10 transition-all duration-700 ${
           visibleElements.has('search') 
             ? 'opacity-100 translate-y-0' 
             : 'opacity-0 translate-y-10'

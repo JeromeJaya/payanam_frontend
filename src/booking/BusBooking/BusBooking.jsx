@@ -429,17 +429,6 @@ export default function BusBooking(){
                       if (cachedData) setBuses(applyFilters(JSON.parse(cachedData), { selectedDropTime: option }));
                     }}
                   />
-                  <SelectBox
-                    title={"Passengers"}
-                    text={["1", "2", "3", "4", "5", "6", "7", "8"]}
-                    value={passengerCount}
-                    onChange={(option) => {
-                      setPassengerCount(option);
-                      const storageKey = getStorageKey(from, to, date);
-                      const cachedData = sessionStorage.getItem(storageKey);
-                      if (cachedData) setBuses(applyFilters(JSON.parse(cachedData), { selectedPassengerCount: option }));
-                    }}
-                  />
                   <Checkbox title={"Single Seater/Sleeper"} text={"Single Seats"} />
                   <SearchheckBox
                     title={`Pick up point - ${from || "Source"}`}

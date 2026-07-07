@@ -86,10 +86,10 @@ export default function BusSeatLayout({ busName = "Bus", seats = [], seatLayoutT
   }
 
   return (
-    <div className="flex flex-col items-center bg-gray-100 rounded-3xl shadow-3xl p-3 h-175 overflow-y-auto">
+    <div className="flex flex-col items-center bg-gray-100 rounded-3xl shadow-3xl p-3 h-auto overflow-y-auto">
       <div className="flex flex-col items-center w-full">
         <div className="mb-1 text-center">
-          <h2 className="text-xs font-bold text-gray-700">{busName}</h2>
+          <h2 className="text-md font-bold text-gray-700">{busName}</h2>
         </div>
         <div className="flex justify-start w-full mb-2"><SteeringWheel /></div>
         <div className="flex flex-col gap-1">
@@ -136,9 +136,6 @@ export default function BusSeatLayout({ busName = "Bus", seats = [], seatLayoutT
                       ) : (
                         <div className={"rounded-xl flex items-center justify-center p-0.5 relative shadow-sm border-2 " + cardStyles}
                           style={{ width: size.w, height: size.h }}>
-                          <div className="w-full h-full border border-dashed border-gray-300/60 rounded-md flex items-center justify-center">
-                            <PersonIcon className={iconStyles} style={{ width: size.w - 10, height: size.w - 10 }} />
-                          </div>
                         </div>
                       )}
                       <span className={"mt-1 font-medium transition-colors " + size.price + (isSelected ? " text-black font-bold" : " text-gray-400") + (isFemale ? " text-black font-semibold" : "")}>

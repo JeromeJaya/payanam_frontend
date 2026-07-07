@@ -98,6 +98,7 @@ export const useRazorpay = () => {
             console.log("Razorpay modal dismissed");
             setPaymentStatus("failed");
             setError("Payment cancelled by user");
+            setIsProcessing(false);
             // Log failure to backend (fire-and-forget)
             api.post("/api/v1/payments/failure", {
               razorpayOrderId,

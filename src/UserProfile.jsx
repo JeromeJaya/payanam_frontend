@@ -76,7 +76,7 @@ export default function UserProfile() {
 
   // Maps older historical objects to match the high-fidelity Ticket view state schema
   const handleViewTicketDetails = async (b) => {
-    const totalFare = b.totalAmount || b.fare || 0;
+    const totalFare = b.totalFare || b.totalAmount || b.fare || 0;
     const seatsArray = Array.isArray(b.passengerDetails)
       ? b.passengerDetails.map(p => p.seatNumber)
       : (b.seatNumbers || []);

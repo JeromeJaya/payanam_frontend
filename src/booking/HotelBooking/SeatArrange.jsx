@@ -53,7 +53,6 @@ export default function BusSeatLayout({ busName = "Bus", seats = [], seatLayoutT
   const { columns, grid } = buildGrid(seats, seatLayoutType);
   const size = getSeatSize(columns);
 
-  // Deduplicate by seatNumber in case API returns duplicates
   const uniqueSeats = Array.from(new Map(seats.map(s => [s.seatNumber, s])).values());
 
   const seatMap = {};
@@ -85,17 +84,33 @@ export default function BusSeatLayout({ busName = "Bus", seats = [], seatLayoutT
     return <div className="flex items-center justify-center h-60 text-gray-400 text-sm">No seats available</div>;
   }
 
+  // Calculate grid dynamic layout width to keep the steering wheel aligned with the layout
+  const gridWidth = (columns * size.w) + ((columns - 1) * (size.gap + 35));
+
   return (
-    <div className="flex flex-col items-center bg-gray-100 rounded-3xl shadow-3xl p-3 h-175 overflow-y-auto">
-      <div className="flex flex-col items-center w-full">
-        <div className="mb-1 text-center">
+    <div className="flex flex-col items-center bg-gray-100 rounded-3xl shadow-3xl p-4 h-175 overflow-y-auto w-full">
+      
+      {/* Bus Shell Container: Kept dead center using mx-auto */}
+      <div className="flex flex-col items-center mx-auto" style={{ width: `${gridWidth}px` }}>
+        
+        {/* Bus Name Header */}
+        <div className="mb-3 text-center">
           <h2 className="text-xs font-bold text-gray-700">{busName}</h2>
         </div>
-        <div className="flex justify-start w-full mb-2"><SteeringWheel /></div>
-        <div className="flex flex-col gap-1">
+        
+        {/* Steering Wheel - Aligned left relative to the layout width */}
+        <div className="flex justify-start w-full mb-4">
+          <SteeringWheel />
+        </div>
+        
+        {/* Center-aligned rows list wrapper */}
+        <div className="flex flex-col gap-2 w-full">
           {grid.map((row, rowIndex) => (
-            <div key={rowIndex} className="grid items-center"
-              style={{ gap: `${size.gap+35}px`, gridTemplateColumns: `repeat(${columns}, ${size.w}px)` }}>
+            <div 
+              key={rowIndex} 
+              className="grid items-center justify-center" // added justify-center
+              style={{ gap: `${size.gap+35}px`, gridTemplateColumns: `repeat(${columns}, ${size.w}px)` }}
+            >
               {(() => {
                 const rowByCol = {};
                 row.forEach((seat) => { rowByCol[seat.column || 1] = seat; });

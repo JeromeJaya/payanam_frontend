@@ -39,31 +39,15 @@ export default function BookingSummary({
 
   const seatList = useMemo(() => entries.flatMap(([ , data]) => data.seats), [busSelections]); 
 
+  // Seat blocking is now done when user clicks "Confirm" (handleConfirmSeats)
+  // This ensures the 10-minute lock starts only when they're ready to proceed
   useEffect(() => {
-    if (!scheduleId || seatList.length === 0) {
-      setLockStatus({ status: "idle", message: "" });
-      return;
-    }
-    let isMounted = true;
-    const blockSelectedSeats = async () => {
-      setLockStatus({ status: "locking", message: "Securing your seats..." });
-      try {
-        await api.post(`/api/v1/buses/schedules/${scheduleId}/block-seats`, { seatNumbers: seatList });
-        if (!isMounted) return;
-        setLockStatus({ status: "locked", message: "Seats held for 10 minutes" });
-        setBooking({ status: "idle", message: "", data: null });
-      } catch (err) {
-        if (!isMounted) return;
-        const errorMsg = err.response?.data?.message || "Selected seats are already blocked.";
-        setLockStatus({ status: "error", message: errorMsg });
-        setBooking({ status: "error", message: errorMsg });
-      }
-    };
-    blockSelectedSeats();
-    return () => { isMounted = false; };
+    // Reset lock status when seat selection changes
+    setLockStatus({ status: "idle", message: "" });
+    setBooking({ status: "idle", message: "", data: null });
   }, [scheduleId, seatList.length]);
 
-  const handleConfirmSeats = () => {
+  const handleConfirmSeats = async () => {
     if (!isAuthenticated) {
       navigate("/login", { 
         state: { 
@@ -74,18 +58,32 @@ export default function BookingSummary({
       return;
     }
     if (!scheduleId || entries.length === 0) return;
-    if (lockStatus.status === "error") return;
 
-    navigate("/seatconfirmation", {
-      state: {
-        scheduleId,
-        busName,
-        boarding: boardingObj,
-        dropping: droppingObj,
-        seats: seatList,
-        total: grandTotal
-      }
-    });
+    // Block seats for 10 minutes before proceeding to confirmation
+    setLockStatus({ status: "locking", message: "Securing your seats..." });
+    setBooking({ status: "loading", message: "Securing seats...", data: null });
+
+    try {
+      await api.post(`/api/v1/buses/schedules/${scheduleId}/block-seats`, { seatNumbers: seatList });
+      setLockStatus({ status: "locked", message: "Seats held for 10 minutes" });
+      setBooking({ status: "idle", message: "", data: null });
+
+      // Navigate to seat confirmation page
+      navigate("/seatconfirmation", {
+        state: {
+          scheduleId,
+          busName,
+          boarding: boardingObj,
+          dropping: droppingObj,
+          seats: seatList,
+          total: grandTotal
+        }
+      });
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || "Failed to secure seats. Please try again.";
+      setLockStatus({ status: "error", message: errorMsg });
+      setBooking({ status: "error", message: errorMsg });
+    }
   };
 
   if (entries.length === 0) {
@@ -157,7 +155,7 @@ export default function BookingSummary({
               {/* CTA Confirm Button */}
               <button
                 onClick={handleConfirmSeats}
-                disabled={booking.status === "loading" || lockStatus.status === "error"}
+                disabled={booking.status === "loading" || (lockStatus.status === "error" && isAuthenticated)}
                 className="w-full sm:w-auto sm:min-w-[180px] rounded-xl bg-lime-500 hover:bg-lime-600 active:scale-[0.99] py-3 px-5 text-xs sm:text-sm font-extrabold text-white shadow-lg shadow-lime-500/20 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 tracking-wider uppercase focus:outline-none"
               >
                 {booking.status === "loading" ? "Confirming..." : !isAuthenticated ? "Login to book" : "Confirm Seats"}
