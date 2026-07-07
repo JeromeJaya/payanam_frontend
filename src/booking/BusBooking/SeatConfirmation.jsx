@@ -1,23 +1,31 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, User, Calendar, Hash, ShieldCheck, IndianRupee, CheckCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, User, Calendar, Hash, ShieldCheck, IndianRupee, CheckCircle, Loader2, CreditCard, Smartphone, Wallet } from "lucide-react";
 import api from "../../api/axios.js";
+import { useRazorpay } from "../../hooks/useRazorpay.jsx";
+import { useAuth } from "../../context/AuthContext.jsx";
 
 export default function SeatConfirmation() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const { scheduleId, busName, boarding, dropping, seats, total } = location.state || {};
 
   const [booking, setBooking] = useState({ status: "idle", message: "", data: null });
+  const [bookingMongoId, setBookingMongoId] = useState(null);
   const [passengers, setPassengers] = useState({});
-  const [paymentMethod, setPaymentMethod] = useState("card");
-  const [cardDetails, setCardDetails] = useState({
-    number: "",
-    name: "",
-    expiry: "",
-    cvv: ""
-  });
+  const [paymentMethod, setPaymentMethod] = useState("razorpay");
   const [isLoading, setIsLoading] = useState(true);
+
+  // Razorpay hook
+  const {
+    initiatePayment,
+    isProcessing: isPaymentProcessing,
+    paymentStatus,
+    paymentData,
+    error: paymentError,
+    resetPayment,
+  } = useRazorpay();
 
   // Simulate initial loading with animation
   useEffect(() => {
@@ -52,59 +60,64 @@ export default function SeatConfirmation() {
     setBooking({ status: "idle", message: "", data: null });
   };
 
+  // Handle payment result from Razorpay
+  useEffect(() => {
+    if (paymentStatus === "success" && paymentData) {
+      setBooking({ status: "success", message: "Booking confirmed!", data: paymentData });
+      // Navigate to ticket details after 2 seconds
+      setTimeout(() => {
+        navigate("/ticketdetails", {
+          state: {
+            ticket: paymentData.booking,
+            meta: {
+              busName,
+              boarding,
+              dropping,
+              passengers: Object.values(passengers).filter(Boolean),
+              payment: paymentData.payment,
+            },
+          },
+        });
+      }, 2000);
+    } else if (paymentStatus === "failed") {
+      setBooking({ status: "error", message: paymentError || "Payment failed. Please try again." });
+    }
+  }, [paymentStatus, paymentData, paymentError, navigate, busName, boarding, dropping, passengers]);
+
   const handleConfirmBooking = async () => {
-    if (!allPassengersAdded) {
+    const passengerList = Object.values(passengers).filter(Boolean);
+    if (passengerList.length !== seats.length) {
       setBooking({ status: "error", message: "Please add details for all passengers" });
       return;
     }
 
-    if (paymentMethod === "card") {
-      if (!cardDetails.number || !cardDetails.name || !cardDetails.expiry || !cardDetails.cvv) {
-        setBooking({ status: "error", message: "Please fill in all card details" });
-        return;
-      }
-    }
-
-    setBooking({ status: "loading", message: "", data: null });
+    setBooking({ status: "loading", message: "Creating booking...", data: null });
 
     try {
-      // Create booking
+      // Step 1: Create booking
       const bookingRes = await api.post("/api/v1/bookings", {
         scheduleId,
-        boardingPointId: boarding?.id,
-        droppingPointId: dropping?.id,
+        boardingPointId: boarding?._id || boarding?.id,
+        droppingPointId: dropping?._id || dropping?.id,
         passengerDetails: passengerList,
       });
 
       if (bookingRes.data?.success) {
-        const bookingId = bookingRes.data.data.bookingId;
+        const bookingData = bookingRes.data.data;
+        const mongoId = bookingData._id || bookingData.bookingMongoId;
+        
+        setBookingMongoId(mongoId);
+        setBooking({ status: "loading", message: "Initializing payment...", data: null });
 
-        // Simulate payment processing
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        // Confirm booking with payment
-        const confirmRes = await api.post(`/api/v1/bookings/${bookingId}/confirm`, {
-          paymentMethod,
-          paymentDetails: paymentMethod === "card" ? cardDetails : {}
+        // Step 2: Initiate Razorpay payment
+        await initiatePayment({
+          bookingMongoId: mongoId,
+          amount: bookingData.totalFare || total,
+          customerName: user?.name || passengerList[0]?.name || "",
+          customerEmail: user?.email || "",
+          customerContact: user?.phoneNo || user?.mobile || "",
+          description: `Bus Ticket - ${bookingData.bookingId || busName}`,
         });
-
-        if (confirmRes.data?.success) {
-          setBooking({ status: "success", message: "Booking confirmed!", data: confirmRes.data.data });
-          // Navigate to ticket details after 2 seconds
-          setTimeout(() => {
-            navigate("/ticketdetails", {
-              state: {
-                ticket: confirmRes.data.data,
-                meta: {
-                  busName,
-                  boarding,
-                  dropping,
-                  passengers: passengerList
-                }
-              }
-            });
-          }, 2000);
-        }
       }
     } catch (err) {
       const errorMessage = err.response?.data?.message || "Booking failed. Please try again.";
@@ -306,144 +319,36 @@ export default function SeatConfirmation() {
                 Payment Method
               </h2>
 
-              <div className="space-y-3">
-                <label className="flex items-center p-4 border-2 border-slate-200 rounded-xl cursor-pointer hover:border-lime-500 transition-colors">
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="card"
-                    checked={paymentMethod === "card"}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="w-4 h-4 text-lime-600"
-                  />
+              {/* Razorpay - Primary Payment Option */}
+              <div className="space-y-3 mb-4">
+                <div className="flex items-center p-4 border-2 border-lime-500 bg-lime-50 rounded-xl">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <ShieldCheck size={20} className="text-white" />
+                  </div>
                   <div className="ml-3 flex-1">
-                    <p className="font-semibold text-slate-900">Credit/Debit Card</p>
-                    <p className="text-xs text-slate-500">Pay with Visa, Mastercard, or RuPay</p>
+                    <p className="font-semibold text-slate-900">Pay with Razorpay</p>
+                    <p className="text-xs text-slate-500">UPI, Cards, Wallets, Netbanking</p>
                   </div>
-                </label>
-
-                <label className="flex items-center p-4 border-2 border-slate-200 rounded-xl cursor-pointer hover:border-lime-500 transition-colors">
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="upi"
-                    checked={paymentMethod === "upi"}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="w-4 h-4 text-lime-600"
-                  />
-                  <div className="ml-3 flex-1">
-                    <p className="font-semibold text-slate-900">UPI Payment</p>
-                    <p className="text-xs text-slate-500">Pay using Google Pay, PhonePe, or Paytm</p>
-                  </div>
-                </label>
-
-                <label className="flex items-center p-4 border-2 border-slate-200 rounded-xl cursor-pointer hover:border-lime-500 transition-colors">
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="wallet"
-                    checked={paymentMethod === "wallet"}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="w-4 h-4 text-lime-600"
-                  />
-                  <div className="ml-3 flex-1">
-                    <p className="font-semibold text-slate-900">Wallet</p>
-                    <p className="text-xs text-slate-500">Pay using Payanam Wallet</p>
-                  </div>
-                </label>
-              </div>
-
-              {paymentMethod === "card" && (
-                <div className="mt-4 space-y-4">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                      Card Number
-                    </label>
-                    <div className="relative">
-                      <Hash size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input
-                        type="text"
-                        placeholder="1234 5678 9012 3456"
-                        maxLength="19"
-                        value={cardDetails.number}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/\s/g, "").replace(/(\d{4})/g, "$1 ").trim();
-                          setCardDetails({ ...cardDetails, number: value });
-                        }}
-                        className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-lime-500 focus:border-transparent"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                      Cardholder Name
-                    </label>
-                    <div className="relative">
-                      <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input
-                        type="text"
-                        placeholder="JOHN DOE"
-                        value={cardDetails.name}
-                        onChange={(e) => setCardDetails({ ...cardDetails, name: e.target.value.toUpperCase() })}
-                        className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-lime-500 focus:border-transparent uppercase"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                        Expiry Date
-                      </label>
-                      <div className="relative">
-                        <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                        <input
-                          type="text"
-                          placeholder="MM/YY"
-                          maxLength="5"
-                          value={cardDetails.expiry}
-                          onChange={(e) => {
-                            let value = e.target.value.replace(/\D/g, "");
-                            if (value.length >= 2) {
-                              value = value.slice(0, 2) + "/" + value.slice(2, 4);
-                            }
-                            setCardDetails({ ...cardDetails, expiry: value });
-                          }}
-                          className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-lime-500 focus:border-transparent"
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                        CVV
-                      </label>
-                      <div className="relative">
-                        <Hash size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                        <input
-                          type="text"
-                          placeholder="123"
-                          maxLength="3"
-                          value={cardDetails.cvv}
-                          onChange={(e) => {
-                            const value = e.target.value.replace(/\D/g, "");
-                            setCardDetails({ ...cardDetails, cvv: value });
-                          }}
-                          className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-lime-500 focus:border-transparent"
-                          required
-                        />
-                      </div>
-                    </div>
+                  <div className="flex gap-1.5">
+                    <div className="w-8 h-5 bg-blue-600 rounded text-white text-[8px] flex items-center justify-center font-bold">VISA</div>
+                    <div className="w-8 h-5 bg-red-600 rounded text-white text-[8px] flex items-center justify-center font-bold">MC</div>
+                    <div className="w-8 h-5 bg-purple-600 rounded text-white text-[8px] flex items-center justify-center font-bold">UPI</div>
                   </div>
                 </div>
-              )}
+              </div>
 
+              {/* Payment Status Messages */}
               {booking.status === "error" && (
-                <div className="mt-4 rounded-lg bg-red-50 border border-red-100 p-3 text-center text-sm font-medium text-red-600">
-                  ⚠️ {booking.message}
+                <div className="mt-4 space-y-3">
+                  <div className="rounded-lg bg-red-50 border border-red-100 p-3 text-center text-sm font-medium text-red-600">
+                    ⚠️ {booking.message}
+                  </div>
+                  <button
+                    onClick={() => navigate("/busbooking")}
+                    className="w-full rounded-lg bg-slate-100 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-200 transition"
+                  >
+                    Go Back & Retry
+                  </button>
                 </div>
               )}
 
@@ -451,6 +356,13 @@ export default function SeatConfirmation() {
                 <div className="mt-4 rounded-lg bg-green-50 border border-green-100 p-3 text-center text-sm font-medium text-green-600 flex items-center justify-center gap-2 animate-pulse">
                   <CheckCircle size={18} />
                   {booking.message} Redirecting to ticket...
+                </div>
+              )}
+
+              {booking.status === "loading" && (
+                <div className="mt-4 rounded-lg bg-blue-50 border border-blue-100 p-3 text-center text-sm font-medium text-blue-600 flex items-center justify-center gap-2">
+                  <Loader2 size={18} className="animate-spin" />
+                  {booking.message}
                 </div>
               )}
             </div>
@@ -485,7 +397,7 @@ export default function SeatConfirmation() {
 
               <button
                 onClick={handleConfirmBooking}
-                disabled={booking.status === "loading" || booking.status === "success" || !allPassengersAdded}
+                disabled={booking.status === "loading" || booking.status === "success" || booking.status === "error" || !allPassengersAdded}
                 className="w-full rounded-xl bg-lime-500 py-3 text-sm font-bold text-white shadow-md shadow-lime-500/10 transition hover:bg-lime-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:scale-105 active:scale-95"
               >
                 {booking.status === "loading" ? (

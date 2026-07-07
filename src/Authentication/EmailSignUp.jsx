@@ -216,7 +216,16 @@ export function EmailSignUp() {
               />
             )}
             </div>
+            
           </form>
+              <button
+                onClick = {()=>navigate("/vendoremailsignup")}
+                className="w-full mt-4 sm:w-fit block mx-auto bg-emerald-400 dark:bg-lime-300 text-white 
+                dark:text-gray-900 py-3 px-4 rounded-lg font-medium hover:bg-lime-700 
+                dark:hover:bg-lime-400 justify-center transition-colors"
+              >
+                Switch to vendor SignUp
+              </button>
 
           <div className="mt-6">
             <div className="relative">

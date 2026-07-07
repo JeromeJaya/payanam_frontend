@@ -4,7 +4,7 @@ import {But3} from "../Buttons/But3.jsx";
 import bgImage from "../assets/bg3.png";
 import Nav from "../NavComponent.jsx";
 import {But} from "../Buttons/But.jsx";
-import {Link,Outlet} from "react-router-dom";
+import {Link,Outlet, useLocation} from "react-router-dom";
 import {useNavigate} from "react-router-dom";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
@@ -14,11 +14,14 @@ export function EmailLogin() {
     const [show, setShow] = useState(false);
     const [showMobileLogin, setShowMobileLogin] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [emailError, setEmailError] = useState("");
     const [loading, setLoading] = useState(false);
     const { login } = useAuth();
+    const from = location.state?.from || "/MainPage";
+    const bookingData = location.state?.bookingData;
 
   useEffect(() => {
     setShow(true);
@@ -64,9 +67,15 @@ export function EmailLogin() {
       const response = await api.post("/api/auth/login", { email, password });
       if (response?.data?.success) {
         login(response.data.user);
-        // Redirect based on user role
         if (response.data.user.role === "vendor") {
-          navigate("/vendordashboard");
+          navigate("/vendordashboard", { replace: true });
+        } else if (bookingData) {
+          navigate("/seatconfirmation", { 
+            state: bookingData,
+            replace: true
+          });
+        } else if (from !== "/MainPage") {
+          navigate(from, { replace: true });
         } else {
           navigate("/MainPage");
         }

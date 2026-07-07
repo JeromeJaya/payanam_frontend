@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Plus, MoveRight, Lock, Check } from "lucide-react";
 import FlightPriceModal from "../booking/FlightBooking/FlightPriceModal.jsx";
+import PriceLockModal from "../booking/FlightBooking/PriceLockModal.jsx";
 
 /**
  * Formats duration from minutes to "Xh Ym" format
@@ -54,6 +55,7 @@ export default function FlightCard({
 }) {
   const [showDetails, setShowDetails] = useState(false);
   const [showPriceModal, setShowPriceModal] = useState(false);
+  const [showPriceLock, setShowPriceLock] = useState(false);
 
   // Extract flight data with defaults
   const airlineName = flight?.flight?.airlineName || flight?.operator?.name || "Unknown Airline";
@@ -195,7 +197,10 @@ export default function FlightCard({
 
           {/* Interactive Action CTA Matrix */}
           <div className="flex items-center gap-2 max-w-[60%] lg:max-w-none">
-            <button className="hidden sm:flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800 hover:bg-blue-100/80 dark:hover:bg-blue-900/30 transition-colors px-3 py-2 rounded-xl text-xs font-bold focus:outline-none">
+            <button 
+              onClick={() => setShowPriceLock(true)}
+              className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800 hover:bg-blue-100/80 dark:hover:bg-blue-900/30 transition-colors px-3 py-2 rounded-xl text-xs font-bold focus:outline-none"
+            >
               <Lock size={12} className="text-blue-500" />
               <span className="whitespace-nowrap">Lock Price</span>
               <MoveRight size={12} />
@@ -281,6 +286,16 @@ export default function FlightCard({
           onClose={() => setShowPriceModal(false)} 
         />
       )}
+
+      {/* Price Lock Modal */}
+      <PriceLockModal
+        isOpen={showPriceLock}
+        onClose={() => setShowPriceLock(false)}
+        flight={flight}
+        onLockSuccess={(lock) => {
+          console.log('Price locked:', lock);
+        }}
+      />
     </div>
   );
 }

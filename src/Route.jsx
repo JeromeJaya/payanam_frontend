@@ -44,11 +44,8 @@ export function Router (){
     <Route path='/TicketDetails' element={<TicketDetails/>}/>  
     <Route path='/checkout' element={<CheckoutPage/>}/>  
     <Route path='/seatconfirmation' element={<SeatConfirmation/>}/>  
-    <Route path='/vendordashboard' element={<VendorProtectedRoute><VendorDashboard/></VendorProtectedRoute>}/>  
-    {/* <Route path='/VendorEmailLogin' element={<VendorEmailLogin/>}/>   */}
+    <Route path='/vendordashboard' element={<VendorProtectedRoute><VendorDashboard/></VendorProtectedRoute>}/> 
     <Route path='/VendorEmailSignUp' element={<VendorEmailSignUp/>}/>
-
-    {/* Catch-all 404 — must be the last route */}
     <Route path='*' element={<NotFound/>}/>
 
 </Routes>

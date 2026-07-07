@@ -528,9 +528,7 @@ export default function App() {
               <h4 className="text-lg font-semibold mb-3">Services</h4>
               <ul className="space-y-2 text-slate-300 dark:text-slate-400">
                 <li><Link to="/flightbooking" className="hover:text-lime-400">Flight Booking</Link></li>
-                <li><Link to="/hotelbooking" className="hover:text-lime-400">Hotel Booking</Link></li>
                 <li><Link to="/busbooking" className="hover:text-lime-400">Bus Booking</Link></li>
-                <li><Link to="/trainbooking" className="hover:text-lime-400">Train Booking</Link></li>
               </ul>
             </div>
             <div>
@@ -545,9 +543,9 @@ export default function App() {
             <div>
               <h4 className="text-lg font-semibold mb-3">Contact</h4>
               <ul className="space-y-2 text-slate-300 dark:text-slate-400">
-                <li>📧 support@payanam.com</li>
-                <li>📞 1800-123-4567</li>
-                <li>📍 Chennai, India</li>
+                <li>📧 jeromeat2002@gmail.com</li>
+                <li>📞 9894855195</li>
+                <li>📍 Power house</li>
               </ul>
             </div>
           </div>

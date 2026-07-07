@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Armchair, ChevronDown, ChevronUp } from "lucide-react";
 import api from "../../api/axios.js";
+import { useAuth } from "../../context/AuthContext.jsx";
 
 export default function BookingSummary({
   busSelections,
@@ -13,6 +14,8 @@ export default function BookingSummary({
   selectedDroppingText,
 }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user, isAuthenticated } = useAuth();
   const entries = Object.entries(busSelections).filter(([ , data]) => data.seats.length > 0);
   const grandTotal = entries.reduce((sum, [ , data]) => sum + (data.total || 0), 0);
   const busName = entries[0]?.[0] || "Payanam Express";
@@ -34,7 +37,6 @@ export default function BookingSummary({
     return formatted === selectedDroppingTextKey;
   }) || droppingPoints[0];
 
-  // Derive seat list dynamically based on inner data mappings safely
   const seatList = useMemo(() => entries.flatMap(([ , data]) => data.seats), [busSelections]); 
 
   useEffect(() => {
@@ -59,9 +61,18 @@ export default function BookingSummary({
     };
     blockSelectedSeats();
     return () => { isMounted = false; };
-  }, [scheduleId, seatList.length]); // Track simple reference length updates instead of heavy strings
+  }, [scheduleId, seatList.length]);
 
   const handleConfirmSeats = () => {
+    if (!isAuthenticated) {
+      navigate("/login", { 
+        state: { 
+          from: location.pathname,
+          bookingData: { scheduleId, busName, boarding: boardingObj, dropping: droppingObj, seats: seatList, total: grandTotal }
+        }
+      });
+      return;
+    }
     if (!scheduleId || entries.length === 0) return;
     if (lockStatus.status === "error") return;
 
@@ -103,7 +114,7 @@ export default function BookingSummary({
 
           {booking.status === "error" && (
             <div className="rounded-lg bg-red-50 px-2 py-0.5 text-[10px] sm:text-[11px] font-semibold text-red-600 truncate max-w-full">
-              ⚠️ {booking.message}
+              ⚠️ Login to continue with booking
             </div>
           )}
           {lockStatus.status === "locked" && booking.status !== "error" && (
@@ -149,7 +160,7 @@ export default function BookingSummary({
                 disabled={booking.status === "loading" || lockStatus.status === "error"}
                 className="w-full sm:w-auto sm:min-w-[180px] rounded-xl bg-lime-500 hover:bg-lime-600 active:scale-[0.99] py-3 px-5 text-xs sm:text-sm font-extrabold text-white shadow-lg shadow-lime-500/20 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 tracking-wider uppercase focus:outline-none"
               >
-                {booking.status === "loading" ? "Confirming..." : "Confirm Seats"}
+                {booking.status === "loading" ? "Confirming..." : !isAuthenticated ? "Login to book" : "Confirm Seats"}
               </button>
             </div>
           </div>

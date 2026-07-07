@@ -1,5 +1,5 @@
 import { useLocation, Link } from "react-router-dom";
-import { CheckCircle2, Download, ArrowLeft, Bus, Calendar, MapPin, User, Armchair, CreditCard } from "lucide-react";
+import { CheckCircle2, Download, ArrowLeft, Bus, Calendar, MapPin, User, Armchair, CreditCard, ShieldCheck, IndianRupee, Hash, Clock } from "lucide-react";
 import Nav from "../../NavComponent.jsx";
 
 export default function TicketDetails() {
@@ -132,6 +132,107 @@ export default function TicketDetails() {
               ))}
             </div>
           </div>
+
+          {/* Payment Details Section */}
+          {meta?.payment && (
+            <div className="p-6 border-b border-slate-100 bg-gradient-to-br from-slate-50/50 to-blue-50/30 print:bg-transparent">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-1.5">
+                <ShieldCheck size={12} /> Payment Details
+              </h4>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Razorpay Order ID */}
+                <div className="bg-white border border-slate-200/60 print:border-slate-300 rounded-xl p-3 shadow-3xs print:shadow-none">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Hash size={10} className="text-slate-400" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Order ID</span>
+                  </div>
+                  <p className="text-xs font-mono font-semibold text-slate-700 truncate" title={meta.payment.razorpayOrderId}>
+                    {meta.payment.razorpayOrderId}
+                  </p>
+                </div>
+
+                {/* Razorpay Payment ID */}
+                <div className="bg-white border border-slate-200/60 print:border-slate-300 rounded-xl p-3 shadow-3xs print:shadow-none">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <CreditCard size={10} className="text-slate-400" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Payment ID</span>
+                  </div>
+                  <p className="text-xs font-mono font-semibold text-slate-700 truncate" title={meta.payment.razorpayPaymentId}>
+                    {meta.payment.razorpayPaymentId}
+                  </p>
+                </div>
+
+                {/* Amount Paid */}
+                <div className="bg-white border border-slate-200/60 print:border-slate-300 rounded-xl p-3 shadow-3xs print:shadow-none">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <IndianRupee size={10} className="text-slate-400" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Amount Paid</span>
+                  </div>
+                  <p className="text-sm font-black text-emerald-700">
+                    ₹{meta.payment.amount?.toLocaleString()} <span className="text-lg font-medium text-slate-500 ml-1">{meta.payment.currency || "INR"}</span>
+                  </p>
+                </div>
+
+                {/* Payment Status */}
+                <div className="bg-white border border-slate-200/60 print:border-slate-300 rounded-xl p-3 shadow-3xs print:shadow-none">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <CheckCircle2 size={10} className="text-slate-400" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Status</span>
+                  </div>
+                  <span className={`text-xs font-bold inline-flex items-center gap-1 px-2 py-0.5 rounded-md uppercase tracking-wide ${
+                    meta.payment.status === "SUCCESS"
+                      ? "text-emerald-700 bg-emerald-50 border border-emerald-200"
+                      : meta.payment.status === "REFUNDED"
+                      ? "text-amber-700 bg-amber-50 border border-amber-200"
+                      : "text-slate-700 bg-slate-50 border border-slate-200"
+                  }`}>
+                    {meta.payment.status === "SUCCESS" && <CheckCircle2 size={10} />}
+                    {meta.payment.status}
+                  </span>
+                </div>
+
+                {/* Payment Date */}
+                {meta.payment.createdAt && (
+                  <div className="bg-white border border-slate-200/60 print:border-slate-300 rounded-xl p-3 shadow-3xs print:shadow-none">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Clock size={10} className="text-slate-400" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Payment Date</span>
+                    </div>
+                    <p className="text-xs font-semibold text-slate-700">
+                      {new Date(meta.payment.createdAt).toLocaleDateString("en-IN", {
+                        weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
+                      })}
+                    </p>
+                  </div>
+                )}
+
+                {/* Refund Info (if applicable) */}
+                {meta.payment.refundId && (
+                  <div className="bg-white border border-slate-200/60 print:border-slate-300 rounded-xl p-3 shadow-3xs print:shadow-none">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <IndianRupee size={10} className="text-slate-400" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Refund ID</span>
+                    </div>
+                    <p className="text-xs font-mono font-semibold text-amber-700 truncate" title={meta.payment.refundId}>
+                      {meta.payment.refundId}
+                    </p>
+                    {meta.payment.refundAmount > 0 && (
+                      <p className="text-[10px] font-bold text-amber-600 mt-0.5">
+                        Refund Amount: ₹{meta.payment.refundAmount.toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Razorpay branding strip */}
+              <div className="mt-4 flex items-center justify-center gap-2 text-[10px] text-slate-400 print:hidden">
+                <ShieldCheck size={10} />
+                <span>Secured by Razorpay • HMAC-SHA256 Verified</span>
+              </div>
+            </div>
+          )}
 
           {/* Bottom Section: Transaction Meta Auditing */}
           <div className="p-6 grid grid-cols-3 gap-y-4 gap-x-2 text-xs border-b border-slate-100">

@@ -344,7 +344,7 @@ export default function SearchBar({
                       value={passengerCount ?? "1"}
                       onChange={(e) => onPassengerCountChange(e.target.value)}
                     >
-                      {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
+                      {Array.from({ length: 35 }, (_, i) => i + 1).map(n => (
                         <option key={n} value={n}>{n} {n === 1 ? 'Passenger' : 'Passengers'}</option>
                       ))}
                     </select>

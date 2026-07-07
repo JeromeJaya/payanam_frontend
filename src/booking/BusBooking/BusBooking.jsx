@@ -21,6 +21,7 @@ export default function BusBooking(){
     const d = new Date();
     return d.toISOString().slice(0, 10);
   })();
+  const noOfSeatsParam = searchParams.get("NoOfSeats") || "1";
    
   const [from, setFrom] = useState(fromParam);
   const [to, setTo] = useState(toParam);
@@ -36,7 +37,7 @@ export default function BusBooking(){
   const [seatType, setSeatType] = useState("ALL");
   const [pickupTimeFilter, setPickupTimeFilter] = useState("ALL");
   const [dropTimeFilter, setDropTimeFilter] = useState("ALL");
-  const [passengerCount, setPassengerCount] = useState("1");
+  const [passengerCount, setPassengerCount] = useState(noOfSeatsParam);
   const [selectedPickupPoints, setSelectedPickupPoints] = useState([]);
   const [selectedDropPoints, setSelectedDropPoints] = useState([]);
   const [selectedOperators, setSelectedOperators] = useState([]);
@@ -382,7 +383,7 @@ export default function BusBooking(){
             
             {/* LEFT FILTER PANEL (Hidden entirely when no buses exist or layout is loading) */}
             {hasBuses && !loading && (
-              <div className={`filter bg-white dark:bg-slate-800 w-full lg:w-[25%] h-auto rounded-lg shadow-xl dark:shadow-slate-900/30 ${showMobileFilters ? 'block' : 'hidden lg:block'}`}>
+              <div className={`filter bg-white dark:bg-slate-800 w-full lg:w-[25%] h-auto rounded-lg shadow-xl dark:shadow-slate-900/30 ${showMobileFilters ? 'block' : 'hidden lg:block'} sticky top-16 lg:top-20 max-h-[calc(100vh-80px)] overflow-y-auto`}>
                   <div className = "flex justify-center mt-5 font-bold text-slate-800 dark:text-slate-200">FILTERS</div>
                   <SelectBox
                     title={"AC type"}

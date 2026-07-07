@@ -422,126 +422,232 @@ export default function SearchBar({ input, service }) {
 
   return (
     <div className="w-full">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-        {input.map((field, idx) => {
-          const isFromField = field.name === "from" || field.name === "city";
-          const isToField = field.name === "to";
-          
-          let valueProp = undefined;
-          let onChangeHandler = undefined;
-          let wrapperRef = null;
-          let showDropdown = false;
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {input.slice(0, 2).map((field, idx) => {
+            const fieldIdx = idx;
+            const isFromField = field.name === "from" || field.name === "city";
+            const isToField = field.name === "to";
+            
+            let valueProp = undefined;
+            let onChangeHandler = undefined;
+            let wrapperRef = null;
+            let showDropdown = false;
 
-          if (isFromField) {
-            valueProp = from;
-            onChangeHandler = handleFromChange;
-            wrapperRef = fromRef;
-            showDropdown = showFromDropdown;
-          } else if (isToField) {
-            valueProp = to;
-            onChangeHandler = handleToChange;
-            wrapperRef = toRef;
-            showDropdown = showToDropdown;
-          }
+            if (isFromField) {
+              valueProp = from;
+              onChangeHandler = handleFromChange;
+              wrapperRef = fromRef;
+              showDropdown = showFromDropdown;
+            } else if (isToField) {
+              valueProp = to;
+              onChangeHandler = handleToChange;
+              wrapperRef = toRef;
+              showDropdown = showToDropdown;
+            }
 
-          const todayDay = field.type === "date" ? day : field.below;
+            const todayDay = field.type === "date" ? day : field.below;
 
-          return (
-            <div
-              key={idx}
-              ref={wrapperRef}
-              className="relative"
-            >
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">
-                {field.label}
-              </label>
-              
-              <input
-                id={field.name}
-                className="w-full px-3 py-2.5 text-sm border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-lime-400 focus:border-transparent transition-all bg-white hover:border-slate-300"
-                placeholder={field.mid || `Enter ${field.label.toLowerCase()}`}
-                type={field.type || "text"}
-                defaultValue={valueProp !== undefined ? undefined : (field.type === "date" ? today : field.mid)}
-                value={valueProp}
-                onChange={onChangeHandler}
-                onFocus={() => {
-                  if (isFromField && from.length > 1) setShowFromDropdown(true);
-                  if (isToField && to.length > 1) setShowToDropdown(true);
-                }}
-                ref={(el) => { inputRefs.current[field.name] = el; }}
-                autoComplete="off"
-              />
-              
-              {todayDay && (
-                <p className="text-slate-400 mt-1 text-xs">{todayDay}</p>
-              )}
+            return (
+              <div
+                key={fieldIdx}
+                ref={wrapperRef}
+                className="relative"
+              >
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">
+                  {field.label}
+                </label>
+                
+                <input
+                  id={field.name}
+                  className="w-full px-3 py-2.5 text-sm border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-lime-400 focus:border-transparent transition-all bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100 hover:border-slate-300 dark:hover:border-slate-500"
+                  placeholder={field.mid || `Enter ${field.label.toLowerCase()}`}
+                  type={field.type || "text"}
+                  defaultValue={valueProp !== undefined ? undefined : (field.type === "date" ? today : field.mid)}
+                  value={valueProp}
+                  onChange={onChangeHandler}
+                  onFocus={() => {
+                    if (isFromField && from.length > 1) setShowFromDropdown(true);
+                    if (isToField && to.length > 1) setShowToDropdown(true);
+                  }}
+                  ref={(el) => { inputRefs.current[field.name] = el; }}
+                  autoComplete="off"
+                />
+                
+                {todayDay && (
+                  <p className="text-slate-400 mt-1 text-xs">{todayDay}</p>
+                )}
 
-              {/* Suggestions Dropdown */}
-              {showDropdown && (
-                <ul className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-48 overflow-y-auto">
-                  {service === 'flight' && isFromField && fromAirportSuggestions.map((airport, index) => (
-                    <li
-                      key={index}
-                      onClick={() => selectFrom(airport)}
-                      className="px-3 py-2 text-sm text-slate-700 hover:bg-lime-50 hover:text-lime-700 cursor-pointer transition-colors border-b border-slate-100 last:border-b-0"
-                    >
-                      <div className="font-medium">{airport.displayText || `${airport.city} (${airport.iataCode})`}</div>
-                      <div className="text-xs text-slate-500">{airport.name}</div>
-                    </li>
-                  ))}
-                  {service === 'flight' && isToField && toAirportSuggestions.map((airport, index) => (
-                    <li
-                      key={index}
-                      onClick={() => selectTo(airport)}
-                      className="px-3 py-2 text-sm text-slate-700 hover:bg-lime-50 hover:text-lime-700 cursor-pointer transition-colors border-b border-slate-100 last:border-b-0"
-                    >
-                      <div className="font-medium">{airport.displayText || `${airport.city} (${airport.iataCode})`}</div>
-                      <div className="text-xs text-slate-500">{airport.name}</div>
-                    </li>
-                  ))}
-                  {service !== 'flight' && (isFromField ? 
-                    allDestinations.filter(d => d.toLowerCase().includes(from.toLowerCase())) :
-                    allDestinations.filter(d => d.toLowerCase().includes(to.toLowerCase()))
-                  ).slice(0, 5).map((item, index) => (
-                    <li
-                      key={index}
-                      onClick={() => {
-                        if (isFromField) selectFrom(item);
-                        else if (isToField) selectTo(item);
+                {/* Suggestions Dropdown */}
+                {showDropdown && (
+                  <ul className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                    {service === 'flight' && isFromField && fromAirportSuggestions.map((airport, index) => (
+                      <li
+                        key={index}
+                        onClick={() => selectFrom(airport)}
+                        className="px-3 py-2 text-sm text-slate-700 hover:bg-lime-50 hover:text-lime-700 cursor-pointer transition-colors border-b border-slate-100 last:border-b-0"
+                      >
+                        <div className="font-medium">{airport.displayText || `${airport.city} (${airport.iataCode})`}</div>
+                        <div className="text-xs text-slate-500">{airport.name}</div>
+                      </li>
+                    ))}
+                    {service === 'flight' && isToField && toAirportSuggestions.map((airport, index) => (
+                      <li
+                        key={index}
+                        onClick={() => selectTo(airport)}
+                        className="px-3 py-2 text-sm text-slate-700 hover:bg-lime-50 hover:text-lime-700 cursor-pointer transition-colors border-b border-slate-100 last:border-b-0"
+                      >
+                        <div className="font-medium">{airport.displayText || `${airport.city} (${airport.iataCode})`}</div>
+                        <div className="text-xs text-slate-500">{airport.name}</div>
+                      </li>
+                    ))}
+                    {service !== 'flight' && (isFromField ? 
+                      allDestinations.filter(d => d.toLowerCase().includes(from.toLowerCase())) :
+                      allDestinations.filter(d => d.toLowerCase().includes(to.toLowerCase()))
+                    ).slice(0, 5).map((item, index) => (
+                      <li
+                        key={index}
+                        onClick={() => {
+                          if (isFromField) selectFrom(item);
+                          else if (isToField) selectTo(item);
+                        }}
+                        className="px-3 py-2 text-sm text-slate-700 hover:bg-lime-50 hover:text-lime-700 cursor-pointer transition-colors border-b border-slate-100 last:border-b-0"
+                      >
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+          <div className="md:col-span-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {input.slice(2).map((field, idx) => {
+                const fieldIdx = idx + 2;
+                const isFromField = field.name === "from" || field.name === "city";
+                const isToField = field.name === "to";
+                const isNumberField = field.type === "number";
+                
+                let valueProp = undefined;
+                let onChangeHandler = undefined;
+                let wrapperRef = null;
+                let showDropdown = false;
+
+                if (isFromField) {
+                  valueProp = from;
+                  onChangeHandler = handleFromChange;
+                  wrapperRef = fromRef;
+                  showDropdown = showFromDropdown;
+                } else if (isToField) {
+                  valueProp = to;
+                  onChangeHandler = handleToChange;
+                  wrapperRef = toRef;
+                  showDropdown = showToDropdown;
+                }
+
+                const todayDay = field.type === "date" ? day : field.below;
+
+                return (
+                  <div
+                    key={fieldIdx}
+                    ref={wrapperRef}
+                    className="relative"
+                  >
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">
+                      {field.label}
+                    </label>
+                    
+                    <input
+                      id={field.name}
+                      className={`w-full px-3 py-2.5 text-sm border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-lime-400 focus:border-transparent transition-all bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100 hover:border-slate-300 dark:hover:border-slate-500 ${isNumberField && 'w-20'}`}
+                      placeholder={field.mid || `Enter ${field.label.toLowerCase()}`}
+                      type={field.type || "text"}
+                      defaultValue={valueProp !== undefined ? undefined : (field.type === "date" ? today : field.mid)}
+                      value={valueProp}
+                      onChange={onChangeHandler}
+                      onFocus={() => {
+                        if (isFromField && from.length > 1) setShowFromDropdown(true);
+                        if (isToField && to.length > 1) setShowToDropdown(true);
                       }}
-                      className="px-3 py-2 text-sm text-slate-700 hover:bg-lime-50 hover:text-lime-700 cursor-pointer transition-colors border-b border-slate-100 last:border-b-0"
-                    >
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              )}
+                      ref={(el) => { inputRefs.current[field.name] = el; }}
+                      autoComplete="off"
+                    />
+                    
+                    {todayDay && (
+                      <p className="text-slate-400 mt-1 text-xs">{todayDay}</p>
+                    )}
+
+                    {/* Suggestions Dropdown */}
+                    {showDropdown && (
+                      <ul className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                        {service === 'flight' && isFromField && fromAirportSuggestions.map((airport, index) => (
+                          <li
+                            key={index}
+                            onClick={() => selectFrom(airport)}
+                            className="px-3 py-2 text-sm text-slate-700 hover:bg-lime-50 hover:text-lime-700 cursor-pointer transition-colors border-b border-slate-100 last:border-b-0"
+                          >
+                            <div className="font-medium">{airport.displayText || `${airport.city} (${airport.iataCode})`}</div>
+                            <div className="text-xs text-slate-500">{airport.name}</div>
+                          </li>
+                        ))}
+                        {service === 'flight' && isToField && toAirportSuggestions.map((airport, index) => (
+                          <li
+                            key={index}
+                            onClick={() => selectTo(airport)}
+                            className="px-3 py-2 text-sm text-slate-700 hover:bg-lime-50 hover:text-lime-700 cursor-pointer transition-colors border-b border-slate-100 last:border-b-0"
+                          >
+                            <div className="font-medium">{airport.displayText || `${airport.city} (${airport.iataCode})`}</div>
+                            <div className="text-xs text-slate-500">{airport.name}</div>
+                          </li>
+                        ))}
+                        {service !== 'flight' && (isFromField ? 
+                          allDestinations.filter(d => d.toLowerCase().includes(from.toLowerCase())) :
+                          allDestinations.filter(d => d.toLowerCase().includes(to.toLowerCase()))
+                        ).slice(0, 5).map((item, index) => (
+                          <li
+                            key={index}
+                            onClick={() => {
+                              if (isFromField) selectFrom(item);
+                              else if (isToField) selectTo(item);
+                            }}
+                            className="px-3 py-2 text-sm text-slate-700 hover:bg-lime-50 hover:text-lime-700 cursor-pointer transition-colors border-b border-slate-100 last:border-b-0"
+                          >
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-          );
-        })}
-      </div>
-      
-      <div className="flex flex-row gap-3">
-        <button
-          onClick={handleSearch}
-          className="w-[70%] bg-gradient-to-r from-lime-500 to-lime-600 hover:from-lime-600 hover:to-lime-700 text-white font-semibold py-2.5 px-6 rounded-lg transition-all shadow-md hover:shadow-lg text-sm uppercase tracking-wide"
-        >
-          Search {service ? service.charAt(0).toUpperCase() + service.slice(1) : ""}
-        </button>
-        
-        {/* ENHANCED UNIQUE VOICE SEARCH BUTTON */}
-        <button
-          onClick={() => handleMic()}
-          className={`w-[30%] flex items-center justify-center gap-2 font-semibold py-2.5 px-6 rounded-lg transition-all text-sm uppercase tracking-wide border-2 text-white
-            ${isListening 
-              ? 'bg-rose-600 border-rose-600 shadow-[0_0_20px_rgba(225,29,72,0.7)] animate-pulse' 
-              : 'bg-slate-900 border-slate-900 hover:bg-rose-600 hover:border-rose-600 shadow-[0_0_15px_rgba(15,23,42,0.2)] hover:shadow-[0_0_25px_rgba(225,29,72,0.6)]'
-            }`}
-        >
-          {/* Animated red recording dot / Mic icon indicator */}
-          <span className={`w-2.5 h-2.5 rounded-full bg-current ${isListening ? 'animate-ping' : ''}`} />
-          {isListening ? 'Listening...' : 'Voice search'}
-        </button>
+          </div>
+          
+          <div className="flex flex-row gap-3">
+            <button
+              onClick={handleSearch}
+              className="flex-1 bg-gradient-to-r from-lime-500 to-lime-600 hover:from-lime-600 hover:to-lime-700 text-white font-semibold py-2.5 px-6 rounded-lg transition-all shadow-md hover:shadow-lg text-sm uppercase tracking-wide"
+            >
+              Search {service ? service.charAt(0).toUpperCase() + service.slice(1) : ""}
+            </button>
+            
+            <button
+              onClick={() => handleMic()}
+              className={`flex items-center justify-center gap-2 font-semibold py-2.5 px-6 rounded-lg transition-all text-sm uppercase tracking-wide border-2 text-white
+                ${isListening 
+                  ? 'bg-rose-600 border-rose-600 shadow-[0_0_20px_rgba(225,29,72,0.7)] animate-pulse' 
+                  : 'bg-slate-900 border-slate-900 hover:bg-rose-600 hover:border-rose-600 shadow-[0_0_15px_rgba(15,23,42,0.2)] hover:shadow-[0_0_25px_rgba(225,29,72,0.6)]'
+                }`}
+            >
+              <span className={`w-2.5 h-2.5 rounded-full bg-current ${isListening ? 'animate-ping' : ''}`} />
+              {isListening ? 'Listening...' : 'Voice search'}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

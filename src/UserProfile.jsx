@@ -75,11 +75,41 @@ export default function UserProfile() {
   }, []);
 
   // Maps older historical objects to match the high-fidelity Ticket view state schema
-  const handleViewTicketDetails = (b) => {
+  const handleViewTicketDetails = async (b) => {
     const totalFare = b.totalAmount || b.fare || 0;
     const seatsArray = Array.isArray(b.passengerDetails)
       ? b.passengerDetails.map(p => p.seatNumber)
       : (b.seatNumbers || []);
+
+    // Fetch payment details from backend
+    let paymentInfo = null;
+    try {
+      const paymentRes = await api.get(`/api/v1/payments/status/${b._id}`);
+      if (paymentRes.data?.success && paymentRes.data.data?.payment) {
+        const p = paymentRes.data.data.payment;
+        paymentInfo = {
+          razorpayOrderId: p.razorpayOrderId,
+          razorpayPaymentId: p.razorpayPaymentId,
+          amount: p.amount,
+          currency: p.currency,
+          status: p.status,
+          createdAt: p.createdAt,
+          refundId: p.refundId,
+          refundAmount: p.refundAmount,
+        };
+      }
+    } catch (err) {
+      console.error("Failed to fetch payment details:", err);
+      // Fallback: use basic payment info from booking
+      if (b.paymentReference) {
+        paymentInfo = {
+          razorpayPaymentId: b.paymentReference,
+          amount: totalFare,
+          currency: "INR",
+          status: b.paymentStatus || "SUCCESS",
+        };
+      }
+    }
 
     const statePayload = {
       ticket: {
@@ -92,12 +122,13 @@ export default function UserProfile() {
         bookedAt: b.bookedAt || b.createdAt || b.travelDate || new Date().toISOString()
       },
       meta: {
-        busName: b.busName || b.busDetails?.name || "Payanam Express",
-        boarding: b.boardingPoint || { city: b.source || "Origin", name: "Main Terminal", time: "Dep TBD" },
-        dropping: b.droppingPoint || { city: b.destination || "Destination", name: "Main Terminal", time: "Arr TBD" },
+        busName: b.busName || b.busDetails?.name || b.busId?.busName || "Payanam Express",
+        boarding: b.boardingPoint || { city: b.source || b.routeId?.source || "Origin", name: "Main Terminal", time: "Dep TBD" },
+        dropping: b.droppingPoint || { city: b.destination || b.routeId?.destination || "Destination", name: "Main Terminal", time: "Arr TBD" },
         passengers: Array.isArray(b.passengerDetails) 
           ? b.passengerDetails 
-          : seatsArray.map(seat => ({ name: "Passenger", seatNumber: seat, age: "N/A", gender: "N/A" }))
+          : seatsArray.map(seat => ({ name: "Passenger", seatNumber: seat, age: "N/A", gender: "N/A" })),
+        payment: paymentInfo,
       }
     };
 
@@ -516,7 +547,7 @@ export default function UserProfile() {
                             PNR: <span className="text-slate-900 dark:text-slate-100 group-hover:text-lime-600 dark:group-hover:text-lime-400 transition-colors">{bookingId}</span>
                           </span>
                           <div className="flex items-center gap-2">
-                            <span className={`px-2 py-0.5 rounded-md font-bold uppercase tracking-wider text-[9px] ${
+                            <span className={`px-2 py-0.5 rounded-md font-bold uppercase tracking-wider text-md ${
                               isCancelled 
                                 ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' 
                                 : 'bg-lime-100 dark:bg-lime-900/30 text-lime-800 dark:text-lime-400'
@@ -536,7 +567,7 @@ export default function UserProfile() {
                               <MapPin size={11} className="text-lime-500 dark:text-lime-400" /> Departure
                             </p>
                             <p className="text-base font-extrabold text-slate-900 dark:text-slate-100 truncate mt-0.5">{source}</p>
-                            <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 truncate">{b.boardingPoint?.name || ""}</p>
+                            <p className="text-lg font-bold text-slate-500 dark:text-slate-400 truncate">{b.boardingPoint?.name || ""}</p>
                             <p className="mt-1 text-[11px] font-bold text-slate-700 dark:text-slate-300">
                               <span className="inline-flex items-center gap-1"><Calendar size={10} /> {depDate}</span>
                               <span className="ml-2 text-lime-600 dark:text-lime-400">{depTime}</span>
@@ -558,7 +589,7 @@ export default function UserProfile() {
                               Arrival <MapPin size={11} className="text-red-400 dark:text-red-300" />
                             </p>
                             <p className="text-base font-extrabold text-slate-900 dark:text-slate-100 truncate mt-0.5">{destination}</p>
-                            <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 truncate">{b.droppingPoint?.name || ""}</p>
+                            <p className="text-lg font-bold text-slate-500 dark:text-slate-400 truncate">{b.droppingPoint?.name || ""}</p>
                             <p className="mt-1 text-[11px] font-bold text-slate-700 dark:text-slate-300">
                               <span className="text-red-500 dark:text-red-400">{arrTime}</span>
                             </p>
