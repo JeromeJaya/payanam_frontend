@@ -76,20 +76,44 @@ export default function FlightCheckoutPage() {
   useEffect(() => {
     if (paymentStatus === "success" && paymentData) {
       setBooking({ status: "success", message: "Flight booking confirmed!", data: paymentData });
+      
+      // Extract IATA codes from journey source/destination (e.g., "Delhi (DEL)" -> "DEL")
+      const sourceIATA = primaryFlight?.journey?.source?.match(/\(([^)]+)\)/)?.[1] || "";
+      const destIATA = primaryFlight?.journey?.destination?.match(/\(([^)]+)\)/)?.[1] || "";
+      const sourceCity = primaryFlight?.journey?.source?.split('(')[0]?.trim() || "";
+      const destCity = primaryFlight?.journey?.destination?.split('(')[0]?.trim() || "";
+      
       setTimeout(() => {
         navigate("/ticketdetails", {
           state: {
             ticket: paymentData.booking,
             meta: {
               flightName: primaryFlight?.flight?.airlineName || "Akasa Air",
-              boarding: primaryFlight?.journey?.source?.split('(')[0]?.trim(),
-              dropping: primaryFlight?.journey?.destination?.split('(')[0]?.trim(),
+              flightNumber: primaryFlight?.flight?.flightNumber || "",
+              aircraftType: primaryFlight?.flight?.aircraftType || "",
+              boarding: {
+                city: sourceCity,
+                name: primaryFlight?.journey?.departureTerminal || "Terminal",
+                time: primaryFlight?.journey?.departureTime || "",
+                iata: sourceIATA,
+                date: primaryFlight?.journey?.departureDate,
+              },
+              dropping: {
+                city: destCity,
+                name: primaryFlight?.journey?.arrivalTerminal || "Terminal",
+                time: primaryFlight?.journey?.arrivalTime || "",
+                iata: destIATA,
+                date: primaryFlight?.journey?.arrivalDate,
+              },
               passengers: selectedSeats?.map((seat, i) => ({
                 name: `Passenger ${i + 1}`,
                 seatNumber: seat.seatNumber,
+                age: 28,
+                gender: "male",
               })) || [],
               payment: paymentData.payment,
               tripType,
+              serviceType: "flight",
               allFlights: flightList,
             },
           },

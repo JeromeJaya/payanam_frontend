@@ -1,5 +1,5 @@
 import { useLocation, Link } from "react-router-dom";
-import { CheckCircle2, Download, ArrowLeft, Bus, Calendar, MapPin, User, Armchair, CreditCard, ShieldCheck, IndianRupee, Hash, Clock } from "lucide-react";
+import { CheckCircle2, Download, ArrowLeft, Bus, Plane, Calendar, MapPin, User, Armchair, CreditCard, ShieldCheck, IndianRupee, Hash, Clock } from "lucide-react";
 import Nav from "../../NavComponent.jsx";
 
 export default function TicketDetails() {
@@ -23,9 +23,33 @@ export default function TicketDetails() {
   }
 
   const { ticket, meta } = stateData;
+  
+  // Determine service type (flight or bus)
+  const isFlight = meta?.serviceType === "flight" || ticket?.bookingId?.startsWith("FLY-") || meta?.flightName;
+  const serviceType = isFlight ? "Flight" : "Bus";
+  const ServiceIcon = isFlight ? Plane : Bus;
+  const serviceName = isFlight 
+    ? (meta?.flightName || "Airline") 
+    : (meta?.busName || "Payanam Logistics");
+  const serviceNumber = isFlight 
+    ? (meta?.flightNumber || "") 
+    : (meta?.busNumber || "");
+  
+  // Get travel date from various possible sources
+  const travelDate = meta?.boarding?.date 
+    || ticket?.scheduleId?.departureDate 
+    || ticket?.journeyDate 
+    || ticket?.bookedAt;
+    
   const formattedDate = new Date(ticket.bookedAt).toLocaleDateString("en-IN", {
     weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
   });
+  
+  const travelDateFormatted = travelDate 
+    ? new Date(travelDate).toLocaleDateString("en-IN", {
+        weekday: "short", day: "numeric", month: "short", year: "numeric"
+      })
+    : "N/A";
 
   // Native Trigger: Opens standard OS dialog defaulting to "Save as PDF" format cleanly
   const handleDownloadPDF = () => {
@@ -71,9 +95,10 @@ export default function TicketDetails() {
           {/* Top Decorative Branding Bar */}
           <div className="bg-gradient-to-r from-lime-500 to-lime-600 px-6 py-5 text-white flex justify-between items-center print:bg-lime-600">
             <div>
-              <span className="text-[10px] uppercase font-bold tracking-widest text-lime-100 block">E-Ticket Voucher</span>
+              <span className="text-[10px] uppercase font-bold tracking-widest text-lime-100 block">{serviceType} E-Ticket Voucher</span>
               <h3 className="text-lg font-black tracking-tight mt-0.5 flex items-center gap-1.5">
-                <Bus size={18} /> {meta?.busName || "Payanam Logistics"}
+                <ServiceIcon size={18} /> {serviceName}
+                {serviceNumber && <span className="text-sm font-medium opacity-80">({serviceNumber})</span>}
               </h3>
             </div>
             <div className="text-right">
@@ -93,14 +118,7 @@ export default function TicketDetails() {
                 <Calendar size={10} /> Travel Date
               </span>
               <p className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
-                {ticket.scheduleId?.departureDate
-                  ? new Date(ticket.scheduleId.departureDate).toLocaleDateString("en-IN", {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })
-                  : "N/A"}
+                {travelDateFormatted}
               </p>
             </div>
 
@@ -108,10 +126,15 @@ export default function TicketDetails() {
               <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1">
                 <MapPin size={10} /> Boarding Point
               </span>
-              <p className="text-base font-extrabold text-slate-900 dark:text-slate-100 mt-1">{meta?.boarding?.city || "Origin Point"}</p>
-              <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 font-medium">{meta?.boarding?.name}</p>
+              <p className="text-base font-extrabold text-slate-900 dark:text-slate-100 mt-1">
+                {typeof meta?.boarding === 'object' ? (meta.boarding.city || "Origin Point") : (meta?.boarding || "Origin Point")}
+              </p>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 font-medium">
+                {typeof meta?.boarding === 'object' ? (meta.boarding.name || "Terminal") : "Main Terminal"}
+                {typeof meta?.boarding === 'object' && meta.boarding.iata && ` (${meta.boarding.iata})`}
+              </p>
               <span className="inline-block mt-2 text-xs bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 px-2 py-0.5 rounded-md font-bold print:border print:border-slate-200">
-                ⏰ {meta?.boarding?.time || "N/A"}
+                ⏰ {typeof meta?.boarding === 'object' ? (meta.boarding.time || "N/A") : (meta?.boarding?.time || "N/A")}
               </span>
             </div>
 
@@ -119,10 +142,15 @@ export default function TicketDetails() {
               <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500 flex items-center justify-end gap-1">
                 <MapPin size={10} /> Dropping Point
               </span>
-              <p className="text-base font-extrabold text-slate-900 dark:text-slate-100 mt-1">{meta?.dropping?.city || "Destination Point"}</p>
-              <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 font-medium">{meta?.dropping?.name}</p>
+              <p className="text-base font-extrabold text-slate-900 dark:text-slate-100 mt-1">
+                {typeof meta?.dropping === 'object' ? (meta.dropping.city || "Destination Point") : (meta?.dropping || "Destination Point")}
+              </p>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 font-medium">
+                {typeof meta?.dropping === 'object' ? (meta.dropping.name || "Terminal") : "Main Terminal"}
+                {typeof meta?.dropping === 'object' && meta.dropping.iata && ` (${meta.dropping.iata})`}
+              </p>
               <span className="inline-block mt-2 text-xs bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 px-2 py-0.5 rounded-md font-bold print:border print:border-slate-200">
-                ⏰ {meta?.dropping?.time || "N/A"}
+                ⏰ {typeof meta?.dropping === 'object' ? (meta.dropping.time || "N/A") : (meta?.dropping?.time || "N/A")}
               </span>
             </div>
 

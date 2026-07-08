@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom"; // IMPORTED useNavigate
-import { Calendar, Armchair, Ticket, MapPin, Eye, Trash2, Camera } from "lucide-react"; 
+import { Calendar, Armchair, Ticket, MapPin, Eye, Trash2, Camera, Bus, Plane } from "lucide-react"; 
 import Nav from "./NavComponent.jsx";
 import api from "./api/axios.js";
 import { useAuth } from "./context/AuthContext.jsx";
@@ -81,6 +81,9 @@ export default function UserProfile() {
       ? b.passengerDetails.map(p => p.seatNumber)
       : (b.seatNumbers || []);
 
+    // Determine if this is a flight or bus booking
+    const isFlightBooking = b.bookingId?.startsWith("FLY-") || b.serviceType === "flight";
+    
     // Fetch payment details from backend
     let paymentInfo = null;
     try {
@@ -111,6 +114,30 @@ export default function UserProfile() {
       }
     }
 
+    // Build boarding/dropping info based on service type
+    let boarding, dropping;
+    if (isFlightBooking) {
+      // Flight booking - extract from scheduleId or use flight-specific fields
+      boarding = {
+        city: b.boardingPoint?.city || b.source || b.routeId?.source || "Origin",
+        name: b.boardingPoint?.name || "Airport",
+        time: b.scheduleId?.departureTime || b.boardingPoint?.time || "",
+        iata: b.boardingPoint?.iata || "",
+        date: b.scheduleId?.departureDate || b.travelDate,
+      };
+      dropping = {
+        city: b.droppingPoint?.city || b.destination || b.routeId?.destination || "Destination",
+        name: b.droppingPoint?.name || "Airport",
+        time: b.scheduleId?.arrivalTime || b.droppingPoint?.time || "",
+        iata: b.droppingPoint?.iata || "",
+        date: b.scheduleId?.arrivalDate,
+      };
+    } else {
+      // Bus booking - use existing structure
+      boarding = b.boardingPoint || { city: b.source || b.routeId?.source || "Origin", name: "Main Terminal", time: b.scheduleId?.departureTime || "Dep TBD" };
+      dropping = b.droppingPoint || { city: b.destination || b.routeId?.destination || "Destination", name: "Main Terminal", time: b.scheduleId?.arrivalTime || "Arr TBD" };
+    }
+
     const statePayload = {
       ticket: {
         bookingId: b.bookingId || "N/A",
@@ -123,13 +150,20 @@ export default function UserProfile() {
         scheduleId: b.scheduleId || null,
       },
       meta: {
-        busName: b.busName || b.busDetails?.name || b.busId?.busName || "Payanam Express",
-        boarding: b.boardingPoint || { city: b.source || b.routeId?.source || "Origin", name: "Main Terminal", time: "Dep TBD" },
-        dropping: b.droppingPoint || { city: b.destination || b.routeId?.destination || "Destination", name: "Main Terminal", time: "Arr TBD" },
+        // Flight-specific fields
+        flightName: isFlightBooking ? (b.busId?.airlineName || b.flightId?.airlineName || "Airline") : undefined,
+        flightNumber: isFlightBooking ? (b.flightNumber || b.busId?.flightNumber || "") : undefined,
+        aircraftType: isFlightBooking ? (b.busId?.aircraftType || b.flightId?.aircraftType || "") : undefined,
+        // Bus-specific fields
+        busName: !isFlightBooking ? (b.busName || b.busDetails?.name || b.busId?.busName || "Payanam Express") : undefined,
+        // Common fields
+        boarding,
+        dropping,
         passengers: Array.isArray(b.passengerDetails) 
           ? b.passengerDetails 
           : seatsArray.map(seat => ({ name: "Passenger", seatNumber: seat, age: "N/A", gender: "N/A" })),
         payment: paymentInfo,
+        serviceType: isFlightBooking ? "flight" : "bus",
       }
     };
 
@@ -523,6 +557,15 @@ export default function UserProfile() {
                     const destination = b.droppingPoint?.city || b.routeId?.destination || b.destination || "Destination";
                     const totalFare = b.totalFare || b.totalAmount || b.fare || 0;
                     const isCancelled = b.status?.toLowerCase() === 'cancelled' || b.bookingStatus?.toLowerCase() === 'cancelled';
+                    
+                    // Determine if flight or bus
+                    const isFlight = bookingId?.startsWith("FLY-") || b.serviceType === "flight";
+                    const ServiceIcon = isFlight ? Plane : Bus;
+                    const serviceLabel = isFlight ? "Flight" : "Bus";
+                    const serviceName = isFlight 
+                      ? (b.busId?.airlineName || b.flightId?.airlineName || "Airline")
+                      : (b.busId?.busName || b.busName || "");
+                    const serviceType = isFlight ? (b.busId?.aircraftType || "") : (b.busId?.busType || "Bus");
 
                     // Departure / arrival date+time from the populated schedule
                     const depDate = b.scheduleId?.departureDate
@@ -577,11 +620,15 @@ export default function UserProfile() {
 
                           {/* Journey indicator */}
                           <div className="flex flex-col items-center px-3 flex-shrink-0 max-w-[100px]">
-                            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-0.5">{b.busId?.busType || "Bus"}</span>
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-0.5 flex items-center gap-1">
+                              <ServiceIcon size={10} /> {serviceLabel}
+                            </span>
                             <div className="w-full h-[2px] bg-slate-200 dark:bg-slate-600 relative my-1">
-                              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-sm bg-slate-50 dark:bg-slate-800 group-hover:bg-white dark:group-hover:bg-slate-700 px-1 transition-colors">🚌</div>
+                              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-sm bg-slate-50 dark:bg-slate-800 group-hover:bg-white dark:group-hover:bg-slate-700 px-1 transition-colors">
+                                {isFlight ? "✈️" : "🚌"}
+                              </div>
                             </div>
-                            <span className="text-[9px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">{b.busId?.busName || b.busName || ""}</span>
+                            <span className="text-[9px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">{serviceName}</span>
                           </div>
 
                           {/* Arrival */}
