@@ -119,7 +119,8 @@ export default function UserProfile() {
         paymentReference: b.paymentReference || "MOCK-REF-HISTORY",
         totalFare: totalFare,
         bookedSeats: seatsArray,
-        bookedAt: b.bookedAt || b.createdAt || b.travelDate || new Date().toISOString()
+        bookedAt: b.bookedAt || b.createdAt || b.travelDate || new Date().toISOString(),
+        scheduleId: b.scheduleId || null,
       },
       meta: {
         busName: b.busName || b.busDetails?.name || b.busId?.busName || "Payanam Express",

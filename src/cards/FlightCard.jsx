@@ -49,9 +49,11 @@ function calculateDuration(departure, arrival) {
 export default function FlightCard({ 
   flight, 
   isCompared = false, 
+  isSelected = false,
   onAddToCompare = () => {}, 
   onRemoveFromCompare = () => {},
-  onToggleCompareSidebar = () => {}
+  onToggleCompareSidebar = () => {},
+  onSelect = null
 }) {
   const [showDetails, setShowDetails] = useState(false);
   const [showPriceModal, setShowPriceModal] = useState(false);
@@ -96,7 +98,19 @@ export default function FlightCard({
   const bottomPromoText = flight?.promotions?.[0] || "";
 
   return (
-    <div className="w-full bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-xl shadow-md dark:shadow-slate-900/30 hover:shadow-lg transition-all duration-300 font-sans text-gray-900 dark:text-slate-100 overflow-hidden mb-4">
+    <div className={`w-full bg-white dark:bg-slate-800 border rounded-xl shadow-md dark:shadow-slate-900/30 hover:shadow-lg transition-all duration-300 font-sans text-gray-900 dark:text-slate-100 overflow-hidden mb-4 ${
+      isSelected ? 'border-blue-500 ring-2 ring-blue-200 dark:ring-blue-800' : 'border-gray-100 dark:border-slate-700'
+    }`}>
+      
+      {/* Selection indicator */}
+      {isSelected && (
+        <div className="bg-blue-600 text-white text-xs font-bold px-3 py-1 flex items-center gap-1">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+          </svg>
+          Selected
+        </div>
+      )}
       
       {/* 1. Top Mini Banner Accent */}
       {topPromoText && (
@@ -207,10 +221,16 @@ export default function FlightCard({
             </button>
 
             <button 
-              onClick={() => setShowPriceModal(true)}
+              onClick={() => {
+                if (onSelect) {
+                  onSelect();
+                } else {
+                  setShowPriceModal(true);
+                }
+              }}
               className="bg-blue-600 border border-blue-600 text-white hover:bg-blue-700 active:scale-[0.98] font-extrabold text-xs px-4 sm:px-5 py-2.5 rounded-xl transition-all uppercase tracking-wide shadow-md shadow-blue-100 whitespace-nowrap focus:outline-none"
             >
-              View Prices
+              {onSelect ? (isSelected ? 'Selected' : 'Select') : 'View Prices'}
             </button>
           </div>
 

@@ -2,9 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import api from "../api/axios";
 import { X, Plus, Trash2, MapPin } from "lucide-react";
 
-export default function CreateRouteForm({ buses, onClose, onSuccess }) {
+export default function CreateRouteForm({ buses, onClose, onSuccess, initialBusId }) {
   const [formData, setFormData] = useState({
-    busId: "",
+    busId: initialBusId || "",
     source: { city: "", state: "" },
     destination: { city: "", state: "" },
     stops: [],

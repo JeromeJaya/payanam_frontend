@@ -86,6 +86,24 @@ export default function TicketDetails() {
 
           {/* Upper Section: Route & Time Context */}
           <div className="p-6 grid grid-cols-2 gap-6 border-b border-dashed border-slate-200 dark:border-slate-600 relative">
+            
+            {/* Travel Date Section */}
+            <div className="col-span-2 mb-2">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1 mb-1">
+                <Calendar size={10} /> Travel Date
+              </span>
+              <p className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                {ticket.scheduleId?.departureDate
+                  ? new Date(ticket.scheduleId.departureDate).toLocaleDateString("en-IN", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })
+                  : "N/A"}
+              </p>
+            </div>
+
             <div>
               <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1">
                 <MapPin size={10} /> Boarding Point
@@ -164,15 +182,15 @@ export default function TicketDetails() {
                 </div>
 
                  {/* Amount Paid */}
-                 <div className="bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-600 print:border-slate-300 rounded-xl p-3 shadow-3xs print:shadow-none">
-                   <div className="flex items-center gap-1.5 mb-1">
-                     <IndianRupee size={10} className="text-slate-400 dark:text-slate-500" />
-                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Amount Paid</span>
-                   </div>
-                   <p className="text-sm font-black text-emerald-700 dark:text-emerald-400">
-                     ₹{(meta.payment?.amount || ticket.totalFare || 0).toLocaleString()} <span className="text-lg font-medium text-slate-500 dark:text-slate-400 ml-1">{meta.payment?.currency || "INR"}</span>
-                   </p>
-                 </div>
+                <div className="bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-600 print:border-slate-300 rounded-xl p-3 shadow-3xs print:shadow-none">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <IndianRupee size={10} className="text-slate-400 dark:text-slate-500" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Amount Paid</span>
+                  </div>
+                  <p className="text-sm font-black text-emerald-700 dark:text-emerald-400">
+                    ₹{(meta.payment?.amount || ticket.totalFare || 0).toLocaleString()} <span className="text-lg font-medium text-slate-500 dark:text-slate-400 ml-1">{meta.payment?.currency || "INR"}</span>
+                  </p>
+                </div>
 
                 {/* Payment Status */}
                 <div className="bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-600 print:border-slate-300 rounded-xl p-3 shadow-3xs print:shadow-none">

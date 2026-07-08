@@ -34,6 +34,25 @@ export default function FlightBooking(){
   const [date, setDate] = useState(dateParam);
   const [hasSearched, setHasSearched] = useState(false);
 
+  // Trip type states
+  const [tripType, setTripType] = useState('One Way');
+  const [returnDate, setReturnDate] = useState('');
+  const [multiCityLegs, setMultiCityLegs] = useState([]);
+
+  // Return flights for round-trip
+  const [returnFlights, setReturnFlights] = useState([]);
+  const [allReturnFlights, setAllReturnFlights] = useState([]);
+  const [loadingReturn, setLoadingReturn] = useState(false);
+
+  // Multi-city results (array of flight arrays per leg)
+  const [multiCityResults, setMultiCityResults] = useState([]);
+  const [loadingMultiCity, setLoadingMultiCity] = useState(false);
+
+  // Selected flights for round-trip and multi-city
+  const [selectedOutbound, setSelectedOutbound] = useState(null);
+  const [selectedReturn, setSelectedReturn] = useState(null);
+  const [selectedMultiCityFlights, setSelectedMultiCityFlights] = useState([]); // One per leg
+
   // Show message if required fields are missing (don't redirect to allow filters to work)
   const showSearchPrompt = !from || !to || !date;
   const [flights, setFlights] = useState([]);
@@ -137,27 +156,72 @@ export default function FlightBooking(){
     return sorted;
   };
 
-  const handleFetchFlights = async (searchFrom, searchTo, searchDate) => {
+  const handleFetchFlights = async (searchFrom, searchTo, searchDate, searchTripType, searchLegs, searchReturnDate) => {
     // Use passed values or fall back to state
     const fromVal = searchFrom || from;
     const toVal = searchTo || to;
     const dateVal = searchDate || date;
+    const tripTypeVal = searchTripType || tripType;
+    const returnDateVal = searchReturnDate || returnDate;
+    const legsVal = searchLegs || multiCityLegs;
 
+    // Update trip type state
+    setTripType(tripTypeVal);
+    if (returnDateVal) setReturnDate(returnDateVal);
+    if (legsVal) setMultiCityLegs(legsVal);
+
+    // Handle Multi-City search
+    if (tripTypeVal === 'Multi City' && legsVal && legsVal.length > 0) {
+      setLoadingMultiCity(true);
+      setHasSearched(true);
+      const results = [];
+
+      try {
+        for (const leg of legsVal) {
+          const params = { 
+            from: leg.fromIata || leg.from, 
+            to: leg.toIata || leg.to, 
+            date: leg.date 
+          };
+          
+          const res = await api.get("/api/v1/flights/search", { params });
+          const flightData = res?.data?.data || [];
+          results.push(flightData);
+        }
+        setMultiCityResults(results);
+        setSelectedMultiCityFlights(new Array(legsVal.length).fill(null));
+      } catch (err) {
+        console.error("Error fetching multi-city flights:", err);
+        setMultiCityResults([]);
+      } finally {
+        setLoadingMultiCity(false);
+      }
+      return;
+    }
+
+    // Handle One-Way or Round-Trip search
     if (!fromVal || !toVal || !dateVal) {
       console.warn("Missing required search parameters", { fromVal, toVal, dateVal });
       return;
     }
 
+    setHasSearched(true);
     const storageKey = getStorageKey(fromVal, toVal, dateVal);
     const cachedData = sessionStorage.getItem(storageKey);
 
-    if (cachedData) {
+    if (cachedData && tripTypeVal !== 'Round Trip') {
       // Use cached data from sessionStorage - apply filters and sort client-side
       const allFlightData = JSON.parse(cachedData);
       setAllFlights(allFlightData);
       const filtered = applyFilters(allFlightData);
       const sorted = applySorting(filtered);
       setFlights(sorted);
+      
+      // Clear return flights if not round trip
+      if (tripTypeVal !== 'Round Trip') {
+        setReturnFlights([]);
+        setAllReturnFlights([]);
+      }
       return;
     }
 
@@ -190,6 +254,29 @@ export default function FlightBooking(){
       }
       
       setFlights(filteredData);
+
+      // Handle Round-Trip: fetch return flights
+      if (tripTypeVal === 'Round Trip' && returnDateVal) {
+        setLoadingReturn(true);
+        try {
+          const returnParams = { 
+            from: toVal,  // Swap origin and destination for return
+            to: fromVal, 
+            date: returnDateVal 
+          };
+          
+          const returnRes = await api.get("/api/v1/flights/search", { params: returnParams });
+          const returnData = returnRes?.data?.data || [];
+          setAllReturnFlights(returnData);
+          setReturnFlights(returnData);
+        } catch (err) {
+          console.error("Error fetching return flights:", err);
+          setReturnFlights([]);
+          setAllReturnFlights([]);
+        } finally {
+          setLoadingReturn(false);
+        }
+      }
     } catch (err) {
       console.error("Error fetching flights:", err);
       setFlights([]);
@@ -297,6 +384,9 @@ export default function FlightBooking(){
           onFromChange={setFrom}
           onToChange={setTo}
           onDateChange={setDate}
+          onTripTypeChange={setTripType}
+          onReturnDateChange={setReturnDate}
+          onMultiCityLegsChange={setMultiCityLegs}
           searchData={searchData}
           handleFetchFlights={handleFetchFlights}
           serviceType={serviceType}
@@ -438,7 +528,208 @@ export default function FlightBooking(){
                           </div>
                         </div>
                       </div>
+                    ) : tripType === 'Multi City' ? (
+                      /* Multi-City Results Display */
+                      <div className="space-y-6">
+                        {loadingMultiCity ? (
+                          <div className="text-center py-12">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                            <p className="text-gray-600 dark:text-slate-400">Searching flights for all legs...</p>
+                          </div>
+                        ) : multiCityResults.length > 0 ? (
+                          <>
+                            {multiCityResults.map((legFlights, legIndex) => (
+                              <div key={legIndex} className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-4">
+                                <div className="flex items-center justify-between mb-4">
+                                  <h3 className="text-lg font-bold text-gray-900 dark:text-slate-100">
+                                    Leg {legIndex + 1}: {multiCityLegs[legIndex]?.from} → {multiCityLegs[legIndex]?.to}
+                                  </h3>
+                                  <span className="text-sm text-gray-500 dark:text-slate-400">
+                                    {multiCityLegs[legIndex]?.date}
+                                  </span>
+                                </div>
+                                {selectedMultiCityFlights[legIndex] ? (
+                                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-3">
+                                    <p className="text-sm font-bold text-green-700 dark:text-green-300">Selected Flight</p>
+                                    <FlightCard 
+                                      flight={selectedMultiCityFlights[legIndex]}
+                                      isSelected={true}
+                                    />
+                                  </div>
+                                ) : null}
+                                <div className="space-y-3">
+                                  {legFlights.length > 0 ? legFlights.map((flight) => (
+                                    <div 
+                                      key={flight.scheduleId || flight._id}
+                                      onClick={() => {
+                                        const newSelected = [...selectedMultiCityFlights];
+                                        newSelected[legIndex] = flight;
+                                        setSelectedMultiCityFlights(newSelected);
+                                      }}
+                                      className={`cursor-pointer transition-all ${
+                                        selectedMultiCityFlights[legIndex]?._id === flight._id 
+                                          ? 'ring-2 ring-blue-500' 
+                                          : 'hover:shadow-lg'
+                                      }`}
+                                    >
+                                      <FlightCard 
+                                        flight={flight}
+                                        isSelected={selectedMultiCityFlights[legIndex]?._id === flight._id}
+                                        onSelect={() => {
+                                          const newSelected = [...selectedMultiCityFlights];
+                                          newSelected[legIndex] = flight;
+                                          setSelectedMultiCityFlights(newSelected);
+                                        }}
+                                      />
+                                    </div>
+                                  )) : (
+                                    <p className="text-gray-500 dark:text-slate-400 text-center py-4">No flights available for this leg</p>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                            
+                            {/* Continue Button for Multi-City */}
+                            {selectedMultiCityFlights.every(f => f !== null) && (
+                              <div className="sticky bottom-4 bg-white dark:bg-slate-800 rounded-xl shadow-lg p-4 flex items-center justify-between">
+                                <div>
+                                  <p className="text-sm text-gray-600 dark:text-slate-400">Total Price</p>
+                                  <p className="text-2xl font-bold text-gray-900 dark:text-slate-100">
+                                    ₹{selectedMultiCityFlights.reduce((sum, f) => sum + (f.pricing?.calculatedFare || f.pricing?.baseFare || 0), 0).toLocaleString()}
+                                  </p>
+                                </div>
+                                <button
+                                  onClick={() => {
+                                    navigate('/flight-checkout', {
+                                      state: {
+                                        flights: selectedMultiCityFlights,
+                                        tripType: 'Multi City',
+                                        legs: multiCityLegs,
+                                        fare: { price: selectedMultiCityFlights.reduce((sum, f) => sum + (f.pricing?.calculatedFare || f.pricing?.baseFare || 0), 0) },
+                                        selectedSeats: [],
+                                        scheduleId: selectedMultiCityFlights[0]?.scheduleId || selectedMultiCityFlights[0]?._id
+                                      }
+                                    });
+                                  }}
+                                  className="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors"
+                                >
+                                  Continue to Booking
+                                </button>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="text-center py-12 text-gray-600 dark:text-slate-400">
+                            No flights found for the selected routes.
+                          </div>
+                        )}
+                      </div>
+                    ) : tripType === 'Round Trip' ? (
+                      /* Round-Trip Results Display */
+                      <div className="space-y-6">
+                        {/* Outbound Flights */}
+                        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-4">
+                          <h3 className="text-lg font-bold text-gray-900 dark:text-slate-100 mb-4">
+                            Outbound: {from} → {to} ({date})
+                          </h3>
+                          {selectedOutbound && (
+                            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-3">
+                              <p className="text-sm font-bold text-green-700 dark:text-green-300 mb-2">Selected Outbound Flight</p>
+                              <FlightCard flight={selectedOutbound} isSelected={true} />
+                            </div>
+                          )}
+                          <div className="space-y-3">
+                            {Array.isArray(flights) && flights.length > 0 ? flights.map((flight) => (
+                              <div 
+                                key={flight.scheduleId || flight._id}
+                                onClick={() => setSelectedOutbound(flight)}
+                                className={`cursor-pointer transition-all ${
+                                  selectedOutbound?._id === flight._id ? 'ring-2 ring-blue-500' : 'hover:shadow-lg'
+                                }`}
+                              >
+                                <FlightCard 
+                                  flight={flight}
+                                  isSelected={selectedOutbound?._id === flight._id}
+                                  onSelect={() => setSelectedOutbound(flight)}
+                                />
+                              </div>
+                            )) : (
+                              <p className="text-gray-500 dark:text-slate-400 text-center py-4">No outbound flights available</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Return Flights */}
+                        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-4">
+                          <h3 className="text-lg font-bold text-gray-900 dark:text-slate-100 mb-4">
+                            Return: {to} → {from} ({returnDate})
+                          </h3>
+                          {loadingReturn ? (
+                            <div className="text-center py-8">
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                              <p className="text-gray-500 dark:text-slate-400">Loading return flights...</p>
+                            </div>
+                          ) : selectedReturn ? (
+                            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-3">
+                              <p className="text-sm font-bold text-green-700 dark:text-green-300 mb-2">Selected Return Flight</p>
+                              <FlightCard flight={selectedReturn} isSelected={true} />
+                            </div>
+                          ) : null}
+                          <div className="space-y-3">
+                            {Array.isArray(returnFlights) && returnFlights.length > 0 ? returnFlights.map((flight) => (
+                              <div 
+                                key={flight.scheduleId || flight._id}
+                                onClick={() => setSelectedReturn(flight)}
+                                className={`cursor-pointer transition-all ${
+                                  selectedReturn?._id === flight._id ? 'ring-2 ring-blue-500' : 'hover:shadow-lg'
+                                }`}
+                              >
+                                <FlightCard 
+                                  flight={flight}
+                                  isSelected={selectedReturn?._id === flight._id}
+                                  onSelect={() => setSelectedReturn(flight)}
+                                />
+                              </div>
+                            )) : (
+                              <p className="text-gray-500 dark:text-slate-400 text-center py-4">No return flights available</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Continue Button for Round-Trip */}
+                        {selectedOutbound && selectedReturn && (
+                          <div className="sticky bottom-4 bg-white dark:bg-slate-800 rounded-xl shadow-lg p-4 flex items-center justify-between">
+                            <div>
+                              <p className="text-sm text-gray-600 dark:text-slate-400">Total Price (Round Trip)</p>
+                              <p className="text-2xl font-bold text-gray-900 dark:text-slate-100">
+                                ₹{((selectedOutbound.pricing?.calculatedFare || selectedOutbound.pricing?.baseFare || 0) + 
+                                   (selectedReturn.pricing?.calculatedFare || selectedReturn.pricing?.baseFare || 0)).toLocaleString()}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => {
+                                navigate('/flight-checkout', {
+                                  state: {
+                                    flights: [selectedOutbound, selectedReturn],
+                                    tripType: 'Round Trip',
+                                    fare: { 
+                                      price: (selectedOutbound.pricing?.calculatedFare || selectedOutbound.pricing?.baseFare || 0) + 
+                                             (selectedReturn.pricing?.calculatedFare || selectedReturn.pricing?.baseFare || 0)
+                                    },
+                                    selectedSeats: [],
+                                    scheduleId: selectedOutbound.scheduleId || selectedOutbound._id
+                                  }
+                                });
+                              }}
+                              className="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors"
+                            >
+                              Continue to Booking
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     ) : Array.isArray(flights) && flights.length > 0 ? (
+                      /* One-Way Results Display */
                       flights.map((flight) => (
                         <div key={flight.scheduleId || flight.id || flight.flightNumber} className="bg-white dark:bg-slate-800 w-full h-auto mb-3 rounded-3xl shadow-xl dark:shadow-slate-900/30">
                          <FlightCard 

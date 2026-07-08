@@ -2,16 +2,20 @@ import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Nav from "../../NavComponent.jsx";
 import api from "../../api/axios";
+import { useAuth } from "../../context/AuthContext";
 
 export default function FlightSeatSelection() {
   const location = useLocation();
   const navigate = useNavigate();
   const { flight, fare, scheduleId } = location.state || {};
+  const { isAuthenticated } = useAuth();
   
   const [seats, setSeats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedSeats, setSelectedSeats] = useState([]);
   const [activeTab, setActiveTab] = useState("seats");
+  const [blockingSeats, setBlockingSeats] = useState(false);
+  const [blockError, setBlockError] = useState("");
 
   useEffect(() => {
     fetchSeatLayout();
@@ -76,6 +80,50 @@ export default function FlightSeatSelection() {
     acc[row].push(seat);
     return acc;
   }, {});
+
+  // Handle continue - block seats before navigating to checkout
+  const handleContinue = async () => {
+    if (selectedSeats.length === 0) return;
+    
+    if (!isAuthenticated) {
+      navigate("/login", { 
+        state: { 
+          from: "/flight-seat-selection",
+          flight,
+          fare,
+          selectedSeats,
+          scheduleId
+        } 
+      });
+      return;
+    }
+
+    setBlockingSeats(true);
+    setBlockError("");
+
+    try {
+      // Block seats via API
+      const seatNumbers = selectedSeats.map(s => s.seatNumber);
+      await api.post(`/api/v1/flights/schedules/${scheduleId}/block-seats`, {
+        seatNumbers,
+      });
+
+      // Navigate to checkout with blocked seats
+      navigate('/flight-checkout', { 
+        state: { 
+          flight, 
+          fare,
+          selectedSeats,
+          scheduleId
+        } 
+      });
+    } catch (err) {
+      console.error("Failed to block seats:", err);
+      setBlockError(err.response?.data?.message || "Failed to reserve seats. Please try again.");
+    } finally {
+      setBlockingSeats(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -293,19 +341,29 @@ export default function FlightSeatSelection() {
                 </div>
               )}
             </div>
+            {/* Block Error Message */}
+            {blockError && (
+              <div className="mb-4 rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-600 font-medium">
+                ⚠️ {blockError}
+              </div>
+            )}
+
             <button 
-              onClick={() => navigate('/flight-checkout', { 
-                state: { 
-                  flight, 
-                  fare,
-                  selectedSeats,
-                  scheduleId
-                } 
-              })}
-              disabled={selectedSeats.length === 0}
-              className="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+              onClick={handleContinue}
+              disabled={selectedSeats.length === 0 || blockingSeats}
+              className="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
             >
-              CONTINUE
+              {blockingSeats ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                  </svg>
+                  Reserving...
+                </>
+              ) : (
+                "CONTINUE"
+              )}
             </button>
           </div>
         </div>
