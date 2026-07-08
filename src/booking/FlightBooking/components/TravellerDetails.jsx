@@ -1,13 +1,109 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { User, Plus, ChevronDown } from "lucide-react";
 
-export default function TravellerDetails() {
+export default function TravellerDetails({ onContactValidation }) {
   const [adults, setAdults] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
+  
+  // Contact details state
+  const [countryCode, setCountryCode] = useState("91");
+  const [mobile, setMobile] = useState("");
+  const [email, setEmail] = useState("");
+  
+  // Validation errors state
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
+
+  // Validation functions
+  const validateMobile = (value) => {
+    if (!value.trim()) {
+      return "Mobile number is required";
+    }
+    // Remove any non-digit characters for validation
+    const digitsOnly = value.replace(/\D/g, "");
+    if (digitsOnly.length < 10) {
+      return "Mobile number must be at least 10 digits";
+    }
+    if (digitsOnly.length > 15) {
+      return "Mobile number cannot exceed 15 digits";
+    }
+    // Indian mobile number validation (starts with 6-9)
+    if (countryCode === "91" && !/^[6-9]\d{9}$/.test(digitsOnly)) {
+      return "Invalid Indian mobile number";
+    }
+    return "";
+  };
+
+  const validateEmail = (value) => {
+    if (!value.trim()) {
+      return "Email is required";
+    }
+    // Basic email regex
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(value.trim())) {
+      return "Please enter a valid email address";
+    }
+    return "";
+  };
+
+  // Handle mobile change with validation
+  const handleMobileChange = (e) => {
+    const value = e.target.value;
+    // Only allow digits and common separators
+    const sanitized = value.replace(/[^\d+\-\s()]/g, "");
+    setMobile(sanitized);
+    setTouched(prev => ({ ...prev, mobile: true }));
+    
+    // Validate on change
+    const error = validateMobile(sanitized);
+    setErrors(prev => ({ ...prev, mobile: error }));
+  };
+
+  // Handle email change with validation
+  const handleEmailChange = (e) => {
+    const value = e.target.value;
+    setEmail(value);
+    setTouched(prev => ({ ...prev, email: true }));
+    
+    // Validate on change
+    const error = validateEmail(value);
+    setErrors(prev => ({ ...prev, email: error }));
+  };
+
+  // Handle blur (when field loses focus)
+  const handleBlur = (field) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
+    if (field === "mobile") {
+      const error = validateMobile(mobile);
+      setErrors(prev => ({ ...prev, mobile: error }));
+    } else if (field === "email") {
+      const error = validateEmail(email);
+      setErrors(prev => ({ ...prev, email: error }));
+    }
+  };
 
   const addAdult = () => {
     setShowAddForm(true);
   };
+
+  // Compute validation state - memoized to prevent unnecessary recalculations
+  const validationState = useMemo(() => {
+    const isValid = !errors.mobile && !errors.email && mobile.trim() && email.trim();
+    return {
+      isValid,
+      mobile,
+      email,
+      countryCode,
+      errors
+    };
+  }, [mobile, email, countryCode, errors.mobile, errors.email]);
+
+  // Notify parent component about validation state
+  useEffect(() => {
+    if (onContactValidation) {
+      onContactValidation(validationState);
+    }
+  }, [validationState.isValid, validationState.mobile, validationState.email, validationState.countryCode]);
 
   return (
     <div className="border border-gray-200 rounded-lg p-4 mb-4">
@@ -42,25 +138,52 @@ export default function TravellerDetails() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">Country Code</label>
-            <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
-              <option>India (91)</option>
+            <select 
+              value={countryCode}
+              onChange={(e) => setCountryCode(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+            >
+              <option value="91">India (91)</option>
+              <option value="1">USA (1)</option>
+              <option value="44">UK (44)</option>
+              <option value="65">Singapore (65)</option>
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Mobile No</label>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Mobile No *</label>
             <input 
               type="tel" 
-              placeholder="Mobile No" 
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              placeholder="10-digit mobile number" 
+              value={mobile}
+              onChange={handleMobileChange}
+              onBlur={() => handleBlur("mobile")}
+              className={`w-full border rounded-lg px-3 py-2 text-sm ${
+                touched.mobile && errors.mobile 
+                  ? "border-red-500 focus:ring-red-500 focus:border-red-500" 
+                  : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+              }`}
             />
+            {touched.mobile && errors.mobile && (
+              <p className="mt-1 text-xs text-red-500">{errors.mobile}</p>
+            )}
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Email *</label>
             <input 
               type="email" 
-              placeholder="Email" 
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              placeholder="your@email.com" 
+              value={email}
+              onChange={handleEmailChange}
+              onBlur={() => handleBlur("email")}
+              className={`w-full border rounded-lg px-3 py-2 text-sm ${
+                touched.email && errors.email 
+                  ? "border-red-500 focus:ring-red-500 focus:border-red-500" 
+                  : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+              }`}
             />
+            {touched.email && errors.email && (
+              <p className="mt-1 text-xs text-red-500">{errors.email}</p>
+            )}
           </div>
         </div>
 

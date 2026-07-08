@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Nav from "../../NavComponent.jsx";
 import { useAuth } from "../../context/AuthContext";
@@ -36,6 +36,31 @@ export default function FlightCheckoutPage() {
   const [adults, setAdults] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [booking, setBooking] = useState({ status: "idle", message: "", data: null });
+  
+  // Contact details validation state
+  const [contactValidation, setContactValidation] = useState({
+    isValid: false,
+    mobile: "",
+    email: "",
+    countryCode: "91",
+    errors: {}
+  });
+
+  // Handle contact validation from TravellerDetails component
+  const handleContactValidation = useCallback((validation) => {
+    setContactValidation(prev => {
+      // Only update if values actually changed to prevent unnecessary re-renders
+      if (
+        prev.isValid === validation.isValid &&
+        prev.mobile === validation.mobile &&
+        prev.email === validation.email &&
+        prev.countryCode === validation.countryCode
+      ) {
+        return prev;
+      }
+      return validation;
+    });
+  }, []);
 
   // Razorpay hook
   const {
@@ -130,7 +155,8 @@ export default function FlightCheckoutPage() {
     } else if (paymentStatus === "failed") {
       setBooking({ status: "error", message: paymentError || "Payment failed. Please try again." });
     }
-  }, [paymentStatus, paymentData, paymentError, navigate, primaryFlight, selectedSeats, tripType, flightList, passedPassengerDetails]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paymentStatus, paymentData, paymentError]);
 
   const handlePayAndBook = async () => {
     if (!hasSelectedSeats) return;
@@ -156,6 +182,26 @@ export default function FlightCheckoutPage() {
         });
         return;
       }
+    }
+
+    // Validate contact details (mobile and email)
+    if (!contactValidation.isValid) {
+      let errorMessage = "Please provide valid contact details.";
+      if (contactValidation.errors.mobile) {
+        errorMessage = `Mobile: ${contactValidation.errors.mobile}`;
+      } else if (contactValidation.errors.email) {
+        errorMessage = `Email: ${contactValidation.errors.email}`;
+      } else if (!contactValidation.mobile.trim()) {
+        errorMessage = "Mobile number is required.";
+      } else if (!contactValidation.email.trim()) {
+        errorMessage = "Email is required.";
+      }
+      setBooking({ 
+        status: "error", 
+        message: errorMessage, 
+        data: null 
+      });
+      return;
     }
 
     setBooking({ status: "loading", message: "Creating booking...", data: null });
@@ -200,8 +246,8 @@ export default function FlightCheckoutPage() {
             bookingMongoId: mongoId,
             amount: totalAmount,
             customerName: user?.name || "",
-            customerEmail: user?.email || "",
-            customerContact: user?.phoneNo || user?.mobile || "",
+            customerEmail: contactValidation.email || user?.email || "",
+            customerContact: contactValidation.mobile || user?.phoneNo || user?.mobile || "",
             description: `Flight Ticket (${tripType}) - ${primaryBooking.bookingId || primaryFlight.flight?.airlineName || "Flight"}`,
           });
         }
@@ -224,8 +270,8 @@ export default function FlightCheckoutPage() {
             bookingMongoId: mongoId,
             amount: totalAmount,
             customerName: user?.name || "",
-            customerEmail: user?.email || "",
-            customerContact: user?.phoneNo || user?.mobile || "",
+            customerEmail: contactValidation.email || user?.email || "",
+            customerContact: contactValidation.mobile || user?.phoneNo || user?.mobile || "",
             description: `Flight Ticket - ${bookingData.bookingId || primaryFlight.flight?.airlineName || "Flight"}`,
           });
         }
@@ -360,7 +406,7 @@ export default function FlightCheckoutPage() {
         <ImportantInfo />
 
         {/* Traveller Details */}
-        <TravellerDetails />
+        <TravellerDetails onContactValidation={handleContactValidation} />
 
         {/* Coupons and Offers */}
         <CouponsOffers />
@@ -471,15 +517,37 @@ export default function FlightCheckoutPage() {
               </button>
             ) : (
               <button
-                onClick={() => navigate('/flight-seat-selection', {
-                  state: {
+                onClick={() => {
+                  // Validate contact details before proceeding to seat selection
+                  if (!contactValidation.isValid) {
+                    let errorMessage = "Please provide valid contact details before selecting seats.";
+                    if (!contactValidation.mobile.trim()) {
+                      errorMessage = "Mobile number is required.";
+                    } else if (contactValidation.errors.mobile) {
+                      errorMessage = `Mobile: ${contactValidation.errors.mobile}`;
+                    } else if (!contactValidation.email.trim()) {
+                      errorMessage = "Email is required.";
+                    } else if (contactValidation.errors.email) {
+                      errorMessage = `Email: ${contactValidation.errors.email}`;
+                    }
+                    setBooking({ 
+                      status: "error", 
+                      message: errorMessage, 
+                      data: null 
+                    });
+                    return;
+                  }
+
+                  const seatSelectionState = {
                     flight: primaryFlight,
                     flights: flightList,
                     tripType,
                     fare: { price: primaryFlight?.pricing?.baseFare || fare?.price || 0 },
                     scheduleId: routeScheduleId || primaryFlight.scheduleId || primaryFlight._id
-                  }
-                })}
+                  };
+                  console.log("Navigating to seat selection with state:", seatSelectionState);
+                  navigate('/flight-seat-selection', { state: seatSelectionState });
+                }}
                 className="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors"
               >
                 SELECT SEAT

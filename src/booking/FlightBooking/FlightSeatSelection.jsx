@@ -17,10 +17,6 @@ export default function FlightSeatSelection() {
   const [blockingSeats, setBlockingSeats] = useState(false);
   const [blockError, setBlockError] = useState("");
 
-  useEffect(() => {
-    fetchSeatLayout();
-  }, []);
-
   const fetchSeatLayout = async () => {
     try {
       if (!scheduleId) {
@@ -29,11 +25,13 @@ export default function FlightSeatSelection() {
         return;
       }
 
+      console.log("Fetching seats for scheduleId:", scheduleId);
       const response = await api.get(`/api/v1/flights/schedules/${scheduleId}/seats`);
       console.log("Seat API response:", response.data);
       
       if (response.data?.data?.seats) {
         setSeats(response.data.data.seats);
+        console.log("Seats loaded:", response.data.data.seats.length);
       } else {
         console.warn("No seats found in response:", response.data);
         setSeats([]);
@@ -45,6 +43,18 @@ export default function FlightSeatSelection() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    console.log("FlightSeatSelection mounted with state:", { flight: !!flight, fare: !!fare, scheduleId });
+    
+    // Check if we have required data
+    if (!scheduleId) {
+      console.error("No scheduleId provided to seat selection");
+      setLoading(false);
+      return;
+    }
+    fetchSeatLayout();
+  }, [scheduleId]);
 
   const handleSeatClick = (seat) => {
     if (seat.status !== "AVAILABLE") return;
@@ -127,10 +137,13 @@ export default function FlightSeatSelection() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading seat layout...</p>
+      <div className="min-h-screen bg-gray-50">
+        <Nav />
+        <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 64px)' }}>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading seat layout...</p>
+          </div>
         </div>
       </div>
     );
@@ -139,15 +152,19 @@ export default function FlightSeatSelection() {
   // Show error if no scheduleId
   if (!scheduleId) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-600 font-semibold mb-4">No schedule information available</p>
-          <button 
-            onClick={() => navigate(-1)}
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold"
-          >
-            Go Back
-          </button>
+      <div className="min-h-screen bg-gray-50">
+        <Nav />
+        <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 64px)' }}>
+          <div className="text-center">
+            <p className="text-red-600 font-semibold mb-4">No schedule information available</p>
+            <p className="text-sm text-gray-500 mb-4">Please go back and select a flight first.</p>
+            <button 
+              onClick={() => navigate('/flightbooking')}
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700"
+            >
+              Go to Flight Booking
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -156,16 +173,19 @@ export default function FlightSeatSelection() {
   // Show message if no seats available
   if (seats.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-600 font-semibold mb-2">No seats available for this flight</p>
-          <p className="text-sm text-gray-500 mb-4">The seat layout may not be configured yet.</p>
-          <button 
-            onClick={() => navigate(-1)}
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold"
-          >
-            Go Back
-          </button>
+      <div className="min-h-screen bg-gray-50">
+        <Nav />
+        <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 64px)' }}>
+          <div className="text-center">
+            <p className="text-gray-600 font-semibold mb-2">No seats available for this flight</p>
+            <p className="text-sm text-gray-500 mb-4">The seat layout may not be configured yet.</p>
+            <button 
+              onClick={() => navigate(-1)}
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700"
+            >
+              Go Back
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -175,7 +195,7 @@ export default function FlightSeatSelection() {
     <div className="min-h-screen bg-blue-50">
       <Nav />
       
-      <div className="max-w-6xl mx-auto mt-20 px-4 py-15">
+      <div className="max-w-6xl mx-auto mt-20 px-4 py-8">
         {/* Header */}
         <div className="bg-white rounded-xl shadow-md p-6 mb-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">

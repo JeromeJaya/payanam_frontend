@@ -43,6 +43,10 @@ export function Router (){
     <Route path='/BookingSummary' element={<BookingSummary/>}/>  
     <Route path='/flightbooking' element={<FlightBooking/>}/>  
     <Route path='/flight-checkout' element={<FlightCheckoutPage/>}/>  
+
+    <Route path='/hi' element={<FlightSeatSelection/>}/>  
+    
+    
     <Route path='/flight-seat-selection' element={<FlightSeatSelection/>}/>  
     <Route path='/flight-passenger-details' element={<FlightPassengerDetails/>}/>  
     <Route path='/hotelbooking' element={<HotelBooking/>}/>  
