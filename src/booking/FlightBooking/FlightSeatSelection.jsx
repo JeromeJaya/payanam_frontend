@@ -108,8 +108,8 @@ export default function FlightSeatSelection() {
         seatNumbers,
       });
 
-      // Navigate to checkout with blocked seats
-      navigate('/flight-checkout', { 
+      // Navigate to passenger details page with blocked seats
+      navigate('/flight-passenger-details', { 
         state: { 
           flight, 
           fare,

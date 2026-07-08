@@ -123,7 +123,7 @@ export default function UserProfile() {
         name: b.boardingPoint?.name || "Airport",
         time: b.scheduleId?.departureTime || b.boardingPoint?.time || "",
         iata: b.boardingPoint?.iata || "",
-        date: b.scheduleId?.departureDate || b.travelDate,
+        date: b.travelDate || b.scheduleId?.departureDate,
       };
       dropping = {
         city: b.droppingPoint?.city || b.destination || b.routeId?.destination || "Destination",
@@ -568,10 +568,10 @@ export default function UserProfile() {
                     const serviceType = isFlight ? (b.busId?.aircraftType || "") : (b.busId?.busType || "Bus");
 
                     // Departure / arrival date+time from the populated schedule
-                    const depDate = b.scheduleId?.departureDate
-                      ? new Date(b.scheduleId.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-                      : b.travelDate
-                        ? new Date(b.travelDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                    const depDate = b.travelDate
+                      ? new Date(b.travelDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                      : b.scheduleId?.departureDate
+                        ? new Date(b.scheduleId.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
                         : "Date TBD";
                     const depTime = b.scheduleId?.departureTime || b.boardingPoint?.time || "--:--";
                     const arrTime = b.scheduleId?.arrivalTime || b.droppingPoint?.time || "--:--";

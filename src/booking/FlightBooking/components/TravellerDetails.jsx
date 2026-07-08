@@ -12,17 +12,6 @@ export default function TravellerDetails() {
   return (
     <div className="border border-gray-200 rounded-lg p-4 mb-4">
       <h3 className="text-sm font-bold text-gray-900 mb-4">Traveller Details</h3>
-      
-      {/* Login Prompt */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <User className="w-4 h-4 text-blue-600" />
-          <p className="text-sm text-blue-900">Log in to view your saved traveller list, unlock amazing deals & much more!</p>
-        </div>
-        <button className="text-blue-600 text-sm font-semibold hover:text-blue-700 whitespace-nowrap">
-          LOGIN NOW
-        </button>
-      </div>
 
       {/* Adult Section */}
       <div className="mb-4">

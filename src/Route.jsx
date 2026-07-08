@@ -15,6 +15,7 @@ import FlightBooking from "./booking/FlightBooking/FlightBooking.jsx";
 import HotelBooking from "./booking/HotelBooking/HotelBooking.jsx";
 import FlightCheckoutPage from "./booking/FlightBooking/FlightCheckoutPage.jsx";
 import FlightSeatSelection from "./booking/FlightBooking/FlightSeatSelection.jsx";
+import FlightPassengerDetails from "./booking/FlightBooking/FlightPassengerDetails.jsx";
 import VendorDashboard from "./VendorDashboard.jsx";
 import TicketDetails from "./booking/BusBooking/TicketDetails.jsx";
 import CheckoutPage from "./booking/BusBooking/CheckoutPage.jsx";
@@ -43,6 +44,7 @@ export function Router (){
     <Route path='/flightbooking' element={<FlightBooking/>}/>  
     <Route path='/flight-checkout' element={<FlightCheckoutPage/>}/>  
     <Route path='/flight-seat-selection' element={<FlightSeatSelection/>}/>  
+    <Route path='/flight-passenger-details' element={<FlightPassengerDetails/>}/>  
     <Route path='/hotelbooking' element={<HotelBooking/>}/>  
     <Route path='/TicketDetails' element={<TicketDetails/>}/>  
     <Route path='/checkout' element={<CheckoutPage/>}/>  

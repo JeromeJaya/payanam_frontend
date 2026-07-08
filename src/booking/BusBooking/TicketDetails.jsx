@@ -36,7 +36,8 @@ export default function TicketDetails() {
     : (meta?.busNumber || "");
   
   // Get travel date from various possible sources
-  const travelDate = meta?.boarding?.date 
+  const travelDate = ticket?.travelDate 
+    || meta?.boarding?.date 
     || ticket?.scheduleId?.departureDate 
     || ticket?.journeyDate 
     || ticket?.bookedAt;

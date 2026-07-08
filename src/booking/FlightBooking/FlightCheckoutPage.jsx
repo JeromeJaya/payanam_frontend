@@ -23,7 +23,8 @@ export default function FlightCheckoutPage() {
     fare, 
     serviceType, 
     selectedSeats, 
-    scheduleId: routeScheduleId 
+    scheduleId: routeScheduleId,
+    passengerDetails: passedPassengerDetails, // Passenger details from passenger details page
   } = location.state || {};
   const { isAuthenticated, user } = useAuth();
 
@@ -105,12 +106,19 @@ export default function FlightCheckoutPage() {
                 iata: destIATA,
                 date: primaryFlight?.journey?.arrivalDate,
               },
-              passengers: selectedSeats?.map((seat, i) => ({
-                name: `Passenger ${i + 1}`,
-                seatNumber: seat.seatNumber,
-                age: 28,
-                gender: "male",
-              })) || [],
+              passengers: passedPassengerDetails && passedPassengerDetails.length > 0
+                ? passedPassengerDetails.map(p => ({
+                    name: p.name,
+                    seatNumber: p.seatNumber,
+                    age: p.age,
+                    gender: p.gender,
+                  }))
+                : selectedSeats?.map((seat, i) => ({
+                    name: `Passenger ${i + 1}`,
+                    seatNumber: seat.seatNumber,
+                    age: 28,
+                    gender: "male",
+                  })) || [],
               payment: paymentData.payment,
               tripType,
               serviceType: "flight",
@@ -118,11 +126,11 @@ export default function FlightCheckoutPage() {
             },
           },
         });
-      }, 2000);
+      }, 1000);
     } else if (paymentStatus === "failed") {
       setBooking({ status: "error", message: paymentError || "Payment failed. Please try again." });
     }
-  }, [paymentStatus, paymentData, paymentError, navigate, primaryFlight, selectedSeats, tripType, flightList]);
+  }, [paymentStatus, paymentData, paymentError, navigate, primaryFlight, selectedSeats, tripType, flightList, passedPassengerDetails]);
 
   const handlePayAndBook = async () => {
     if (!hasSelectedSeats) return;
@@ -132,15 +140,41 @@ export default function FlightCheckoutPage() {
       return;
     }
 
+    // Validate passenger details if provided
+    if (passedPassengerDetails && passedPassengerDetails.length > 0) {
+      const invalidPassengers = passedPassengerDetails.filter(p => {
+        return !p.name || !p.name.trim() || p.name.trim().length < 2 ||
+               !p.age || parseInt(p.age) < 1 || parseInt(p.age) > 120 ||
+               !p.gender || p.gender === "";
+      });
+      
+      if (invalidPassengers.length > 0) {
+        setBooking({ 
+          status: "error", 
+          message: "Please fill in all passenger details correctly. Go back to passenger details page.", 
+          data: null 
+        });
+        return;
+      }
+    }
+
     setBooking({ status: "loading", message: "Creating booking...", data: null });
 
     try {
-      const passengerDetails = selectedSeats.map((seat, i) => ({
-        seatNumber: seat.seatNumber,
-        name: user?.name || `Passenger ${i + 1}`,
-        age: 28, // Default age — should come from traveller details form
-        gender: "male",
-      }));
+      // Use passenger details from passenger details page
+      const passengerDetails = passedPassengerDetails && passedPassengerDetails.length > 0
+        ? passedPassengerDetails.map(p => ({
+            seatNumber: p.seatNumber,
+            name: p.name.trim(),
+            age: parseInt(p.age),
+            gender: p.gender,
+          }))
+        : selectedSeats.map((seat, i) => ({
+            seatNumber: seat.seatNumber,
+            name: user?.name || `Passenger ${i + 1}`,
+            age: 28,
+            gender: "male",
+          }));
 
       // For multi-leg, create bookings for each leg
       if (isMultiLeg && flightList.length > 1) {
@@ -448,7 +482,7 @@ export default function FlightCheckoutPage() {
                 })}
                 className="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors"
               >
-                CONTINUE
+                SELECT SEAT
               </button>
             )}
           </div>
