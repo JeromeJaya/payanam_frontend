@@ -1,183 +1,135 @@
-import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Zap, Star, SlidersHorizontal } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-export default function FlightFareSelector({ sortBy = "price_low", onSortChange }) {
-  // Mock Data for the Date Carousel
-  const datesData = [
-    { day: 'Mon, Jun 29', price: 7455, type: 'normal' },
-    { day: 'Tue, Jun 30', price: 6858, type: 'selected' },
-    { day: 'Wed, Jul 1', price: 6783, type: 'low' },
-    { day: 'Thu, Jul 2', price: 6783, type: 'low' },
-    { day: 'Fri, Jul 3', price: 6342, type: 'lowest' },
-    { day: 'Sat, Jul 4', price: 6033, type: 'lowest' },
-    { day: 'Sun, Jul 5', price: 6333, type: 'lowest' },
-    { day: 'Mon, Jul 6', price: 6497, type: 'low' },
+/**
+ * FlightFareSelector — Date slider + sort pills (matches BusFilterBar pattern)
+ *
+ * Props:
+ *   NoOfFlights   - number of flights to display in header
+ *   selectedDate  - currently selected date (YYYY-MM-DD)
+ *   onDateSelect  - callback when a date is clicked
+ *   selectedSort  - current sort option string
+ *   onSortSelect  - callback when a sort option is clicked
+ */
+export default function FlightFareSelector({
+  NoOfFlights = 0,
+  selectedDate,
+  onDateSelect,
+  selectedSort,
+  onSortSelect,
+}) {
+  const [dateOffset, setDateOffset] = useState(0);
+
+  const monthNames = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  const base = selectedDate ? new Date(selectedDate) : new Date();
+  base.setHours(0, 0, 0, 0);
+  base.setDate(base.getDate() + dateOffset);
+
+  const dates = Array.from({ length: 8 }, (_, index) => {
+    const current = new Date(base);
+    current.setDate(base.getDate() + index);
+    return {
+      label: `${String(current.getDate()).padStart(2, '0')} ${monthNames[current.getMonth()]}, ${dayNames[current.getDay()]}`,
+      value: `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}-${String(current.getDate()).padStart(2, '0')}`,
+    };
+  });
+
+  const handlePrevious = () => {
+    setDateOffset((prev) => prev - 8);
+  };
+
+  const handleNext = () => {
+    setDateOffset((prev) => prev + 8);
+  };
+
+  const sortOptions = [
+    'Relevance',
+    'Rating',
+    'Price',
+    'Fastest',
+    'Departure',
+    'Arrival',
   ];
 
-  // State Management
-  const [selectedDate, setSelectedDate] = useState('Tue, Jun 30');
-  const [activeTab, setActiveTab] = useState(sortBy === "price_low" ? 'cheapest' : sortBy === "duration" ? 'nonstop' : 'cheapest');
-
-  // Handle tab change
-  const handleTabChange = (tab) => {
-    setActiveTab(tab);
-    // Map tab to sort value
-    const sortMapping = {
-      'cheapest': 'price_low',
-      'nonstop': 'duration',
-      'prefer': 'rating',
-      'other': 'departure'
-    };
-    if (onSortChange) {
-      onSortChange(sortMapping[tab] || 'price_low');
-    }
-  };
-
-  // Helper logic to style price tiers based on your UI rules
-  const getPriceColor = (date) => {
-    if (date.day === selectedDate) return 'text-blue-600';
-    if (date.price <= 6342) return 'text-green-600'; // Lowest fares
-    if (date.price < 6800) return 'text-green-600 opacity-90'; // Low fares
-    return 'text-gray-700';
-  };
-
   return (
-    <div className="w-full max-w-6xl mx-auto p-4 bg-white font-sans text-gray-900 select-none">
-      
-      {/* 1. TOP CAROUSEL: Date & Price Strip */}
-      <div className="flex items-stretch border border-gray-200 rounded-md overflow-hidden bg-white shadow-sm mb-4">
-        {/* Left Navigation Arrow */}
-        <button className="px-2 border-r border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-colors">
-          <ChevronLeft size={20} className="text-blue-400" />
+    <div className="w-full bg-white dark:bg-slate-800 rounded-2xl md:rounded-3xl overflow-hidden shadow-xs">
+      {/* Date Slider Row - HIDDEN ON MOBILE */}
+      <div className="hidden md:flex items-center border-b border-slate-100 dark:border-slate-700">
+        <button
+          onClick={handlePrevious}
+          className="p-3 md:p-6 hover:bg-slate-50 dark:hover:bg-slate-700 transition shrink-0"
+          type="button"
+        >
+          <ChevronLeft className="text-sky-500 dark:text-sky-400 w-4 h-4 md:w-5 md:h-5" />
         </button>
 
-        {/* Dates Strip */}
-        <div className="flex flex-1 divide-x divide-gray-100 overflow-x-auto scrollbar-none">
-          {datesData.map((item) => {
-            const isSelected = item.day === selectedDate;
+        <div className="flex flex-1 overflow-x-auto justify-between gap-1 md:gap-0 px-1 scrollbar-none">
+          {dates.map((item) => {
+            const active = item.value === selectedDate;
             return (
-              <div
-                key={item.day}
-                onClick={() => setSelectedDate(item.day)}
-                className={`flex-1 min-w-[100px] py-2 px-3 text-center cursor-pointer transition-all relative ${
-                  isSelected 
-                    ? 'bg-blue-50/40 font-bold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[3px] after:bg-blue-600' 
-                    : 'hover:bg-gray-50'
+              <button
+                key={item.value}
+                type="button"
+                onClick={() => onDateSelect?.(item.value)}
+                className={`px-3 md:px-6 py-3 md:py-5 text-center whitespace-nowrap transition text-xs md:text-sm font-semibold tracking-wide shrink-0 md:shrink border-b-2 ${
+                  active
+                    ? 'border-sky-500 dark:border-sky-400 text-sky-600 dark:text-sky-400 font-bold bg-sky-50/40 dark:bg-sky-900/20 md:bg-transparent'
+                    : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400'
                 }`}
               >
-                <div className={`text-xs font-semibold ${isSelected ? 'text-blue-600' : 'text-gray-600'}`}>
-                  {item.day}
-                </div>
-                <div className={`text-sm mt-1 font-bold ${getPriceColor(item)}`}>
-                  ₹ {item.price.toLocaleString('en-IN')}
-                </div>
-              </div>
+                {item.label}
+              </button>
             );
           })}
         </div>
 
-        {/* Right Navigation Arrow */}
-        <button className="px-2 border-l border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-colors">
-          <ChevronRight size={20} className="text-blue-600" />
+        <button
+          onClick={handleNext}
+          className="p-3 md:p-6 hover:bg-slate-50 dark:hover:bg-slate-700 transition shrink-0"
+          type="button"
+        >
+          <ChevronRight className="text-sky-500 dark:text-sky-400 w-4 h-4 md:w-5 md:h-5" />
         </button>
       </div>
 
-      {/* 2. MIDDLE ROW: Sort Quick Filters */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-        
-        {/* Cheapest Tab */}
-        <div 
-          onClick={() => handleTabChange('cheapest')}
-          className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
-            activeTab === 'cheapest'
-              ? 'bg-blue-50/70 border-blue-400 border-b-[3px] border-b-blue-600 shadow-sm'
-              : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-          }`}
-        >
-          <div className={`p-2 rounded-md ${activeTab === 'cheapest' ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600'}`}>
-            <span className="font-bold text-sm">₹</span>
-          </div>
-          <div>
-            <div className="text-xs font-black tracking-wide uppercase text-gray-800">CHEAPEST</div>
-            <div className="text-xs text-gray-600 font-medium mt-0.5">
-              <span className="font-bold text-gray-900">₹ 6,442</span> | 05h 15m
-            </div>
-          </div>
-        </div>
+      {/* Sort Section - Always Visible */}
+      <div className="flex flex-col md:flex-row items-stretch md:items-center px-4 md:px-6 py-3 md:py-2 gap-3 md:gap-0 bg-white dark:bg-slate-800 md:bg-slate-50/50 dark:md:bg-slate-900/50">
+        <h3 className="font-extrabold text-xs md:text-base text-slate-800 dark:text-slate-200 mr-0 md:mr-8 whitespace-nowrap self-center">
+          {NoOfFlights} Flights Found
+        </h3>
 
-        {/* Non Stop First Tab */}
-        <div 
-          onClick={() => handleTabChange('nonstop')}
-          className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
-            activeTab === 'nonstop'
-              ? 'bg-blue-50/70 border-blue-400 border-b-[3px] border-b-blue-600 shadow-sm'
-              : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-          }`}
-        >
-          <div className={`p-2 rounded-md ${activeTab === 'nonstop' ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-500'}`}>
-            <Zap size={16} fill={activeTab === 'nonstop' ? "white" : "currentColor"} className="stroke-none" />
-          </div>
-          <div>
-            <div className="text-xs font-black tracking-wide uppercase text-gray-800">NON STOP FIRST</div>
-            <div className="text-xs text-gray-600 font-medium mt-0.5">
-              <span className="font-bold text-gray-900">₹ 6,646</span> | 02h 10m
-            </div>
-          </div>
-        </div>
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <span className="font-black text-[10px] tracking-wider text-slate-400 dark:text-slate-500 uppercase shrink-0">
+            SORT BY:
+          </span>
 
-        {/* You May Prefer Tab */}
-        <div 
-          onClick={() => handleTabChange('prefer')}
-          className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
-            activeTab === 'prefer'
-              ? 'bg-blue-50/70 border-blue-400 border-b-[3px] border-b-blue-600 shadow-sm'
-              : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-          }`}
-        >
-          <div className={`p-2 rounded-md ${activeTab === 'prefer' ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-500'}`}>
-            <Star size={16} fill={activeTab === 'prefer' ? "white" : "currentColor"} className="stroke-none" />
+          {/* Swipeable Horizontally on Mobile Viewports */}
+          <div className="flex gap-1.5 md:gap-4 items-center overflow-x-auto pb-1 md:pb-0 scrollbar-none flex-1 -mr-4 pr-4 md:mr-0 md:pr-0">
+            {sortOptions.map((option) => {
+              const active = option === selectedSort;
+              return (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => onSortSelect?.(option)}
+                  className={`px-3 py-1.5 rounded-lg transition text-xs font-bold whitespace-nowrap shrink-0 ${
+                    active
+                      ? 'bg-sky-500 dark:bg-sky-600 text-white shadow-xs shadow-sky-500/20'
+                      : 'text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-700 border border-slate-200/80 dark:border-slate-600 hover:border-sky-500 dark:hover:border-sky-400 hover:text-sky-500 dark:hover:text-sky-400'
+                  }`}
+                >
+                  {option}
+                </button>
+              );
+            })}
           </div>
-          <div>
-            <div className="text-xs font-black tracking-wide uppercase text-gray-800">YOU MAY PREFER</div>
-            <div className="text-xs text-gray-600 font-medium mt-0.5">
-              <span className="font-bold text-gray-900">₹ 6,442</span> | 05h 15m
-            </div>
-          </div>
-        </div>
-
-        {/* Other Sort Options Tab */}
-        <div 
-          onClick={() => handleTabChange('other')}
-          className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
-            activeTab === 'other'
-              ? 'bg-blue-50/70 border-blue-400 border-b-[3px] border-b-blue-600 shadow-sm'
-              : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-          }`}
-        >
-          <div className={`p-2 rounded-md ${activeTab === 'other' ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-500'}`}>
-            <SlidersHorizontal size={16} />
-          </div>
-          <div>
-            <div className="text-xs font-black tracking-wide uppercase text-gray-800 leading-tight">Other</div>
-            <div className="text-xs font-black tracking-wide uppercase text-gray-800 leading-tight">Sort</div>
-          </div>
-        </div>
-
-      </div>
-
-      {/* 3. BOTTOM ROW: Status Labels */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-        {/* Dynamic sorting notification string */}
-        <div className="text-sm font-black text-gray-900 tracking-tight">
-          Flights sorted by {activeTab === 'nonstop' ? 'Non-stop flights' : activeTab === 'prefer' ? 'preferences' : 'Lowest fares'} on this route
-        </div>
-        
-        {/* Context Recommendation Badge */}
-        <div className="inline-flex items-center bg-orange-50 border border-orange-100 text-amber-900 font-medium text-xs px-4 py-1.5 rounded-full shadow-sm max-w-fit">
-          Cheaper Non-stop Flights available on 4 Jul & 5 Jul
         </div>
       </div>
-
     </div>
   );
 }

@@ -6,13 +6,14 @@ export default function Wheretowhere({
   from: fromProp, 
   to: toProp, 
   date: dateProp,
+  searchData,
   onFromChange,
   onToChange,
   onDateChange,
   onTripTypeChange,
   onReturnDateChange,
   onMultiCityLegsChange,
-  handleFetchFlights
+  onSearch
 }) {
   // Main Search States
   const [tripType, setTripType] = useState('One Way');
@@ -40,9 +41,15 @@ export default function Wheretowhere({
   const [showToSuggestions, setShowToSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Track whether user selected from suggestions (blocks random text submission)
+  const [fromSelectedFromSuggestions, setFromSelectedFromSuggestions] = useState(false);
+  const [toSelectedFromSuggestions, setToSelectedFromSuggestions] = useState(false);
+
   // Multi-city autocomplete states
   const [legSuggestions, setLegSuggestions] = useState({}); // { legId: { from: [], to: [] } }
   const [showLegSuggestions, setShowLegSuggestions] = useState({}); // { legId: { from: bool, to: bool } }
+  // Track per-leg suggestion selection: { legId: { from: bool, to: bool } }
+  const [legSelectedFromSuggestions, setLegSelectedFromSuggestions] = useState({});
 
   // Service name mapping
   const serviceNames = {
@@ -66,9 +73,30 @@ export default function Wheretowhere({
     if (onTripTypeChange) onTripTypeChange(type);
   };
 
+  // Get today's date in YYYY-MM-DD format for min date validation
+  const getTodayDate = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   // Handle return date change
   const handleReturnDateChange = (e) => {
     const newReturnDate = e.target.value;
+    const today = getTodayDate();
+    
+    // Prevent past dates
+    if (newReturnDate < today) {
+      return;
+    }
+    
+    // Return date must be after depart date
+    if (departDate && newReturnDate <= departDate) {
+      return;
+    }
+    
     setReturnDate(newReturnDate);
     if (onReturnDateChange) onReturnDateChange(newReturnDate);
   };
@@ -113,19 +141,39 @@ export default function Wheretowhere({
     if (onMultiCityLegsChange) onMultiCityLegsChange(newLegs);
   };
 
-  // Quick swap handler for From/To locations
+  // Quick swap Handler for From/To locations
   const handleSwapLocations = () => {
     const tempDisplay = fromLocation;
     const tempIata = fromIata;
     const tempAirport = fromAirportName;
+      
+    // Swap suggestion flags too
+    const tempFromFlag = fromSelectedFromSuggestions;
+    const tempToFlag = toSelectedFromSuggestions;
+      
     setFromLocation(toLocation);
     setFromIata(toIata);
     setFromAirportName(toAirportName);
-    if (onFromChange) onFromChange(toIata || toLocation);
+    setFromSelectedFromSuggestions(tempToFlag);
+      
     setToLocation(tempDisplay);
     setToIata(tempIata);
     setToAirportName(tempAirport);
-    if (onToChange) onToChange(tempIata || tempDisplay);
+    setToSelectedFromSuggestions(tempFromFlag);
+      
+    // Update parent with swapped values
+    const newFrom = toIata || toLocation;
+    const newTo = tempIata || tempDisplay;
+    if (onFromChange) onFromChange(newFrom);
+    if (onToChange) onToChange(newTo);
+      
+    // Trigger a new search if we have valid values
+    if (newFrom && newTo && departDate && fromSelectedFromSuggestions && toSelectedFromSuggestions) {
+      // Use setTimeout to let state settle before triggering search
+      setTimeout(() => {
+        if (onSearch) onSearch();
+      }, 100);
+    }
   };
 
   // Search airports API call
@@ -150,6 +198,7 @@ export default function Wheretowhere({
   const handleFromChange = async (e) => {
     const value = e.target.value;
     setFromLocation(value);
+    setFromSelectedFromSuggestions(false); // user is typing freely, not from suggestions
     // Clear IATA/airport info when user is typing manually
     setFromIata('');
     setFromAirportName('');
@@ -172,6 +221,7 @@ export default function Wheretowhere({
   const handleToChange = async (e) => {
     const value = e.target.value;
     setToLocation(value);
+    setToSelectedFromSuggestions(false); // user is typing freely, not from suggestions
     // Clear IATA/airport info when user is typing manually
     setToIata('');
     setToAirportName('');
@@ -196,6 +246,7 @@ export default function Wheretowhere({
     const displayText = airport.displayText || `${airport.city} (${airport.iataCode})`;
     setFromLocation(displayText);
     setFromAirportName(airport.name);
+    setFromSelectedFromSuggestions(true); // selected from suggestions
     
     // Store the IATA code and use it for API calls
     const apiValue = airport.iataCode || airport.city;
@@ -212,6 +263,7 @@ export default function Wheretowhere({
     const displayText = airport.displayText || `${airport.city} (${airport.iataCode})`;
     setToLocation(displayText);
     setToAirportName(airport.name);
+    setToSelectedFromSuggestions(true); // selected from suggestions
     
     // Store the IATA code and use it for API calls
     const apiValue = airport.iataCode || airport.city;
@@ -234,6 +286,7 @@ export default function Wheretowhere({
             const apiValue = best.iataCode || best.city;
             setFromIata(apiValue);
             setFromAirportName(best.name);
+            setFromSelectedFromSuggestions(true); // auto-resolved from API, treat as valid
             if (onFromChange) onFromChange(apiValue);
             // Show a nicer display name
             const displayText = best.displayText || `${best.city} (${best.iataCode})`;
@@ -243,6 +296,7 @@ export default function Wheretowhere({
       } else {
         // Already looks like an IATA code (3 uppercase letters)
         setFromIata(fromProp);
+        if (fromProp) setFromSelectedFromSuggestions(true);
       }
     }
   }, [fromProp]);
@@ -258,6 +312,7 @@ export default function Wheretowhere({
             const apiValue = best.iataCode || best.city;
             setToIata(apiValue);
             setToAirportName(best.name);
+            setToSelectedFromSuggestions(true); // auto-resolved from API, treat as valid
             if (onToChange) onToChange(apiValue);
             // Show a nicer display name
             const displayText = best.displayText || `${best.city} (${best.iataCode})`;
@@ -267,6 +322,7 @@ export default function Wheretowhere({
       } else {
         // Already looks like an IATA code (3 uppercase letters)
         setToIata(toProp);
+        if (toProp) setToSelectedFromSuggestions(true);
       }
     }
   }, [toProp]);
@@ -309,6 +365,7 @@ export default function Wheretowhere({
     updateMultiCityLeg(legId, 'from', value);
     updateMultiCityLeg(legId, 'fromIata', '');
     updateMultiCityLeg(legId, 'fromAirportName', '');
+    setLegSelectedFromSuggestions(prev => ({ ...prev, [legId]: { ...prev[legId], from: false } }));
 
     if (value.length >= 2) {
       setLoading(true);
@@ -328,6 +385,7 @@ export default function Wheretowhere({
     updateMultiCityLeg(legId, 'to', value);
     updateMultiCityLeg(legId, 'toIata', '');
     updateMultiCityLeg(legId, 'toAirportName', '');
+    setLegSelectedFromSuggestions(prev => ({ ...prev, [legId]: { ...prev[legId], to: false } }));
 
     if (value.length >= 2) {
       setLoading(true);
@@ -347,6 +405,7 @@ export default function Wheretowhere({
     updateMultiCityLeg(legId, 'from', displayText);
     updateMultiCityLeg(legId, 'fromIata', airport.iataCode || airport.city);
     updateMultiCityLeg(legId, 'fromAirportName', airport.name);
+    setLegSelectedFromSuggestions(prev => ({ ...prev, [legId]: { ...prev[legId], from: true } }));
     setShowLegSuggestions(prev => ({ ...prev, [legId]: { ...prev[legId]?.from, from: false } }));
   };
 
@@ -356,6 +415,7 @@ export default function Wheretowhere({
     updateMultiCityLeg(legId, 'to', displayText);
     updateMultiCityLeg(legId, 'toIata', airport.iataCode || airport.city);
     updateMultiCityLeg(legId, 'toAirportName', airport.name);
+    setLegSelectedFromSuggestions(prev => ({ ...prev, [legId]: { ...prev[legId], to: true } }));
     setShowLegSuggestions(prev => ({ ...prev, [legId]: { ...prev[legId]?.to, to: false } }));
   };
 
@@ -372,12 +432,24 @@ export default function Wheretowhere({
           errors.push(`Leg ${i + 1}: Please enter a departure location`);
           break;
         }
+        if (!legSelectedFromSuggestions[leg.id]?.from) {
+          errors.push(`Leg ${i + 1}: Please select a valid departure location from the suggestions`);
+          break;
+        }
         if (!leg.to || leg.to.trim() === "") {
           errors.push(`Leg ${i + 1}: Please enter a destination location`);
           break;
         }
+        if (!legSelectedFromSuggestions[leg.id]?.to) {
+          errors.push(`Leg ${i + 1}: Please select a valid destination location from the suggestions`);
+          break;
+        }
         if (!leg.date || leg.date.trim() === "") {
           errors.push(`Leg ${i + 1}: Please select a travel date`);
+          break;
+        }
+        if (leg.date < getTodayDate()) {
+          errors.push(`Leg ${i + 1}: Travel date cannot be in the past`);
           break;
         }
       }
@@ -385,9 +457,13 @@ export default function Wheretowhere({
       // Validate From and To
       if (!fromLocation || fromLocation.trim() === "") {
         errors.push("Please enter a departure location");
+      } else if (!fromSelectedFromSuggestions) {
+        errors.push("Please select a valid departure location from the suggestions");
       }
       if (!toLocation || toLocation.trim() === "") {
         errors.push("Please enter a destination location");
+      } else if (!toSelectedFromSuggestions) {
+        errors.push("Please select a valid destination location from the suggestions");
       }
       
       // Validate From != To
@@ -398,6 +474,8 @@ export default function Wheretowhere({
       // Validate Date
       if (!departDate || departDate.trim() === "") {
         errors.push("Please select a departure date");
+      } else if (departDate < getTodayDate()) {
+        errors.push("Departure date cannot be in the past");
       }
 
       // Validate return date for round trip
@@ -441,7 +519,7 @@ export default function Wheretowhere({
       }
       setMultiCityLegs(resolvedLegs);
       if (onMultiCityLegsChange) onMultiCityLegsChange(resolvedLegs);
-      if (handleFetchFlights) handleFetchFlights(null, null, null, tripType, resolvedLegs);
+      if (onSearch) onSearch();
     } else {
       // Handle one-way or round-trip search
       // If the user typed a city name without picking from the dropdown,
@@ -474,8 +552,8 @@ export default function Wheretowhere({
       if (onToChange) onToChange(toValue);
       if (onDateChange) onDateChange(departDate);
       
-      // Trigger flight search with values directly to avoid stale closure issues
-      if (handleFetchFlights) handleFetchFlights(fromValue, toValue, departDate, tripType, null, returnDate);
+      // Trigger flight search via parent's useEffect
+      if (onSearch) onSearch();
     }
   };
 
@@ -490,46 +568,11 @@ export default function Wheretowhere({
 
   return (
     <div className="mx-2 sm:mx-4 md:mx-8 lg:mx-12 p-3 sm:p-4 md:p-6 bg-white rounded-lg shadow-md font-sans text-gray-800">
-      
-      {/* Service Name Header */}
-      <div className="mb-3 md:mb-4 pb-2 md:pb-3 border-b border-gray-200">
-        <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-800">
-          {serviceNames[serviceType] || "Flight Booking"}
-        </h2>
-      </div>
 
       {/* Top Row: Search Inputs */}
       <div className="flex flex-wrap items-center gap-2">
         
-        {/* Trip Type */}
-        <div className="flex-1 min-w-[120px] sm:min-w-[140px] bg-gray-50 border border-gray-200 rounded-lg p-1.5 md:p-2 relative cursor-pointer hover:bg-gray-100 transition-colors">
-          <label className="block text-[8px] md:text-[10px] font-bold text-gray-400 uppercase tracking-wider">Trip Type</label>
-          <div 
-            className="flex items-center justify-between mt-1"
-            onClick={(e) => { e.stopPropagation(); setShowTripTypeDropdown(!showTripTypeDropdown); }}
-          >
-            <span className="font-bold text-xs md:text-sm truncate">{tripType}</span>
-            <svg className="w-3 h-3 md:w-4 md:h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
-          {/* Trip Type Dropdown */}
-          {showTripTypeDropdown && (
-            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg">
-              {tripTypes.map((type) => (
-                <div
-                  key={type}
-                  onClick={(e) => { e.stopPropagation(); handleTripTypeChange(type); }}
-                  className={`px-3 py-2 hover:bg-blue-50 cursor-pointer text-xs md:text-sm font-medium ${
-                    tripType === type ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
-                  }`}
-                >
-                  {type}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        
 
         {/* Multi-City Legs View */}
         {tripType === 'Multi City' ? (
@@ -569,9 +612,9 @@ export default function Wheretowhere({
                     )}
                     {showLegSuggestions[leg.id]?.from && legSuggestions[leg.id]?.from?.length > 0 && (
                       <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                        {legSuggestions[leg.id].from.map((airport, idx) => (
+                        {legSuggestions[leg.id].from.map((airport) => (
                           <div
-                            key={idx}
+                            key={airport.iataCode || airport.city}
                             onClick={() => selectLegFromSuggestion(leg.id, airport)}
                             className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
                           >
@@ -600,9 +643,9 @@ export default function Wheretowhere({
                     )}
                     {showLegSuggestions[leg.id]?.to && legSuggestions[leg.id]?.to?.length > 0 && (
                       <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                        {legSuggestions[leg.id].to.map((airport, idx) => (
+                        {legSuggestions[leg.id].to.map((airport) => (
                           <div
-                            key={idx}
+                            key={airport.iataCode || airport.city}
                             onClick={() => selectLegToSuggestion(leg.id, airport)}
                             className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
                           >
@@ -622,7 +665,15 @@ export default function Wheretowhere({
                     <input
                       type="date"
                       value={leg.date}
-                      onChange={(e) => updateMultiCityLeg(leg.id, 'date', e.target.value)}
+                      min={getTodayDate()}
+                      onChange={(e) => {
+                        const newDate = e.target.value;
+                        // Prevent past dates
+                        if (newDate < getTodayDate()) {
+                          return;
+                        }
+                        updateMultiCityLeg(leg.id, 'date', newDate);
+                      }}
                       className="w-full bg-transparent font-bold text-xs md:text-sm focus:outline-none cursor-pointer"
                     />
                   </div>
@@ -645,6 +696,7 @@ export default function Wheretowhere({
 
             {/* Search Button for Multi-City */}
             <button 
+              type="button"
               onClick={handleSearch}
               className="w-full sm:flex-1 min-w-[140px] h-[44px] md:h-[54px] bg-blue-600 hover:bg-blue-700 text-white font-bold tracking-wide rounded-lg uppercase transition-colors shadow-inner text-sm md:text-base"
             >
@@ -655,7 +707,9 @@ export default function Wheretowhere({
           /* Standard One-Way / Round-Trip View */
           <>
             {/* From Location */}
-            <div className="flex-[2] min-w-[160px] sm:min-w-[200px] bg-gray-50 border border-gray-200 rounded-lg p-1.5 md:p-2 cursor-pointer hover:bg-gray-100 transition-colors relative">
+            <div className={`flex-[2] min-w-[160px] sm:min-w-[200px] border rounded-lg p-1.5 md:p-2 cursor-pointer hover:bg-gray-100 transition-colors relative ${
+              fromLocation && !fromSelectedFromSuggestions ? 'border-red-400 bg-red-50' : 'bg-gray-50 border-gray-200'
+            }`}>
               <label className="block text-[8px] md:text-[10px] font-bold text-gray-400 uppercase tracking-wider">From</label>
               <input 
                 type="text" 
@@ -669,13 +723,16 @@ export default function Wheretowhere({
                   {fromIata} - {fromAirportName}
                 </div>
               )}
+              {fromLocation && !fromSelectedFromSuggestions && (
+                <div className="text-[9px] md:text-[10px] text-red-500 font-medium mt-0.5">Select from suggestions above</div>
+              )}
               
               {/* From Suggestions Dropdown */}
               {showFromSuggestions && fromSuggestions.length > 0 && (
                 <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                  {fromSuggestions.map((airport, index) => (
+                  {fromSuggestions.map((airport) => (
                     <div
-                      key={index}
+                      key={airport.iataCode || airport.city}
                       onClick={() => selectFromSuggestion(airport)}
                       className="px-3 md:px-4 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
                     >
@@ -702,7 +759,9 @@ export default function Wheretowhere({
             </button>
 
             {/* To Location */}
-            <div className="flex-[2] min-w-[160px] sm:min-w-[200px] bg-gray-50 border border-gray-200 rounded-lg p-1.5 md:p-2 cursor-pointer hover:bg-gray-100 transition-colors relative">
+            <div className={`flex-[2] min-w-[160px] sm:min-w-[200px] border rounded-lg p-1.5 md:p-2 cursor-pointer hover:bg-gray-100 transition-colors relative ${
+              toLocation && !toSelectedFromSuggestions ? 'border-red-400 bg-red-50' : 'bg-gray-50 border-gray-200'
+            }`}>
               <label className="block text-[8px] md:text-[10px] font-bold text-gray-400 uppercase tracking-wider">To</label>
               <input 
                 type="text" 
@@ -716,13 +775,16 @@ export default function Wheretowhere({
                   {toIata} - {toAirportName}
                 </div>
               )}
+              {toLocation && !toSelectedFromSuggestions && (
+                <div className="text-[9px] md:text-[10px] text-red-500 font-medium mt-0.5">Select from suggestions above</div>
+              )}
               
               {/* To Suggestions Dropdown */}
               {showToSuggestions && toSuggestions.length > 0 && (
                 <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                  {toSuggestions.map((airport, index) => (
+                  {toSuggestions.map((airport) => (
                     <div
-                      key={index}
+                      key={airport.iataCode || airport.city}
                       onClick={() => selectToSuggestion(airport)}
                       className="px-3 md:px-4 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
                     >
@@ -742,9 +804,20 @@ export default function Wheretowhere({
               <input
                 type="date"
                 value={departDate}
+                min={getTodayDate()}
                 onChange={(e) => {
-                  setDepartDate(e.target.value);
-                  if (onDateChange) onDateChange(e.target.value);
+                  const newDate = e.target.value;
+                  // Prevent past dates
+                  if (newDate < getTodayDate()) {
+                    return;
+                  }
+                  setDepartDate(newDate);
+                  if (onDateChange) onDateChange(newDate);
+                  // Clear return date if it's now before depart date
+                  if (returnDate && newDate && returnDate <= newDate) {
+                    setReturnDate('');
+                    if (onReturnDateChange) onReturnDateChange('');
+                  }
                 }}
                 className="w-full bg-transparent font-bold text-xs md:text-sm mt-0.5 focus:outline-none text-gray-900 cursor-pointer"
               />
@@ -761,6 +834,7 @@ export default function Wheretowhere({
                 <input
                   type="date"
                   value={returnDate}
+                  min={departDate || getTodayDate()}
                   onChange={handleReturnDateChange}
                   className="w-full bg-transparent font-bold text-xs md:text-sm mt-0.5 focus:outline-none text-gray-900 cursor-pointer"
                 />
@@ -779,6 +853,7 @@ export default function Wheretowhere({
 
             {/* Search Button */}
             <button 
+              type="button"
               onClick={handleSearch}
               className="w-full sm:flex-1 min-w-[140px] h-[44px] md:h-[54px] bg-blue-600 hover:bg-blue-700 text-white font-bold tracking-wide rounded-lg uppercase transition-colors shadow-inner text-sm md:text-base"
             >
@@ -789,55 +864,7 @@ export default function Wheretowhere({
       </div>
 
       {/* Bottom Row: Fare Types & Additional Options */}
-      <div className="mt-3 md:mt-4 flex flex-wrap items-center gap-x-4 md:gap-x-6 gap-y-2 md:gap-y-3 text-[10px] md:text-xs text-gray-600">
-        <div className="flex items-center font-bold tracking-wider text-gray-400 text-[10px] md:text-[11px] uppercase">
-          Fare Type:
-        </div>
-
-        {/* Fare Radio Options */}
-        <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
-          {fareOptions.map((option) => (
-            <label 
-              key={option.id}
-              className={`flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 rounded-md cursor-pointer border select-none transition-all ${
-                fareType === option.id 
-                  ? 'bg-blue-50 border-blue-200 font-semibold text-blue-700' 
-                  : 'bg-gray-50 border-gray-100 hover:bg-gray-100'
-              }`}
-            >
-              <input 
-                type="radio" 
-                name="fareType" 
-                checked={fareType === option.id}
-                onChange={() => setFareType(option.id)}
-                className="w-3 h-3 md:w-4 md:h-4 text-blue-600 border-gray-300 focus:ring-blue-500 accent-blue-600"
-              />
-              <span className="text-gray-800 text-[10px] md:text-xs font-medium flex items-center gap-1">
-                {option.label}
-                {option.badge && (
-                  <span className="bg-pink-500 text-white font-bold text-[8px] md:text-[9px] uppercase px-1 rounded-sm scale-90 origin-left">
-                    {option.badge}
-                  </span>
-                )}
-              </span>
-            </label>
-          ))}
-        </div>
-
-        {/* Divider */}
-        <div className="hidden md:block h-6 w-[1px] bg-gray-200 mx-1" />
-
-        {/* Price Drop Protection Checkbox */}
-        <label className="flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 bg-gray-50 border border-gray-100 rounded-md cursor-pointer hover:bg-gray-100 transition-all select-none">
-          <input 
-            type="checkbox" 
-            checked={priceDropProtection}
-            onChange={(e) => setPriceDropProtection(e.target.checked)}
-            className="w-3 h-3 md:w-4 md:h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 accent-blue-600"
-          />
-          <span className="text-gray-800 text-[10px] md:text-xs font-medium">Add Price Drop Protection</span>
-        </label>
-      </div>
+      
 
     </div>
   );

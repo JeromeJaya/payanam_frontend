@@ -2,6 +2,20 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { X, Lock, Plane, TrendingUp, ArrowRight, Shield, Clock, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import api from '../../api/axios.js';
 
+const RAZORPAY_KEY = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_T9vYEo3gUdolCX';
+
+// Load Razorpay SDK once
+const loadRazorpayScript = () => {
+  return new Promise((resolve, reject) => {
+    if (window.Razorpay) { resolve(true); return; }
+    const s = document.createElement('script');
+    s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    s.onload = () => resolve(true);
+    s.onerror = () => reject(new Error('Failed to load Razorpay SDK'));
+    document.body.appendChild(s);
+  });
+};
+
 /**
  * PriceLockModal — Dynamic, API-connected modal for locking flight fares.
  *
@@ -79,7 +93,7 @@ export default function PriceLockModal({ isOpen, onClose, flight, onLockSuccess 
     });
   }, [selectedOption]);
 
-  // Handle Lock submission
+  // Handle Lock submission with Razorpay payment
   const handleLockPrice = async () => {
     if (!scheduleId || !selectedOption) return;
 
@@ -88,19 +102,72 @@ export default function PriceLockModal({ isOpen, onClose, flight, onLockSuccess 
     setSuccess(null);
 
     try {
-      const res = await api.post('/api/v1/flights/price-locks', {
+      // Step 1: Initiate price lock — creates PENDING lock + Razorpay order
+      const initRes = await api.post('/api/v1/flights/price-locks', {
         scheduleId,
         lockDurationId: selectedOption.id,
       });
 
-      if (res.data?.success) {
-        setSuccess(res.data.data);
-        if (onLockSuccess) onLockSuccess(res.data.data);
+      const initData = initRes.data?.data;
+      if (!initRes.data?.success || !initData) {
+        throw new Error(initRes.data?.message || 'Failed to initiate price lock');
       }
+
+      const priceLockId = initData.priceLock?.priceLockId || initData.priceLock?._id;
+      const { razorpayOrderId, amount, currency } = initData;
+
+      // Step 2: Load Razorpay SDK & open checkout
+      await loadRazorpayScript();
+
+      const razorpayOptions = {
+        key: RAZORPAY_KEY,
+        amount: Math.round((amount || selectedOption.fee) * 100), // paise
+        currency: currency || 'INR',
+        name: 'Payanam',
+        description: `Price Lock – ${selectedOption.duration}`,
+        order_id: razorpayOrderId,
+        theme: { color: '#2563eb' },
+        modal: {
+          ondismiss: () => {
+            setLoading(false);
+            setError('Payment cancelled. Your price lock was not activated.');
+          },
+        },
+        handler: async (paymentResp) => {
+          try {
+            // Step 3: Verify payment on backend
+            const verifyRes = await api.post('/api/v1/flights/price-locks/verify', {
+              priceLockId,
+              razorpayOrderId: paymentResp.razorpay_order_id,
+              razorpayPaymentId: paymentResp.razorpay_payment_id,
+              razorpaySignature: paymentResp.razorpay_signature,
+            });
+
+            if (verifyRes.data?.success) {
+              setSuccess(verifyRes.data.data);
+              if (onLockSuccess) onLockSuccess(verifyRes.data.data);
+            } else {
+              throw new Error(verifyRes.data?.message || 'Payment verification failed');
+            }
+          } catch (verifyErr) {
+            console.error('Price lock verify error:', verifyErr);
+            setError(verifyErr.response?.data?.message || 'Payment verification failed. Contact support.');
+          } finally {
+            setLoading(false);
+          }
+        },
+      };
+
+      const rzp = new window.Razorpay(razorpayOptions);
+      rzp.on('payment.failed', (resp) => {
+        setLoading(false);
+        setError(resp.error?.description || 'Payment failed. Please try again.');
+      });
+      rzp.open();
     } catch (err) {
-      const msg = err.response?.data?.message || err.response?.data?.errors?.[0] || "Failed to lock price. Please try again.";
+      console.error('Price lock error:', err);
+      const msg = err.response?.data?.message || err.message || 'Failed to lock price. Please try again.';
       setError(msg);
-    } finally {
       setLoading(false);
     }
   };

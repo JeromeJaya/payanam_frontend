@@ -68,7 +68,11 @@ export default function SeatConfirmation() {
       setTimeout(() => {
         navigate("/ticketdetails", {
           state: {
-            ticket: paymentData.booking,
+            ticket: {
+              ...paymentData.booking,
+              paymentStatus: paymentData.payment?.status || paymentData.booking?.paymentStatus || "SUCCESS",
+              paymentReference: paymentData.payment?.razorpayPaymentId || paymentData.booking?.paymentReference || "",
+            },
             meta: {
               busName,
               boarding,

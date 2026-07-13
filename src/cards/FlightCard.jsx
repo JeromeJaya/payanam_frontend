@@ -123,13 +123,13 @@ export default function FlightCard({
       <div className="p-4 sm:p-5 lg:p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-5 lg:gap-6">
         
         {/* Airline Identity Block */}
-        <div className="flex items-center gap-3 lg:min-w-[200px] max-w-full">
+        <div className="flex items-center gap-3 lg:min-w-[180px] w-full lg:w-auto">
           <div className="w-11 h-11 bg-indigo-950 rounded-xl flex items-center justify-center text-white shrink-0 shadow-sm">
             <svg className="w-6 h-6 rotate-45" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L6 12zm0 0h7.5" />
             </svg>
           </div>
-            <div className="min-w-0">
+          <div className="min-w-0 flex-1 lg:flex-none">
             <h3 className="font-extrabold text-base text-gray-900 dark:text-slate-100 leading-tight truncate">{airlineName}</h3>
             <p className="text-xs text-gray-400 dark:text-slate-500 font-medium tracking-tight mt-0.5">{flightNumber}</p>
             <div className="flex flex-wrap gap-1.5 mt-1.5">
@@ -148,11 +148,11 @@ export default function FlightCard({
         </div>
 
         {/* Dynamic Route/Timeline Grid Block */}
-        <div className="flex flex-row items-center justify-between sm:justify-center gap-2 sm:gap-6 lg:flex-1 w-full border-y border-dashed border-gray-100 dark:border-slate-700 py-3 lg:py-0 lg:border-none">
+        <div className="flex flex-row items-center justify-between gap-2 sm:gap-6 lg:flex-1 w-full border-y border-dashed border-gray-100 dark:border-slate-700 py-3 lg:py-0 lg:border-none">
           
           {/* Departure block element */}
-          <div className="text-left sm:text-center min-w-[75px] xs:min-w-[90px]">
-            <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-slate-100 tracking-tight">{departureTime}</h2>
+          <div className="text-left sm:text-center min-w-[70px] sm:min-w-[90px] max-w-[30%]">
+            <h2 className="text-lg sm:text-2xl font-black text-gray-900 dark:text-slate-100 tracking-tight">{departureTime}</h2>
             <p className="text-xs text-gray-500 dark:text-slate-400 font-bold mt-0.5 truncate">{departureLocation}</p>
             {departureIATA && (
               <p className="text-[10px] text-gray-400 dark:text-slate-500 font-semibold uppercase">({departureIATA})</p>
@@ -161,7 +161,7 @@ export default function FlightCard({
 
           {/* Graphical Duration Vector */}
           <div className="flex-1 max-w-[160px] text-center px-1">
-            <span className="text-[11px] text-gray-500 dark:text-slate-400 font-bold whitespace-nowrap">{durationText}</span>
+            <span className="text-[10px] sm:text-[11px] text-gray-500 dark:text-slate-400 font-bold whitespace-nowrap">{durationText}</span>
             <div className="relative my-1.5 flex items-center justify-center">
               <div className="w-full h-[3px] bg-amber-400 rounded-full" />
               {stopsCount > 0 && (
@@ -169,14 +169,14 @@ export default function FlightCard({
               )}
               <div className="absolute w-2 h-2 bg-gray-400 dark:bg-slate-500 rounded-full border border-white dark:border-slate-800 shadow-sm right-0" />
             </div>
-            <span className="text-[11px] text-blue-600 dark:text-blue-400 font-bold block hover:underline cursor-pointer transition whitespace-nowrap">
+            <span className="text-[10px] sm:text-[11px] text-blue-600 dark:text-blue-400 font-bold block hover:underline cursor-pointer transition whitespace-nowrap overflow-hidden text-over">
               {stopsInfo}
             </span>
           </div>
 
           {/* Arrival block element */}
-          <div className="text-right sm:text-center min-w-[75px] xs:min-w-[90px]">
-            <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-slate-100 tracking-tight">{arrivalTime}</h2>
+          <div className="text-right sm:text-center min-w-[70px] sm:min-w-[90px] max-w-[30%]">
+            <h2 className="text-lg sm:text-2xl font-black text-gray-900 dark:text-slate-100 tracking-tight">{arrivalTime}</h2>
             <p className="text-xs text-gray-900 dark:text-slate-300 font-bold mt-0.5 truncate">{arrivalLocation}</p>
             {arrivalIATA && (
               <p className="text-[10px] text-gray-400 dark:text-slate-500 font-semibold uppercase">({arrivalIATA})</p>
@@ -185,10 +185,10 @@ export default function FlightCard({
         </div>
 
         {/* Pricing Actions Wrap Engine */}
-        <div className="flex flex-row lg:flex-col items-center lg:items-end justify-between lg:justify-center gap-3 w-full lg:w-auto lg:min-w-[220px] pt-1 lg:pt-0">
+        <div className="flex flex-col sm:flex-row lg:flex-col items-start sm:items-center lg:items-end justify-between gap-4 w-full lg:w-auto lg:min-w-[220px] pt-2 lg:pt-0 border-t sm:border-t-0 lg:border-t-0 border-gray-100 dark:border-slate-700 sm:pt-0">
           
           {/* Prices Metadata Segment */}
-          <div className="flex flex-col lg:items-end">
+          <div className="flex flex-col sm:items-start lg:items-end w-full sm:w-auto">
             <div className="flex items-baseline gap-2">
               {originalPrice && originalPrice !== calculatedFare && (
                 <span className="text-xs line-through text-gray-400 dark:text-slate-500 font-medium">
@@ -199,7 +199,7 @@ export default function FlightCard({
                 ₹{calculatedFare.toLocaleString('en-IN')}
               </span>
             </div>
-            <div className="flex items-center gap-1.5 lg:justify-end mt-0.5">
+            <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-[10px] text-gray-400 dark:text-slate-500 font-medium">/adult</span>
               {availableSeats !== "N/A" && (
                 <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded">
@@ -210,10 +210,10 @@ export default function FlightCard({
           </div>
 
           {/* Interactive Action CTA Matrix */}
-          <div className="flex items-center gap-2 max-w-[60%] lg:max-w-none">
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-stretch sm:justify-end">
             <button 
               onClick={() => setShowPriceLock(true)}
-              className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800 hover:bg-blue-100/80 dark:hover:bg-blue-900/30 transition-colors px-3 py-2 rounded-xl text-xs font-bold focus:outline-none"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800 hover:bg-blue-100/80 dark:hover:bg-blue-900/30 transition-colors px-3 py-2.5 rounded-xl text-xs font-bold focus:outline-none"
             >
               <Lock size={12} className="text-blue-500" />
               <span className="whitespace-nowrap">Lock Price</span>
@@ -228,7 +228,7 @@ export default function FlightCard({
                   setShowPriceModal(true);
                 }
               }}
-              className="bg-blue-600 border border-blue-600 text-white hover:bg-blue-700 active:scale-[0.98] font-extrabold text-xs px-4 sm:px-5 py-2.5 rounded-xl transition-all uppercase tracking-wide shadow-md shadow-blue-100 whitespace-nowrap focus:outline-none"
+              className="flex-1 sm:flex-none bg-blue-600 border border-blue-600 text-white hover:bg-blue-700 active:scale-[0.98] font-extrabold text-xs px-4 sm:px-5 py-2.5 rounded-xl transition-all uppercase tracking-wide shadow-md shadow-blue-100 whitespace-nowrap focus:outline-none text-center"
             >
               {onSelect ? (isSelected ? 'Selected' : 'Select') : 'View Prices'}
             </button>
@@ -245,32 +245,31 @@ export default function FlightCard({
               onRemoveFromCompare();
             } else {
               onAddToCompare();
-              onToggleCompareSidebar();
             }
           }}
           className={`flex items-center gap-1 text-xs font-bold transition-colors focus:outline-none ${
-            isCompared ? 'text-emerald-600' : 'text-blue-600 hover:text-blue-800'
+            isCompared ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300'
           }`}
         >
           {isCompared ? (
-            <span className="flex items-center gap-1">Added to compare <Check size={14} /></span>
+            <span className="flex items-center gap-1"><Check size={14} /> Added to compare</span>
           ) : (
-            <span className="flex items-center gap-1">Add to compare <Plus size={14} /></span>
+            <span className="flex items-center gap-1"><Plus size={14} /> Add to compare</span>
           )}
         </button>
       </div>
 
       {/* 4. Bottom Custom Promotion Strip Element */}
       {bottomPromoText && (
-        <div className="bg-orange-50/60 dark:bg-orange-900/10 border-t border-orange-100/60 dark:border-slate-700 px-4 sm:px-5 lg:px-6 py-2.5 flex flex-col xs:flex-row xs:items-center justify-between gap-2 text-xs text-gray-800 dark:text-slate-300 font-medium">
-          <div className="flex items-center gap-2 min-w-0">
+        <div className="bg-orange-50/60 dark:bg-orange-900/10 border-t border-orange-100/60 dark:border-slate-700 px-4 sm:px-5 lg:px-6 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-gray-800 dark:text-slate-300 font-medium">
+          <div className="flex items-center gap-2 min-w-0 w-full sm:w-auto">
             <span className="w-1.5 h-1.5 rounded-full bg-orange-500 inline-block shrink-0" />
             <p className="truncate text-gray-700 dark:text-slate-300">{bottomPromoText}</p>
           </div>
           
           <button 
             onClick={() => setShowDetails(!showDetails)}
-            className="text-[11px] text-blue-600 font-bold hover:text-blue-800 shrink-0 text-left xs:text-right focus:outline-none transition-colors"
+            className="text-[11px] text-blue-600 font-bold hover:text-blue-800 shrink-0 text-left sm:text-right focus:outline-none transition-colors"
           >
             {showDetails ? "Hide Details" : "View Flight Details"}
           </button>

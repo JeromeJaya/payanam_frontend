@@ -1,9 +1,7 @@
 import { useState, useEffect } from "react";
-import { MobileLogin } from "../MobileLogin.jsx";
 import {But3} from "../../Buttons/But3.jsx";
 import bgImage from "../../assets/bg3.png";
 import Nav from "../../NavComponent.jsx"
-import {But} from "../../Buttons/But.jsx";
 import {Link} from "react-router-dom";
 import {useNavigate} from "react-router-dom";
 import axios from "axios";
@@ -12,7 +10,6 @@ import PasswordInput from "../PasswordInput.jsx";
 
 export default function VendorEmailSignUp() {
     const [show, setShow] = useState(false);
-    const [showMobileLogin, setShowMobileLogin] = useState(false);
     const [name, setName] = useState("") 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -20,21 +17,45 @@ export default function VendorEmailSignUp() {
     const [phoneNo, setPhoneNo] = useState("");
     const [companyName, setCompanyName] = useState("");
     const [gstNumber, setGstNumber] = useState("");
-
-    
-
+    const [phoneError, setPhoneError] = useState("");
 
     const navigate = useNavigate()
 
   useEffect(() => {
     setShow(true);
   }, []);
-  if (showMobileLogin) return <MobileLogin />; 
+
+  const validatePhone = (phone) => {
+    const phoneRegex = /^\+?[1-9]\d{6,14}$/;
+    if (!phone) {
+      return "Phone number is required";
+    } else if (!phoneRegex.test(phone)) {
+      return "Enter a valid mobile number (e.g. +919876543210)";
+    }
+    return "";
+  };
+
+  const handlePhoneChange = (e) => {
+    const value = e.target.value;
+    setPhoneNo(value);
+    if (value.length > 0) {
+      setPhoneError(validatePhone(value));
+    } else {
+      setPhoneError("");
+    }
+  };
 
      const strongRe = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
 
     async function handleSubmit(event) {
     event.preventDefault();
+    
+    const phoneErr = validatePhone(phoneNo);
+    if (phoneErr) {
+      setPhoneError(phoneErr);
+      return;
+    }
+
     try{
       let response= await axios.post("http://localhost:3000/api/auth/register-vendor",{
       "name": name,
@@ -45,7 +66,7 @@ export default function VendorEmailSignUp() {
       "gstNumber": gstNumber
     })
     alert(response.data.message)
-    if (response && response.data && response.data.success) navigate("/VendoremailLogin");
+    if (response && response.data && response.data.success) navigate("/Login");
   }
     catch(err) {
       alert(err.response.data.message)
@@ -145,12 +166,22 @@ export default function VendorEmailSignUp() {
             id="phone"
             name="phone"
             value={phoneNo}
-            onChange={(e) => setPhoneNo(e.target.value)}
+            onChange={handlePhoneChange}
             onKeyDown={(e) => e.key === "Enter" && handleSubmit(e)}
             required
             placeholder="Enter your Phone Number"
-            className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-400 focus:border-lime-500 dark:focus:border-lime-400 outline-none transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+            className={`w-full px-4 py-3 bg-white dark:bg-gray-700 border ${
+              phoneError ? "border-red-500" : "border-gray-300 dark:border-gray-600"
+            } rounded-lg focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-400 focus:border-lime-500 dark:focus:border-lime-400 outline-none transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400`}
           />
+          {phoneError && (
+            <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              {phoneError}
+            </p>
+          )}
         </div>
 
         <div className = "flex flex-row gap-5 justify-around">
@@ -192,16 +223,6 @@ export default function VendorEmailSignUp() {
             <div className="w-full border-t border-gray-300 dark:border-gray-700"></div>
           </div>
         </div>
-
-        {/* <div className="mt-6 grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            className="w-full flex justify-center p-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm bg-white dark:bg-gray-700 text-lg font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
-            onClick = {()=>setShowMobileLogin(true)}
-          >
-            SignUp with mobile
-          </button>
-        </div> */}
       </div>
 
       <p className="mt-8 text-center text-sm text-gray-600 dark:text-gray-400">

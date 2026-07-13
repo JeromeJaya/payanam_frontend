@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { But3 } from "../Buttons/But3.jsx";
 import bgImage from "../assets/bg3.png";
 import Nav from "../NavComponent.jsx";
@@ -8,7 +8,6 @@ import { useAuth } from "../context/AuthContext";
 import PasswordInput from "../Authentication/PasswordInput.jsx";
 
 export default function AdminSignUp() {
-  const [show, setShow] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
   
@@ -21,10 +20,6 @@ export default function AdminSignUp() {
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    setShow(true);
-  }, []);
 
   // Email validation
   const validateEmail = (email) => {
@@ -126,9 +121,8 @@ export default function AdminSignUp() {
 
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center lg:justify-end px-4 sm:px-6 md:px-12 lg:pr-24 py-12 pt-20 relative overflow-hidden">
         <div
-          className={`absolute inset-0 bg-cover bg-center mt-15 opacity-0
-            transform transition-all duration-1000 ease-out
-            ${show ? "opacity-50" : "opacity-0"}`}
+          className={`absolute inset-0 bg-cover bg-center mt-15 opacity-50
+            transform transition-all duration-1000 ease-out`}
           style={{
             backgroundImage: `url(${bgImage})`,
           }}
@@ -138,7 +132,7 @@ export default function AdminSignUp() {
           className={`
             max-w-md w-full z-10
             transform transition-all duration-1000 ease-in
-            ${show ? "translate-x-0 opacity-100" : "-translate-x-40 opacity-0"}
+            translate-x-0 opacity-100
           `}
         >
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 sm:p-8">

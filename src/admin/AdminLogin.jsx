@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { But3 } from "../Buttons/But3.jsx";
 import bgImage from "../assets/bg3.png";
 import Nav from "../NavComponent.jsx";
@@ -8,17 +8,12 @@ import { useAuth } from "../context/AuthContext";
 import PasswordInput from "../Authentication/PasswordInput.jsx";
 
 export default function AdminLogin() {
-  const [show, setShow] = useState(false);
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [emailError, setEmailError] = useState("");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
-
-  useEffect(() => {
-    setShow(true);
-  }, []);
 
   // Email validation
   const validateEmail = (email) => {
@@ -61,7 +56,12 @@ export default function AdminLogin() {
         const userData = response.data.user;
         // Check if user is admin
         if (userData.role !== "admin") {
-          alert("Access denied. Admin privileges required.");
+          // Redirect non-admin users to their appropriate login page
+          if (userData.role === "vendor") {
+            navigate("/login", { replace: true });
+          } else {
+            navigate("/login", { replace: true });
+          }
           return;
         }
         login(userData);
@@ -81,9 +81,8 @@ export default function AdminLogin() {
       {/* Responsiveness fixed here: centered by default, right-aligned on large screens, safe padding throughout */}
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center lg:justify-end px-4 sm:px-6 md:px-12 lg:pr-24 py-12 pt-20 relative overflow-hidden">
         <div
-          className={`absolute inset-0 bg-cover bg-center mt-15 opacity-0
-          transform transition-all duration-1000 ease-out
-            ${show ? "opacity-100" : "opacity-0"}`}
+          className={`absolute inset-0 bg-cover bg-center mt-15 opacity-50
+          transform transition-all duration-1000 ease-out`}
           style={{
             backgroundImage: `url(${bgImage})`,
           }}
@@ -93,7 +92,7 @@ export default function AdminLogin() {
           className={`
             max-w-md w-full z-10
             transform transition-all duration-1000 ease-in
-            ${show ? "translate-x-0 opacity-100" : "-translate-x-40 opacity-0"}
+            translate-x-0 opacity-100
           `}
         >
           {/* Adjusted inner padding slightly for micro-screens (p-6 to p-8) */}

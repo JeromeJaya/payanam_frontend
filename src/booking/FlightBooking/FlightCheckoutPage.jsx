@@ -5,12 +5,12 @@ import { useAuth } from "../../context/AuthContext";
 import { useRazorpay } from "../../hooks/useRazorpay.jsx";
 import { ShieldCheck, Loader2, CheckCircle, CreditCard } from "lucide-react";
 import api from "../../api/axios";
-import FlightTimeline from "../FlightBooking/components/FlightTimeline";
-import BaggageInfo from "../FlightBooking/components/BaggageInfo";
-import CouponsOffers from "../FlightBooking/components/CouponsOffers";
-import CancellationPolicy from "../FlightBooking/components/CancellationPolicy";
-import ImportantInfo from "../FlightBooking/components/ImportantInfo";
-import TravellerDetails from "../FlightBooking/components/TravellerDetails";
+import FlightTimeline from "../../components/flightComponents/FlightTimeline.jsx";
+import BaggageInfo from "../../components/flightComponents/BaggageInfo";
+import CouponsOffers from "../../components/flightComponents/CouponsOffers";
+import CancellationPolicy from "../../components/flightComponents/CancellationPolicy";
+import ImportantInfo from "../../components/flightComponents/ImportantInfo";
+import TravellerDetails from "../../components/flightComponents/TravellerDetails";
 
 export default function FlightCheckoutPage() {
   const location = useLocation();
@@ -19,9 +19,7 @@ export default function FlightCheckoutPage() {
     flight, 
     flights, // Array of flights for round-trip/multi-city
     tripType = 'One Way',
-    legs, // Multi-city legs info
     fare, 
-    serviceType, 
     selectedSeats, 
     scheduleId: routeScheduleId,
     passengerDetails: passedPassengerDetails, // Passenger details from passenger details page
@@ -33,9 +31,10 @@ export default function FlightCheckoutPage() {
   const flightList = flights || (flight ? [flight] : []);
   const primaryFlight = flight || flightList[0];
 
-  const [adults, setAdults] = useState([]);
-  const [showAddForm, setShowAddForm] = useState(false);
   const [booking, setBooking] = useState({ status: "idle", message: "", data: null });
+
+  // Extra baggage state
+  const [extraBaggage, setExtraBaggage] = useState({ items: [], totalCost: 0, totalExtraKg: 0 });
   
   // Contact details validation state
   const [contactValidation, setContactValidation] = useState({
@@ -75,10 +74,11 @@ export default function FlightCheckoutPage() {
   // Determine if we're in "payment mode" (returned from seat selection with seats picked)
   const hasSelectedSeats = selectedSeats && selectedSeats.length > 0;
   
-  // Calculate total amount based on trip type
+  // Calculate total amount based on trip type + extra baggage
   const calculateTotalAmount = () => {
+    let base = 0;
     if (isMultiLeg) {
-      return flightList.reduce((sum, f) => {
+      base = flightList.reduce((sum, f) => {
         const flightFare = f?.pricing?.calculatedFare || f?.pricing?.baseFare || 0;
         if (hasSelectedSeats) {
           return sum + selectedSeats.reduce((seatSum, seat) => 
@@ -87,13 +87,14 @@ export default function FlightCheckoutPage() {
         }
         return sum + flightFare;
       }, 0);
+    } else {
+      // One-way
+      const singleFare = fare?.price || primaryFlight?.pricing?.calculatedFare || primaryFlight?.pricing?.baseFare || 0;
+      base = hasSelectedSeats
+        ? selectedSeats.reduce((sum, seat) => sum + ((seat.isExtraLegroom || seat.seatType === "extra-legroom") ? singleFare + 100 : singleFare), 0)
+        : singleFare;
     }
-    
-    // One-way
-    const singleFare = fare?.price || primaryFlight?.pricing?.calculatedFare || primaryFlight?.pricing?.baseFare || 0;
-    return hasSelectedSeats
-      ? selectedSeats.reduce((sum, seat) => sum + ((seat.isExtraLegroom || seat.seatType === "extra-legroom") ? singleFare + 100 : singleFare), 0)
-      : singleFare;
+    return base + (extraBaggage.totalCost || 0);
   };
   
   const totalAmount = calculateTotalAmount();
@@ -110,7 +111,7 @@ export default function FlightCheckoutPage() {
       const destCity = primaryFlight?.journey?.destination?.split('(')[0]?.trim() || "";
       
       setTimeout(() => {
-        navigate("/ticketdetails", {
+        navigate("/TicketDetails", {
           state: {
             ticket: paymentData.booking,
             meta: {
@@ -148,6 +149,7 @@ export default function FlightCheckoutPage() {
               tripType,
               serviceType: "flight",
               allFlights: flightList,
+              extraBaggage: extraBaggage.items.length > 0 ? extraBaggage : null,
             },
           },
         });
@@ -258,6 +260,11 @@ export default function FlightCheckoutPage() {
         const bookingRes = await api.post("/api/v1/flights/bookings", {
           scheduleId: schedId,
           passengerDetails,
+          extraBaggage: extraBaggage.items.length > 0 ? {
+            items: extraBaggage.items,
+            totalCost: extraBaggage.totalCost,
+            totalExtraKg: extraBaggage.totalExtraKg,
+          } : undefined,
         });
 
         if (bookingRes.data?.success) {
@@ -394,8 +401,11 @@ export default function FlightCheckoutPage() {
           cabin="7 Kgs (1 piece only)"
           checkIn="15 Kgs (1 piece only)"
           route={primaryFlight.journey?.source?.match(/\(([^)]+)\)/)?.[1] + '-' + primaryFlight.journey?.destination?.match(/\(([^)]+)\)/)?.[1]}
+          onBaggageChange={setExtraBaggage}
         />
 
+        {/* Traveller Details */}
+        <TravellerDetails onContactValidation={handleContactValidation} />
         {/* Cancellation Policy */}
         <CancellationPolicy
           cancellation="Cancellation fee starts at MYR 213.80 (up to 3 hours before departure)"
@@ -405,8 +415,6 @@ export default function FlightCheckoutPage() {
         {/* Important Info */}
         <ImportantInfo />
 
-        {/* Traveller Details */}
-        <TravellerDetails onContactValidation={handleContactValidation} />
 
         {/* Coupons and Offers */}
         <CouponsOffers />
@@ -489,7 +497,14 @@ export default function FlightCheckoutPage() {
             <div>
               <p className="text-sm text-gray-600 dark:text-slate-400 mb-1">Total Amount</p>
               <p className="text-3xl font-bold text-gray-900 dark:text-slate-100">₹{totalAmount.toLocaleString()}</p>
-              <p className="text-xs text-gray-500 dark:text-slate-500 mt-1">Inclusive of all taxes</p>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1">
+                <p className="text-xs text-gray-500 dark:text-slate-500">Inclusive of all taxes</p>
+                {extraBaggage.totalCost > 0 && (
+                  <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                    + ₹{extraBaggage.totalCost.toLocaleString()} extra baggage ({extraBaggage.totalExtraKg} Kg)
+                  </p>
+                )}
+              </div>
             </div>
 
             {hasSelectedSeats ? (
@@ -548,13 +563,25 @@ export default function FlightCheckoutPage() {
                   console.log("Navigating to seat selection with state:", seatSelectionState);
                   navigate('/flight-seat-selection', { state: seatSelectionState });
                 }}
-                className="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors"
+                disabled={!contactValidation.isValid}
+                className={`px-8 py-3 rounded-lg font-bold transition-colors flex items-center gap-2 ${
+                  !contactValidation.isValid 
+                    ? "bg-gray-400 cursor-not-allowed" 
+                    : "bg-blue-600 text-white hover:bg-blue-700"
+                }`}
               >
                 SELECT SEAT
               </button>
             )}
           </div>
         </div>
+
+        {/* Error message for contact validation before seat selection */}
+        {!hasSelectedSeats && booking.status === "error" && (
+          <div className="max-w-lg mx-auto mt-4 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-800 p-4 text-center text-base font-medium text-red-700 dark:text-red-300">
+            ⚠️ {booking.message}
+          </div>
+        )}
       </div>
     </div>
   );

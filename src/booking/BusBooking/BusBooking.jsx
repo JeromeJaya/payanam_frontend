@@ -6,7 +6,7 @@ import BusFillterBar from "../../filter/BusFillterBar.jsx"
 import SearchheckBox from "../../filter/SearchheckBox.jsx"
 import SelectBox from "../../filter/SelectBox.jsx"
 import Checkbox from "../../filter/Checkbox.jsx"
-import { Loader2, CalendarDays, RefreshCw, AlertCircle } from "lucide-react";
+import { CalendarDays, RefreshCw, AlertCircle } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import api from "../../api/axios.js";
@@ -27,12 +27,6 @@ export default function BusBooking(){
   const [to, setTo] = useState(toParam);
   const [date, setDate] = useState(dateParam);
 
-  // Redirect to main page if from or to is missing
-  useEffect(() => {
-    if (!from || !to) {
-      navigate("/");
-    }
-  }, [from, to, navigate]);
   const [acFilter, setAcFilter] = useState("ALL");
   const [seatType, setSeatType] = useState("ALL");
   const [pickupTimeFilter, setPickupTimeFilter] = useState("ALL");
@@ -87,16 +81,22 @@ export default function BusBooking(){
     let results = [...data];
 
     if (selectedAc === "AC") {
-      results = results.filter((schedule) => schedule.bus?.isAC === true);
+      results = results.filter((schedule) => {
+        if (!schedule.bus) return false;
+        return schedule.bus.isAC === true || schedule.bus.isAC === "true";
+      });
     } else if (selectedAc === "NON-AC") {
-      results = results.filter((schedule) => schedule.bus?.isAC === false);
+      results = results.filter((schedule) => {
+        if (!schedule.bus) return false;
+        return schedule.bus.isAC === false || schedule.bus.isAC === "false";
+      });
     }
 
-    if (selectedSeatType === "seater") {
+    if (selectedSeatType === "SEATER") {
       results = results.filter((schedule) =>
         schedule.bus?.type?.toLowerCase().includes("seater")
       );
-    } else if (selectedSeatType === "sleeper") {
+    } else if (selectedSeatType === "SLEEPER") {
       results = results.filter((schedule) =>
         schedule.bus?.type?.toLowerCase().includes("sleeper")
       );
@@ -251,7 +251,8 @@ export default function BusBooking(){
   };
 
   // Hard wipe active sub-filters back to initial values
-  const handleClearFilters = () => {
+  const handleClearFilters = (e) => {
+    if (e) e.preventDefault();
     setAcFilter("ALL");
     setSeatType("ALL");
     setPickupTimeFilter("ALL");
@@ -260,7 +261,16 @@ export default function BusBooking(){
     setSelectedPickupPoints([]);
     setSelectedDropPoints([]);
     setSelectedOperators([]);
-    setBuses(allBuses);
+    setBuses(applyFilters(allBuses, {
+      selectedAc: "ALL",
+      selectedSeatType: "ALL",
+      selectedPickupTime: "ALL",
+      selectedDropTime: "ALL",
+      selectedBoardingPoints: [],
+      selectedDroppingPoints: [],
+      selectedOperatorNames: [],
+      selectedPassengerCount: "1",
+    }));
   };
 
   useEffect(() => {
@@ -353,9 +363,7 @@ export default function BusBooking(){
           passengerCount={passengerCount}
           onPassengerCountChange={(val) => {
             setPassengerCount(val);
-            const storageKey = getStorageKey(from, to, date);
-            const cachedData = sessionStorage.getItem(storageKey);
-            if (cachedData) setBuses(applyFilters(JSON.parse(cachedData), { selectedPassengerCount: val }));
+            setBuses(applyFilters(allBuses, { selectedPassengerCount: val }));
           }}
         />
         
@@ -381,9 +389,14 @@ export default function BusBooking(){
 
         <div className="bg-slate-50 dark:bg-slate-900 pt-4 h-auto my-4 md:my-5 mx-2 sm:mx-4 md:mx-[100px] flex flex-col lg:flex-row">
             
-            {/* LEFT FILTER PANEL (Hidden entirely when no buses exist or layout is loading) */}
-            {hasBuses && !loading && (
-              <div className={`filter bg-white dark:bg-slate-800 w-full lg:w-[25%] h-auto rounded-lg shadow-xl dark:shadow-slate-900/30 ${showMobileFilters ? 'block' : 'hidden lg:block'} sticky top-16 lg:top-20 max-h-[calc(100vh-80px)] overflow-y-auto`}>
+                {/* LEFT FILTER PANEL (Hidden only during initial load when no data exists yet) */}
+            {!loading && (allBuses.length > 0 || hasBuses) && (
+              <div 
+                onKeyDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                onClick={(e) => e.stopPropagation()}
+                onSubmit={(e) => e.preventDefault()}
+                className={`filter bg-white dark:bg-slate-800 w-full lg:w-[25%] h-auto rounded-lg shadow-xl dark:shadow-slate-900/30 ${showMobileFilters ? 'block' : 'hidden lg:block'} sticky top-16 lg:top-20 max-h-[calc(100vh-80px)] overflow-y-auto`}
+              >
                   <div className = "flex justify-center mt-5 font-bold text-slate-800 dark:text-slate-200">FILTERS</div>
                   <SelectBox
                     title={"AC type"}
@@ -391,9 +404,7 @@ export default function BusBooking(){
                     value={acFilter}
                     onChange={(option) => {
                       setAcFilter(option);
-                      const storageKey = getStorageKey(from, to, date);
-                      const cachedData = sessionStorage.getItem(storageKey);
-                      if (cachedData) setBuses(applyFilters(JSON.parse(cachedData), { selectedAc: option }));
+                      setBuses(applyFilters(allBuses, { selectedAc: option }));
                     }}
                   />
                   <SelectBox
@@ -402,9 +413,7 @@ export default function BusBooking(){
                     value={seatType}
                     onChange={(option) => {
                       setSeatType(option);
-                      const storageKey = getStorageKey(from, to, date);
-                      const cachedData = sessionStorage.getItem(storageKey);
-                      if (cachedData) setBuses(applyFilters(JSON.parse(cachedData), { selectedSeatType: option }));
+                      setBuses(applyFilters(allBuses, { selectedSeatType: option }));
                     }}
                   />
                   <SelectBox
@@ -413,9 +422,7 @@ export default function BusBooking(){
                     value={pickupTimeFilter}
                     onChange={(option) => {
                       setPickupTimeFilter(option);
-                      const storageKey = getStorageKey(from, to, date);
-                      const cachedData = sessionStorage.getItem(storageKey);
-                      if (cachedData) setBuses(applyFilters(JSON.parse(cachedData), { selectedPickupTime: option }));
+                      setBuses(applyFilters(allBuses, { selectedPickupTime: option }));
                     }}
                   />
                   <SelectBox
@@ -424,9 +431,7 @@ export default function BusBooking(){
                     value={dropTimeFilter}
                     onChange={(option) => {
                       setDropTimeFilter(option);
-                      const storageKey = getStorageKey(from, to, date);
-                      const cachedData = sessionStorage.getItem(storageKey);
-                      if (cachedData) setBuses(applyFilters(JSON.parse(cachedData), { selectedDropTime: option }));
+                      setBuses(applyFilters(allBuses, { selectedDropTime: option }));
                     }}
                   />
                   <Checkbox title={"Single Seater/Sleeper"} text={"Single Seats"} />
@@ -436,15 +441,11 @@ export default function BusBooking(){
                     selectedPoints={selectedPickupPoints}
                     onChange={(updatedPoints) => {
                       setSelectedPickupPoints(updatedPoints);
-                      const storageKey = getStorageKey(from, to, date);
-                      const cachedData = sessionStorage.getItem(storageKey);
-                      if (cachedData) setBuses(applyFilters(JSON.parse(cachedData), { selectedBoardingPoints: updatedPoints }));
+                      setBuses(applyFilters(allBuses, { selectedBoardingPoints: updatedPoints }));
                     }}
                     onClear={() => {
                       setSelectedPickupPoints([]);
-                      const storageKey = getStorageKey(from, to, date);
-                      const cachedData = sessionStorage.getItem(storageKey);
-                      if (cachedData) setBuses(applyFilters(JSON.parse(cachedData), { selectedBoardingPoints: [] }));
+                      setBuses(applyFilters(allBuses, { selectedBoardingPoints: [] }));
                     }}
                   />
                   <SearchheckBox
@@ -453,15 +454,11 @@ export default function BusBooking(){
                     selectedPoints={selectedOperators}
                     onChange={(updatedPoints) => {
                       setSelectedOperators(updatedPoints);
-                      const storageKey = getStorageKey(from, to, date);
-                      const cachedData = sessionStorage.getItem(storageKey);
-                      if (cachedData) setBuses(applyFilters(JSON.parse(cachedData), { selectedOperatorNames: updatedPoints }));
+                      setBuses(applyFilters(allBuses, { selectedOperatorNames: updatedPoints }));
                     }}
                     onClear={() => {
                       setSelectedOperators([]);
-                      const storageKey = getStorageKey(from, to, date);
-                      const cachedData = sessionStorage.getItem(storageKey);
-                      if (cachedData) setBuses(applyFilters(JSON.parse(cachedData), { selectedOperatorNames: [] }));
+                      setBuses(applyFilters(allBuses, { selectedOperatorNames: [] }));
                     }}
                   />
                   <SearchheckBox
@@ -470,19 +467,15 @@ export default function BusBooking(){
                     selectedPoints={selectedDropPoints}
                     onChange={(updatedPoints) => {
                       setSelectedDropPoints(updatedPoints);
-                      const storageKey = getStorageKey(from, to, date);
-                      const cachedData = sessionStorage.getItem(storageKey);
-                      if (cachedData) setBuses(applyFilters(JSON.parse(cachedData), { selectedDroppingPoints: updatedPoints }));
+                      setBuses(applyFilters(allBuses, { selectedDroppingPoints: updatedPoints }));
                     }}
                     onClear={() => {
                       setSelectedDropPoints([]);
-                      const storageKey = getStorageKey(from, to, date);
-                      const cachedData = sessionStorage.getItem(storageKey);
-                      if (cachedData) setBuses(applyFilters(JSON.parse(cachedData), { selectedDroppingPoints: [] }));
+                      setBuses(applyFilters(allBuses, { selectedDroppingPoints: [] }));
                     }}
                   />
                   <div className="lg:hidden px-4 py-4">
-                    <button onClick={() => setShowMobileFilters(false)} className="w-full bg-lime-600 text-white py-3 rounded-lg font-medium hover:bg-lime-700 transition-colors">
+                    <button type="button" onClick={(e) => { e.stopPropagation(); setShowMobileFilters(false); }} className="w-full bg-lime-600 text-white py-3 rounded-lg font-medium hover:bg-lime-700 transition-colors">
                       Apply Filters
                     </button>
                   </div>
@@ -566,14 +559,23 @@ export default function BusBooking(){
                       {/* Interactive Trigger Control Layout Track */}
                       <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                         <button 
-                          onClick={handleClearFilters}
+                          type="button"
+                          onClick={(e) => { e.preventDefault(); navigate("/mainpage"); }}
+                          className="w-full sm:flex-1 flex items-center justify-center gap-2 bg-sky-500 hover:bg-sky-600 text-white font-extrabold text-sm px-4 py-3 rounded-xl shadow-xs transition-all"
+                        >
+                          Main Page                        
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={(e) => { e.preventDefault(); handleClearFilters(); }}
                           className="w-full sm:flex-1 flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold text-sm px-4 py-3 rounded-xl transition-all"
                         >
                           <RefreshCw size={14} />
                           Reset Filters
                         </button>
                         <button 
-                          onClick={handleNextDaySearch}
+                          type="button"
+                          onClick={(e) => { e.preventDefault(); handleNextDaySearch(); }}
                           className="w-full sm:flex-1 flex items-center justify-center gap-2 bg-sky-500 hover:bg-sky-600 text-white font-extrabold text-sm px-4 py-3 rounded-xl shadow-xs transition-all"
                         >
                           <CalendarDays size={14} />

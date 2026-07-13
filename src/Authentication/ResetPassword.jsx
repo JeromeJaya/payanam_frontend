@@ -1,17 +1,14 @@
 import { useState, useEffect } from "react";
-import { MobileLogin } from "./MobileLogin.jsx";
 import {But3} from "../Buttons/But3.jsx";
 import bgImage from "../assets/bg3.png";
 import Nav from "../NavComponent.jsx";
-import {Link,Outlet} from "react-router-dom";
+import {Link} from "react-router-dom";
 import {useNavigate, useLocation} from "react-router-dom";
 import api from "../api/axios";
 import PasswordInput from "./PasswordInput.jsx";
-import { useAuth } from "../context/AuthContext";
 
 export default function ResetLogin() {
     const [show, setShow] = useState(false);
-    const [showMobileLogin, setShowMobileLogin] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
     const [otp, setOTP] = useState("");
@@ -20,7 +17,6 @@ export default function ResetLogin() {
     const [resendCountdown, setResendCountdown] = useState(300);
     const [loading, setLoading] = useState(false);
     const [resendLoading, setResendLoading] = useState(false);
-    const { login } = useAuth();
     const emaill = location.state?.email || "";
     const strongRe = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
 
@@ -43,7 +39,6 @@ export default function ResetLogin() {
       return () => clearInterval(timer);
     }, [resendCountdown]);
 
-    if (showMobileLogin) return <MobileLogin />;
 
     const formatTime = (seconds) => {
       const mins = Math.floor(seconds / 60)
@@ -271,7 +266,6 @@ export default function ResetLogin() {
           <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400 flex flex-wrap justify-center gap-1">
             <span>Don't have an account?</span>
             <Link to="/EmailSignUp" className="font-medium text-lime-600 dark:text-lime-400 hover:text-lime-500 dark:hover:text-lime-300">Sign up</Link>
-            <Outlet/>
           </p>
         </div>
       </div>

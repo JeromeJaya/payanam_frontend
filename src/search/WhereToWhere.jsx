@@ -22,6 +22,10 @@ export default function SearchBar({
   const [loadingTo, setLoadingTo] = useState(false);
   
   // New state to toggle mobile expansion
+  // Tracks whether the user selected the value from suggestions (not typed freely)
+  const [fromSelectedFromSuggestions, setFromSelectedFromSuggestions] = useState(false);
+  const [toSelectedFromSuggestions, setToSelectedFromSuggestions] = useState(false);
+  
   const [isMobileMaximized, setIsMobileMaximized] = useState(false);
   
   const fromRef = useRef(null);
@@ -33,6 +37,9 @@ export default function SearchBar({
     const temp = from;
     setFrom(to);
     setTo(temp);
+    // Also swap the suggestion-selected flags
+    setFromSelectedFromSuggestions(toSelectedFromSuggestions);
+    setToSelectedFromSuggestions(fromSelectedFromSuggestions);
   };
 
   const handleSubmit = (e) => {
@@ -44,14 +51,27 @@ export default function SearchBar({
     // Validate From and To
     if (!from || from.trim() === "") {
       errors.push("Please enter a departure location");
+    } else if (!fromSelectedFromSuggestions) {
+      errors.push("Please select a valid departure location from the suggestions");
     }
     if (!to || to.trim() === "") {
       errors.push("Please enter a destination location");
+    } else if (!toSelectedFromSuggestions) {
+      errors.push("Please select a valid destination location from the suggestions");
     }
     
     // Validate From != To
     if (from && to && from.trim().toLowerCase() === to.trim().toLowerCase()) {
       errors.push("Departure and destination cannot be the same");
+    }
+    
+    // Validate date is not in the past
+    if (date) {
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      if (date < todayStr) {
+        errors.push("Travel date cannot be in the past");
+      }
     }
     
     // Validate Passenger count if it exists in searchData
@@ -118,6 +138,7 @@ export default function SearchBar({
   const handleFromChange = (e) => {
     const value = e.target.value;
     setFrom(value);
+    setFromSelectedFromSuggestions(false);
     if (fromDebounceTimer.current) clearTimeout(fromDebounceTimer.current);
     const token = { ignore: false };
     fromDebounceTimer.current = setTimeout(() => {
@@ -128,6 +149,7 @@ export default function SearchBar({
   const handleToChange = (e) => {
     const value = e.target.value;
     setTo(value);
+    setToSelectedFromSuggestions(false);
     if (toDebounceTimer.current) clearTimeout(toDebounceTimer.current);
     const token = { ignore: false };
     toDebounceTimer.current = setTimeout(() => {
@@ -137,11 +159,13 @@ export default function SearchBar({
 
   const selectFromSuggestion = (place) => {
     setFrom(place.name);
+    setFromSelectedFromSuggestions(true);
     setShowFromSuggestions(false);
   };
 
   const selectToSuggestion = (place) => {
     setTo(place.name);
+    setToSelectedFromSuggestions(true);
     setShowToSuggestions(false);
   };
 
@@ -327,7 +351,19 @@ export default function SearchBar({
                     type="date"
                     className="w-full text-xs sm:text-sm md:text-base font-bold text-slate-800 dark:text-slate-200 focus:outline-none bg-transparent mt-0.5 cursor-pointer accent-lime-600"
                     value={date}
-                    onChange={(e) => setDate(e.target.value)}
+                    min={(() => {
+                      const today = new Date();
+                      return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                    })()}
+                    onChange={(e) => {
+                      const today = (() => {
+                        const t = new Date();
+                        return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+                      })();
+                      // Prevent past dates
+                      if (e.target.value < today) return;
+                      setDate(e.target.value);
+                    }}
                     required
                   />
                 </div>

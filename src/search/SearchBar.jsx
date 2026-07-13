@@ -2,6 +2,8 @@ import place from '../booking/places.json';
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from '../api/axios';
+import {MicVocal, MicOff } from "lucide-react";
+import FlightPlace from "./FlightPlace.jsx"
 
 
 // Flat-mapping data layer
@@ -473,46 +475,19 @@ export default function SearchBar({ input, service }) {
                   ref={(el) => { inputRefs.current[field.name] = el; }}
                   autoComplete="off"
                 />
-
                 {/* Suggestions Dropdown */}
                 {showDropdown && (
-                  <ul className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-48 overflow-y-auto">
-                    {service === 'flight' && isFromField && fromAirportSuggestions.map((airport, index) => (
-                      <li
-                        key={index}
-                        onClick={() => selectFrom(airport)}
-                        className="px-3 py-2 text-sm text-slate-700 hover:bg-lime-50 hover:text-lime-700 cursor-pointer transition-colors border-b border-slate-100 last:border-b-0"
-                      >
-                        <div className="font-medium">{airport.displayText || `${airport.city} (${airport.iataCode})`}</div>
-                        <div className="text-xs text-slate-500">{airport.name}</div>
-                      </li>
-                    ))}
-                    {service === 'flight' && isToField && toAirportSuggestions.map((airport, index) => (
-                      <li
-                        key={index}
-                        onClick={() => selectTo(airport)}
-                        className="px-3 py-2 text-sm text-slate-700 hover:bg-lime-50 hover:text-lime-700 cursor-pointer transition-colors border-b border-slate-100 last:border-b-0"
-                      >
-                        <div className="font-medium">{airport.displayText || `${airport.city} (${airport.iataCode})`}</div>
-                        <div className="text-xs text-slate-500">{airport.name}</div>
-                      </li>
-                    ))}
-                    {service !== 'flight' && (isFromField ? 
-                      allDestinations.filter(d => d.toLowerCase().includes(from.toLowerCase())) :
-                      allDestinations.filter(d => d.toLowerCase().includes(to.toLowerCase()))
-                    ).slice(0, 5).map((item, index) => (
-                      <li
-                        key={index}
-                        onClick={() => {
-                          if (isFromField) selectFrom(item);
-                          else if (isToField) selectTo(item);
-                        }}
-                        className="px-3 py-2 text-sm text-slate-700 hover:bg-lime-50 hover:text-lime-700 cursor-pointer transition-colors border-b border-slate-100 last:border-b-0"
-                      >
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
+                  <FlightPlace
+                    service={service}
+                    from={from}
+                    to={to}
+                    selectFrom={selectFrom}
+                    selectTo={selectTo}
+                    fromAirportSuggestions={fromAirportSuggestions}
+                    toAirportSuggestions={toAirportSuggestions}
+                    allDestinations={allDestinations}
+                    isFromField={isFromField}
+                    isToField={isToField}/>
                 )}
               </div>
             );
@@ -573,47 +548,6 @@ export default function SearchBar({ input, service }) {
                       autoComplete="off"
                     />
 
-                    {/* Suggestions Dropdown */}
-                    {showDropdown && (
-                      <ul className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-48 overflow-y-auto">
-                        {service === 'flight' && isFromField && fromAirportSuggestions.map((airport, index) => (
-                          <li
-                            key={index}
-                            onClick={() => selectFrom(airport)}
-                            className="px-3 py-2 text-sm text-slate-700 hover:bg-lime-50 hover:text-lime-700 cursor-pointer transition-colors border-b border-slate-100 last:border-b-0"
-                          >
-                            <div className="font-medium">{airport.displayText || `${airport.city} (${airport.iataCode})`}</div>
-                            <div className="text-xs text-slate-500">{airport.name}</div>
-                          </li>
-                        ))}
-                        {service === 'flight' && isToField && toAirportSuggestions.map((airport, index) => (
-                          <li
-                            key={index}
-                            onClick={() => selectTo(airport)}
-                            className="px-3 py-2 text-sm text-slate-700 hover:bg-lime-50 hover:text-lime-700 cursor-pointer transition-colors border-b border-slate-100 last:border-b-0"
-                          >
-                            <div className="font-medium">{airport.displayText || `${airport.city} (${airport.iataCode})`}</div>
-                            <div className="text-xs text-slate-500">{airport.name}</div>
-                          </li>
-                        ))}
-                        {service !== 'flight' && (isFromField ? 
-                          allDestinations.filter(d => d.toLowerCase().includes(from.toLowerCase())) :
-                          allDestinations.filter(d => d.toLowerCase().includes(to.toLowerCase()))
-                        ).slice(0, 5).map((item, index) => (
-                          <li
-                            key={index}
-                            onClick={() => {
-                              if (isFromField) selectFrom(item);
-                              else if (isToField) selectTo(item);
-                            }}
-                            className="px-3 py-2 text-sm text-slate-700 hover:bg-lime-50 hover:text-lime-700 cursor-pointer transition-colors border-b border-slate-100 last:border-b-0"
-                          >
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    
                   </div>
                 );
               })}
@@ -637,8 +571,8 @@ export default function SearchBar({ input, service }) {
                   : 'bg-slate-900 border-slate-900 hover:bg-rose-600 hover:border-rose-600 shadow-[0_0_15px_rgba(15,23,42,0.2)] hover:shadow-[0_0_25px_rgba(225,29,72,0.6)]'
                 }`}
             >
-              <span className={`w-2.5 h-2.5 rounded-full bg-current ${isListening ? 'animate-ping' : ''}`} />
-              {isListening ? 'Listening...' : 'Voice search'}
+              
+              {isListening ? <MicOff/> : <MicVocal/> }
             </button>
           </div>
 

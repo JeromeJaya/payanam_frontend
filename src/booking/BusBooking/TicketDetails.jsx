@@ -12,7 +12,7 @@ export default function TicketDetails() {
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center text-center p-4">
         <Nav />
         <div className="max-w-md bg-white dark:bg-slate-800 p-8 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-          <p className="text-sm font-bold text-slate-800 dark:text-slate-100">No Active Ticket Context Found</p>
+          <p className="text-md font-bold text-slate-800 dark:text-slate-100">No Active Ticket Context Found</p>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-4">To view dynamic tickets, finalize a trip inside the bus deck layout.</p>
           <Link to="/MainPage" className="inline-flex text-xs bg-lime-500 text-white font-bold px-4 py-2 rounded-xl transition hover:bg-lime-600">
             Back to Dashboard
@@ -85,7 +85,7 @@ export default function TicketDetails() {
         <div className="mb-6 rounded-2xl bg-lime-50 dark:bg-lime-900/20 border border-lime-200 dark:border-lime-800 p-4 flex items-start gap-3 print:hidden shadow-3xs">
           <CheckCircle2 className="text-lime-600 dark:text-lime-400 shrink-0 mt-0.5" size={18} />
           <div>
-            <h2 className="text-sm font-bold text-lime-900 dark:text-lime-200">Booking Confirmed Successfully!</h2>
+            <h2 className="text-md font-bold text-lime-900 dark:text-lime-200">Booking Confirmed Successfully!</h2>
             <p className="text-xs text-lime-700 dark:text-lime-400 mt-0.5">Your ticket itinerary details have been locked. Click the download button above to save your offline travel pass.</p>
           </div>
         </div>
@@ -96,14 +96,14 @@ export default function TicketDetails() {
           {/* Top Decorative Branding Bar */}
           <div className="bg-gradient-to-r from-lime-500 to-lime-600 px-6 py-5 text-white flex justify-between items-center print:bg-lime-600">
             <div>
-              <span className="text-[10px] uppercase font-bold tracking-widest text-lime-100 block">{serviceType} E-Ticket Voucher</span>
+              <span className="text-sm uppercase font-bold tracking-widest text-lime-100 block">{serviceType} E-Ticket Voucher</span>
               <h3 className="text-lg font-black tracking-tight mt-0.5 flex items-center gap-1.5">
                 <ServiceIcon size={18} /> {serviceName}
-                {serviceNumber && <span className="text-sm font-medium opacity-80">({serviceNumber})</span>}
+                {serviceNumber && <span className="text-md font-medium opacity-80">({serviceNumber})</span>}
               </h3>
             </div>
             <div className="text-right">
-              <span className="text-[10px] uppercase font-bold tracking-widest text-lime-100 block">Booking PNR</span>
+              <span className="text-sm uppercase font-bold tracking-widest text-lime-100 block">Booking PNR</span>
               <span className="text-lg font-mono font-black bg-white/20 print:bg-black/10 px-2.5 py-0.5 rounded-md inline-block mt-0.5">
                 {ticket.bookingId}
               </span>
@@ -118,7 +118,7 @@ export default function TicketDetails() {
               <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1 mb-1">
                 <Calendar size={10} /> Travel Date
               </span>
-              <p className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+              <p className="text-md font-extrabold text-slate-900 dark:text-slate-100">
                 {travelDateFormatted}
               </p>
             </div>
@@ -170,7 +170,7 @@ export default function TicketDetails() {
                 <div key={index} className="flex justify-between items-center bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-600 print:border-slate-300 rounded-xl p-3 shadow-3xs print:shadow-none">
                   <div>
                     <p className="text-xs font-bold text-slate-900 dark:text-slate-100">{p.name}</p>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase mt-0.5">Age: {p.age} • Gender: {p.gender}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium uppercase mt-0.5">Age: {p.age} • Gender: {p.gender}</p>
                   </div>
                   <span className="text-xs font-extrabold text-lime-800 dark:text-lime-300 bg-lime-50 dark:bg-lime-900/30 border border-lime-200 dark:border-lime-700 rounded-lg px-2.5 py-1 flex items-center gap-1 print:bg-transparent print:border-slate-300 print:text-slate-900">
                     <Armchair size={12} /> Seat {p.seatNumber}
@@ -181,11 +181,15 @@ export default function TicketDetails() {
           </div>
 
           {/* Payment Details Section */}
-          {meta?.payment && (
+          {(meta?.payment || ticket?.paymentStatus) && (
             <div className="p-6 border-b border-slate-100 dark:border-slate-700 bg-gradient-to-br from-slate-50/50 to-blue-50/30 dark:from-slate-700/20 dark:to-blue-900/10 print:bg-transparent">
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-4 flex items-center gap-1.5">
                 <ShieldCheck size={12} /> Payment Details
               </h4>
+
+              <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3">
+                {(!meta.payment && !ticket.paymentStatus) && "Payment verification pending."}
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Razorpay Order ID */}
@@ -194,8 +198,8 @@ export default function TicketDetails() {
                     <Hash size={10} className="text-slate-400 dark:text-slate-500" />
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Order ID</span>
                   </div>
-                  <p className="text-xs font-mono font-semibold text-slate-700 dark:text-slate-300 truncate" title={meta.payment.razorpayOrderId}>
-                    {meta.payment.razorpayOrderId}
+                  <p className="text-xs font-mono font-semibold text-slate-700 dark:text-slate-300 truncate" title={meta.payment?.razorpayOrderId || ticket.paymentReference}>
+                    {meta.payment?.razorpayOrderId || ticket.paymentReference || "N/A"}
                   </p>
                 </div>
 
@@ -205,8 +209,8 @@ export default function TicketDetails() {
                     <CreditCard size={10} className="text-slate-400 dark:text-slate-500" />
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Payment ID</span>
                   </div>
-                  <p className="text-xs font-mono font-semibold text-slate-700 dark:text-slate-300 truncate" title={meta.payment.razorpayPaymentId}>
-                    {meta.payment.razorpayPaymentId}
+                  <p className="text-xs font-mono font-semibold text-slate-700 dark:text-slate-300 truncate" title={meta.payment?.razorpayPaymentId}>
+                    {meta.payment?.razorpayPaymentId || "N/A"}
                   </p>
                 </div>
 
@@ -216,7 +220,7 @@ export default function TicketDetails() {
                     <IndianRupee size={10} className="text-slate-400 dark:text-slate-500" />
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Amount Paid</span>
                   </div>
-                  <p className="text-sm font-black text-emerald-700 dark:text-emerald-400">
+                  <p className="text-md font-black text-emerald-700 dark:text-emerald-400">
                     ₹{(meta.payment?.amount || ticket.totalFare || 0).toLocaleString()} <span className="text-lg font-medium text-slate-500 dark:text-slate-400 ml-1">{meta.payment?.currency || "INR"}</span>
                   </p>
                 </div>
@@ -227,27 +231,35 @@ export default function TicketDetails() {
                     <CheckCircle2 size={10} className="text-slate-400 dark:text-slate-500" />
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Status</span>
                   </div>
-                  <span className={`text-xs font-bold inline-flex items-center gap-1 px-2 py-0.5 rounded-md uppercase tracking-wide ${
-                    meta.payment.status === "SUCCESS"
-                      ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700"
-                      : meta.payment.status === "REFUNDED"
-                      ? "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700"
-                      : "text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600"
-                  }`}>
-                    {meta.payment.status === "SUCCESS" && <CheckCircle2 size={10} />}
-                    {meta.payment.status}
-                  </span>
+                  {(() => {
+                    const rawStatus = meta.payment?.status || ticket.paymentStatus;
+                    const status = String(rawStatus || "").trim().toUpperCase();
+                    const isSuccess = status === "SUCCESS" || status === "CAPTURED";
+                    const isRefunded = status === "REFUNDED";
+                    return (
+                      <span className={`text-xs font-bold inline-flex items-center gap-1 px-2 py-0.5 rounded-md uppercase tracking-wide ${
+                        isSuccess
+                          ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700"
+                          : isRefunded
+                          ? "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700"
+                          : "text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600"
+                      }`}>
+                        {isSuccess && <CheckCircle2 size={10} />}
+                        {status || "N/A"}
+                      </span>
+                    );
+                  })()}
                 </div>
 
                 {/* Payment Date */}
-                {meta.payment.createdAt && (
+                {(meta.payment?.createdAt || ticket.bookedAt) && (
                   <div className="bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-600 print:border-slate-300 rounded-xl p-3 shadow-3xs print:shadow-none">
                     <div className="flex items-center gap-1.5 mb-1">
                       <Clock size={10} className="text-slate-400 dark:text-slate-500" />
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Payment Date</span>
                     </div>
                     <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      {new Date(meta.payment.createdAt).toLocaleDateString("en-IN", {
+                      {new Date(meta.payment?.createdAt || ticket.bookedAt).toLocaleDateString("en-IN", {
                         weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
                       })}
                     </p>
@@ -255,7 +267,7 @@ export default function TicketDetails() {
                 )}
 
                 {/* Refund Info (if applicable) */}
-                {meta.payment.refundId && (
+                {meta.payment?.refundId && (
                   <div className="bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-600 print:border-slate-300 rounded-xl p-3 shadow-3xs print:shadow-none">
                     <div className="flex items-center gap-1.5 mb-1">
                       <IndianRupee size={10} className="text-slate-400 dark:text-slate-500" />

@@ -53,7 +53,9 @@ export default function SearchheckBox({
 
         <div className="flex items-center gap-2 md:gap-3">
           <button
-            onClick={() => {
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
               if (onClear) {
                 onClear();
               } else {
@@ -65,7 +67,7 @@ export default function SearchheckBox({
             CLEAR
           </button>
 
-          <button onClick={() => setOpen(!open)}>
+          <button type="button" onClick={(e) => { e.preventDefault(); setOpen(!open); }}>
             {open ? <ChevronUp size={16} className="text-gray-600 dark:text-slate-400" /> : <ChevronDown size={16} className="text-gray-600 dark:text-slate-400" />}
           </button>
         </div>
@@ -124,7 +126,8 @@ export default function SearchheckBox({
           {/* Show All / Show Less Button */}
           {filteredPoints.length > 4 && (
             <button 
-              onClick={() => setShowAll(!showAll)}
+              type="button"
+              onClick={(e) => { e.preventDefault(); setShowAll(!showAll); }}
               className="mt-3 md:mt-5 text-blue-600 dark:text-blue-400 font-medium flex items-center gap-1 hover:text-blue-700 dark:hover:text-blue-300 text-xs md:text-sm"
             >
               {showAll ? (

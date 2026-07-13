@@ -1,4 +1,4 @@
-import {Routes, Route} from 'react-router-dom';
+import {Routes, Route as RouteElement} from 'react-router-dom';
 import {EmailLogin} from './Authentication/EmailLogin.jsx';
 import {EmailSignUp} from './Authentication/EmailSignUp.jsx';
 import MainPage from "./MainPage.jsx";
@@ -12,7 +12,6 @@ import ResetPassword from "./Authentication/ResetPassword.jsx";
 import BookingSummary from "./booking/BusBooking/BookingSummary.jsx";
 import UserProfile from "./UserProfile.jsx";
 import FlightBooking from "./booking/FlightBooking/FlightBooking.jsx";
-import HotelBooking from "./booking/HotelBooking/HotelBooking.jsx";
 import FlightCheckoutPage from "./booking/FlightBooking/FlightCheckoutPage.jsx";
 import FlightSeatSelection from "./booking/FlightBooking/FlightSeatSelection.jsx";
 import FlightPassengerDetails from "./booking/FlightBooking/FlightPassengerDetails.jsx";
@@ -25,40 +24,47 @@ import NotFound from "./components/NotFound.jsx";
 import AdminLogin from "./admin/AdminLogin.jsx";
 import AdminSignUp from "./admin/AdminSignUp.jsx";
 import AdminDashboard from "./admin/AdminDashboard.jsx";
+import HelpCenter from "./HelpCenter.jsx";
+import ContactUs from "./ContactUs.jsx";
+import FAQs from "./FAQs.jsx";
+import TermsConditions from "./TermsConditions.jsx";
 
 
 export function Router (){
     return(
 <Routes>
-    <Route path='/' element={<MainPage/>}/>
-    <Route path='/login' element={<EmailLogin/>}/>
-    <Route path='/emailSignup' element={<EmailSignUp/>}/>
-    <Route path='/MainPage' element={<MainPage/>}/>
-    <Route path='/profile' element={<ProtectedRoute><UserProfile/></ProtectedRoute>}/>
-    <Route path='/ExplorePlace' element={<ExplorePlace/>}/>
-    <Route path='/busbooking' element={<BusBooking/>}/>  
-    <Route path='/SeatSelection' element={<SeatSelection/>}/>  
-    <Route path='/ForgotPassword' element={<ForgotPassword/>}/>  
-    <Route path='/ResetPassword' element={<ResetPassword/>}/>  
-    <Route path='/BookingSummary' element={<BookingSummary/>}/>  
-    <Route path='/flightbooking' element={<FlightBooking/>}/>  
-    <Route path='/flight-checkout' element={<FlightCheckoutPage/>}/>  
-
-    <Route path='/hi' element={<FlightSeatSelection/>}/>  
-    
-    
-    <Route path='/flight-seat-selection' element={<FlightSeatSelection/>}/>  
-    <Route path='/flight-passenger-details' element={<FlightPassengerDetails/>}/>  
-    <Route path='/hotelbooking' element={<HotelBooking/>}/>  
-    <Route path='/TicketDetails' element={<TicketDetails/>}/>  
-    <Route path='/checkout' element={<CheckoutPage/>}/>  
-    <Route path='/seatconfirmation' element={<SeatConfirmation/>}/>  
-    <Route path='/vendordashboard' element={<VendorProtectedRoute><VendorDashboard/></VendorProtectedRoute>}/> 
-    <Route path='/VendorEmailSignUp' element={<VendorEmailSignUp/>}/>
-    <Route path='/admin/login' element={<AdminLogin/>}/>
-    <Route path='/admin/signup' element={<AdminSignUp/>}/>
-    <Route path='/admin/dashboard' element={<AdminProtectedRoute><AdminDashboard/></AdminProtectedRoute>}/>
-    <Route path='*' element={<NotFound/>}/>
+    <RouteElement path='/' element={<MainPage/>}/>
+    <RouteElement path='/login' element={<EmailLogin/>}/>
+    <RouteElement path='/emailSignup' element={<EmailSignUp/>}/>
+    <RouteElement path='/EmailSignUp' element={<EmailSignUp/>}/>
+    <RouteElement path='/MainPage' element={<MainPage/>}/>
+    <RouteElement path='/profile' element={<ProtectedRoute><UserProfile/></ProtectedRoute>}/>
+    <RouteElement path='/profile/:userId' element={<ProtectedRoute><UserProfile/></ProtectedRoute>}/>
+    <RouteElement path='/ExplorePlace' element={<ExplorePlace/>}/>
+    <RouteElement path='/busbooking' element={<BusBooking/>}/>  
+    <RouteElement path='/SeatSelection' element={<SeatSelection/>}/>  
+    <RouteElement path='/ForgotPassword' element={<ForgotPassword/>}/>  
+    <RouteElement path='/ResetPassword' element={<ResetPassword/>}/>  
+    <RouteElement path='/BookingSummary' element={<BookingSummary/>}/>  
+    <RouteElement path='/flightbooking' element={<FlightBooking/>}/>
+    <RouteElement path='/flight-checkout' element={<FlightCheckoutPage/>}/>  
+    <RouteElement path='/flight-seat-selection' element={<FlightSeatSelection/>}/>  
+    <RouteElement path='/flight-passenger-details' element={<FlightPassengerDetails/>}/>  
+    <RouteElement path='/TicketDetails' element={<TicketDetails/>}/>  
+    <RouteElement path='/checkout' element={<CheckoutPage/>}/>  
+    <RouteElement path='/seatconfirmation' element={<SeatConfirmation/>}/>  
+    <RouteElement path='/vendordashboard' element={<VendorProtectedRoute><VendorDashboard/></VendorProtectedRoute>}/> 
+    <RouteElement path='/VendorEmailSignUp' element={<VendorEmailSignUp/>}/>
+    <RouteElement path='/vendoremailsignup' element={<VendorEmailSignUp/>}/>
+    {/* admin */}
+    <RouteElement path='/admin/login' element={<AdminLogin/>}/>
+    <RouteElement path='/admin/signup' element={<AdminSignUp/>}/>
+    <RouteElement path='/admin/dashboard' element={<AdminProtectedRoute><AdminDashboard/></AdminProtectedRoute>}/>
+    <RouteElement path='/help-center' element={<HelpCenter/>}/>
+    <RouteElement path='/contact-us' element={<ContactUs/>}/>
+    <RouteElement path='/faqs' element={<FAQs/>}/>
+    <RouteElement path='/terms-conditions' element={<TermsConditions/>}/>
+    <RouteElement path='*' element={<NotFound/>}/>
 </Routes>
     );
 }

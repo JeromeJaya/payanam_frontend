@@ -6,7 +6,6 @@ import SelectedFlightsSidebar from "../../cards/SelectedFlightsSidebar.jsx"
 
 import SearchheckBox from "../../filter/SearchheckBox.jsx"
 import SelectBox from "../../filter/SelectBox.jsx"
-import Checkbox from "../../filter/Checkbox.jsx"
 import { useState, useEffect, useMemo } from "react";
 import { useLocation, useSearchParams, useNavigate } from "react-router-dom";
 import api from "../../api/axios.js"
@@ -33,6 +32,7 @@ export default function FlightBooking(){
   const [to, setTo] = useState(toParam);
   const [date, setDate] = useState(dateParam);
   const [hasSearched, setHasSearched] = useState(false);
+  const [searchTrigger, setSearchTrigger] = useState(0);
 
   // Trip type states
   const [tripType, setTripType] = useState('One Way');
@@ -58,7 +58,7 @@ export default function FlightBooking(){
   const [flights, setFlights] = useState([]);
   const [allFlights, setAllFlights] = useState([]); // Store full unfiltered data
   const [loading, setLoading] = useState(false);
-  const [sortBy, setSortBy] = useState("price_low");
+  const [sortBy, setSortBy] = useState("Relevance");
   const [filters, setFilters] = useState({
     aircraftType: "",
     cabinClass: "",
@@ -69,6 +69,7 @@ export default function FlightBooking(){
   });
   const [comparedFlights, setComparedFlights] = useState([]);
   const [showCompareSidebar, setShowCompareSidebar] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   // Generate a unique sessionStorage key based on search params
   const getStorageKey = (searchFrom, searchTo, searchDate) => {
@@ -130,26 +131,27 @@ export default function FlightBooking(){
     const sorted = [...data];
     
     switch (sortOption) {
-      case "price_low":
+      case "Price":
         sorted.sort((a, b) => (a.pricing?.calculatedFare || a.pricing?.baseFare || 0) - (b.pricing?.calculatedFare || b.pricing?.baseFare || 0));
         break;
-      case "price_high":
-        sorted.sort((a, b) => (b.pricing?.calculatedFare || b.pricing?.baseFare || 0) - (a.pricing?.calculatedFare || a.pricing?.baseFare || 0));
-        break;
-      case "duration":
+      case "Fastest":
         sorted.sort((a, b) => {
           const durA = a.journey?.durationMinutes || 0;
           const durB = b.journey?.durationMinutes || 0;
           return durA - durB;
         });
         break;
-      case "departure":
+      case "Departure":
         sorted.sort((a, b) => (a.journey?.departureTime || "").localeCompare(b.journey?.departureTime || ""));
         break;
-      case "arrival":
+      case "Arrival":
         sorted.sort((a, b) => (a.journey?.arrivalTime || "").localeCompare(b.journey?.arrivalTime || ""));
         break;
+      case "Rating":
+        sorted.sort((a, b) => (b.flight?.rating || b.rating || 0) - (a.flight?.rating || a.rating || 0));
+        break;
       default:
+        // Relevance — no sorting, keep original order
         break;
     }
     
@@ -234,12 +236,9 @@ export default function FlightBooking(){
       if (filters.cabinClass) params.cabinClass = filters.cabinClass;
       if (filters.minPrice) params.minPrice = filters.minPrice;
       if (filters.maxPrice) params.maxPrice = filters.maxPrice;
-      if (sortBy) params.sortBy = sortBy;
 
       const res = await api.get("/api/v1/flights/search", { params });
-      console.log("Flight search params:", params);
       const flightData = res?.data?.data || [];
-      console.log("Flight search results:", flightData);
       
       // Store the FULL unfiltered response in sessionStorage
       sessionStorage.setItem(storageKey, JSON.stringify(flightData));
@@ -303,12 +302,21 @@ export default function FlightBooking(){
     }
   }, []);
 
-  // Re-fetch when from/to/date changes (e.g. after IATA auto-resolution or user edit)
+  // Trigger fetch on initial load or when IATA codes are resolved by WhereToWhere
   useEffect(() => {
-    if (from && to && date) {
+    const looksLikeIata = (v) => /^[A-Z]{3}$/.test(v || '');
+    // Only auto-fetch when all three params are present and from/to look like IATA codes
+    if (from && to && date && looksLikeIata(from) && looksLikeIata(to)) {
       handleFetchFlights();
     }
   }, [from, to, date]);
+
+  // Re-fetch when searchTrigger changes (user clicks Search button in WhereToWhere)
+  useEffect(() => {
+    if (searchTrigger > 0 && from && to && date) {
+      handleFetchFlights();
+    }
+  }, [searchTrigger]);
 
   // Re-apply filters and sort when sort/filter changes (no API call)
   useEffect(() => {
@@ -327,22 +335,43 @@ export default function FlightBooking(){
     setFilters(prev => ({ ...prev, [filterName]: value }));
   };
 
+  const MAX_COMPARE = 4;
+
+  // Helper: get a consistent unique ID for a flight object
+  const getFlightId = (f) => f.scheduleId || f._id || f.id;
+
   const handleAddToCompare = (flight) => {
-    if (!comparedFlights.find(f => f.scheduleId === flight.scheduleId || f.id === flight.id)) {
-      setComparedFlights([...comparedFlights, flight]);
+    const fid = getFlightId(flight);
+    if (comparedFlights.find(f => getFlightId(f) === fid)) {
+      return; // already in list
     }
+    if (comparedFlights.length >= MAX_COMPARE) {
+      alert(`You can compare up to ${MAX_COMPARE} flights at a time. Remove one first.`);
+      return;
+    }
+    setComparedFlights(prev => [...prev, flight]);
+    setShowCompareSidebar(true); // always open sidebar when adding
   };
 
   const handleRemoveFromCompare = (flight) => {
-    setComparedFlights(comparedFlights.filter(f => f.scheduleId !== flight.scheduleId && f.id !== flight.id));
+    const fid = getFlightId(flight);
+    const updated = comparedFlights.filter(f => getFlightId(f) !== fid);
+    setComparedFlights(updated);
+    if (updated.length === 0) {
+      setShowCompareSidebar(false); // close sidebar when empty
+    }
   };
 
   const isFlightCompared = (flight) => {
-    return comparedFlights.some(f => f.scheduleId === flight.scheduleId || f.id === flight.id);
+    const fid = getFlightId(flight);
+    return comparedFlights.some(f => getFlightId(f) === fid);
   };
 
-  const toggleCompareSidebar = () => {
-    setShowCompareSidebar(!showCompareSidebar);
+  const openCompareSidebar = () => setShowCompareSidebar(true);
+  const closeCompareSidebar = () => setShowCompareSidebar(false);
+  const handleClearAllCompare = () => {
+    setComparedFlights([]);
+    setShowCompareSidebar(false);
   };
 
   // Get unique airlines for filter
@@ -388,7 +417,7 @@ export default function FlightBooking(){
           onReturnDateChange={setReturnDate}
           onMultiCityLegsChange={setMultiCityLegs}
           searchData={searchData}
-          handleFetchFlights={handleFetchFlights}
+          onSearch={() => setSearchTrigger(prev => prev + 1)}
           serviceType={serviceType}
         />
         
@@ -398,17 +427,33 @@ export default function FlightBooking(){
           show={showCompareSidebar}
           onClose={() => setShowCompareSidebar(false)}
           onRemoveFromCompare={handleRemoveFromCompare}
+          onClearAll={handleClearAllCompare}
         />
+
+        {/* Mobile Filter Toggle Button */}
+        {allFlights.length > 0 && !loading && (
+          <div className="lg:hidden px-2 sm:px-4 md:px-[100px] mt-4 mb-2">
+            <button
+              onClick={() => setShowMobileFilters(!showMobileFilters)}
+              className="w-full bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/30 px-4 py-3 flex items-center justify-between font-medium text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+            >
+              <span className="flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
+                Filters
+              </span>
+              <svg className={`w-5 h-5 transition-transform ${showMobileFilters ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+        )}
+
         <div className="bg-slate-50 dark:bg-slate-900 h-auto my-4 md:my-5 mx-2 sm:mx-4 md:mx-[100px] flex flex-col lg:flex-row">
-                <div className = "filter bg-white dark:bg-slate-800 w-full lg:w-[25%] h-auto rounded-lg shadow-xl dark:shadow-slate-900/30 p-4">
+                <div className={`filter bg-white dark:bg-slate-800 w-full lg:w-[25%] rounded-lg shadow-xl dark:shadow-slate-900/30 p-4 ${showMobileFilters ? 'block' : 'hidden lg:block'} lg:sticky lg:top-24 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto`}>
                     <div className = "flex justify-center mb-4 font-bold text-lg text-slate-800 dark:text-slate-200">FILTERS</div>
-                  
-                    <SelectBox
-                      text={aircraftTypeOptions}
-                      title="Aircraft Type"
-                      value={filters.aircraftType}
-                      onChange={(option) => handleFilterChange("aircraftType", option)}
-                    />
+
                     <SelectBox
                       text={["ANY", ...cabinClassOptions]}
                       title="Cabin Class"
@@ -446,13 +491,6 @@ export default function FlightBooking(){
                       onChange={(selected) => handleFilterChange("airlines", selected)}
                       onClear={() => handleFilterChange("airlines", [])}
                     />
-                    <SelectBox
-                      text={["1", "2", "3", "4", "5", "6", "7", "8"]}
-                      title="Passengers"
-                      value={filters.passengerCount}
-                      onChange={(option) => handleFilterChange("passengerCount", option)}
-                    />
-                    
                     {/* Filter Actions */}
                     <div className="p-4 flex gap-2">
                       <button 
@@ -475,14 +513,23 @@ export default function FlightBooking(){
                 </div>
                 <div className = "bg-slate-100 dark:bg-slate-800 w-full lg:w-[80%] lg:ml-[2%] px-2 sm:px-3 md:px-5 rounded-lg shadow-xl dark:shadow-slate-900/30 flex flex-col">
                     <div className = "bg-white dark:bg-slate-800 w-full h-auto my-5 rounded-3xl shadow-xl dark:shadow-slate-900/30">
-                        <FlightFareSelector sortBy={sortBy} onSortChange={handleSortChange} />
+                        <FlightFareSelector
+                          NoOfFlights={flights.length}
+                          selectedDate={date}
+                          onDateSelect={(newDate) => {
+                            setDate(newDate);
+                            handleFetchFlights(from, to, newDate);
+                          }}
+                          selectedSort={sortBy}
+                          onSortSelect={handleSortChange}
+                        />
                     </div>
                     {loading ? (
-                      <div className="flex flex-col items-center justify-center py-20">
+                      <div className="flex flex-col items-center justify-center py-10 sm:py-20 px-4">
                         {/* Animated gradient background card */}
-                        <div className="relative p-12 rounded-3xl bg-gradient-to-br from-sky-50 via-white to-blue-50 dark:from-slate-800 dark:via-slate-800 dark:to-slate-700 shadow-2xl">
+                        <div className="relative p-6 sm:p-12 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-sky-50 via-white to-blue-50 dark:from-slate-800 dark:via-slate-800 dark:to-slate-700 shadow-2xl w-full max-w-sm sm:max-w-none">
                           {/* Multiple spinning rings with different speeds */}
-                          <div className="relative w-32 h-32">
+                          <div className="relative w-20 h-20 sm:w-32 sm:h-32 mx-auto">
                             {/* Outer ring - slow spin */}
                             <div className="absolute inset-0 rounded-full border-4 border-sky-200 dark:border-slate-600 border-t-sky-600 dark:border-t-lime-500 border-r-transparent border-b-blue-400 dark:border-b-teal-500 border-l-transparent animate-spin" style={{ animationDuration: '3s' }}></div>
                             {/* Middle ring - reverse spin */}
@@ -492,9 +539,9 @@ export default function FlightBooking(){
                             {/* Center pulsing icon */}
                             <div className="absolute inset-0 flex items-center justify-center">
                               <div className="relative">
-                                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-sky-600 to-blue-600 dark:from-lime-500 dark:to-teal-500 animate-pulse shadow-lg shadow-sky-500/50"></div>
+                                <div className="w-10 h-10 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-sky-600 to-blue-600 dark:from-lime-500 dark:to-teal-500 animate-pulse shadow-lg shadow-sky-500/50"></div>
                                 <div className="absolute inset-0 flex items-center justify-center">
-                                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <svg className="w-5 h-5 sm:w-8 sm:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                                   </svg>
                                 </div>
@@ -503,11 +550,11 @@ export default function FlightBooking(){
                           </div>
 
                           {/* Loading text with animation */}
-                          <div className="mt-10 text-center">
-                            <h3 className="text-2xl font-bold bg-gradient-to-r from-sky-600 to-blue-600 dark:from-lime-400 dark:to-teal-400 bg-clip-text text-transparent mb-3">
+                          <div className="mt-6 sm:mt-10 text-center">
+                            <h3 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-sky-600 to-blue-600 dark:from-lime-400 dark:to-teal-400 bg-clip-text text-transparent mb-2 sm:mb-3">
                               Searching for Flights
                             </h3>
-                            <p className="text-gray-600 dark:text-slate-400 font-medium text-lg mb-6">
+                            <p className="text-sm sm:text-lg text-gray-600 dark:text-slate-400 font-medium mb-4 sm:mb-6">
                               Finding the best flight options for you...
                             </p>
 
@@ -539,12 +586,12 @@ export default function FlightBooking(){
                         ) : multiCityResults.length > 0 ? (
                           <>
                             {multiCityResults.map((legFlights, legIndex) => (
-                              <div key={legIndex} className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-4">
-                                <div className="flex items-center justify-between mb-4">
-                                  <h3 className="text-lg font-bold text-gray-900 dark:text-slate-100">
+                              <div key={legIndex} className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-3 sm:p-4">
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+                                  <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-slate-100">
                                     Leg {legIndex + 1}: {multiCityLegs[legIndex]?.from} → {multiCityLegs[legIndex]?.to}
                                   </h3>
-                                  <span className="text-sm text-gray-500 dark:text-slate-400">
+                                  <span className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">
                                     {multiCityLegs[legIndex]?.date}
                                   </span>
                                 </div>
@@ -575,6 +622,9 @@ export default function FlightBooking(){
                                       <FlightCard 
                                         flight={flight}
                                         isSelected={selectedMultiCityFlights[legIndex]?._id === flight._id}
+                                        isCompared={isFlightCompared(flight)}
+                                        onAddToCompare={() => handleAddToCompare(flight)}
+                                        onRemoveFromCompare={() => handleRemoveFromCompare(flight)}
                                         onSelect={() => {
                                           const newSelected = [...selectedMultiCityFlights];
                                           newSelected[legIndex] = flight;
@@ -591,10 +641,10 @@ export default function FlightBooking(){
                             
                             {/* Continue Button for Multi-City */}
                             {selectedMultiCityFlights.every(f => f !== null) && (
-                              <div className="sticky bottom-4 bg-white dark:bg-slate-800 rounded-xl shadow-lg p-4 flex items-center justify-between">
+                              <div className="sticky bottom-4 bg-white dark:bg-slate-800 rounded-xl shadow-lg p-3 sm:p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                                 <div>
-                                  <p className="text-sm text-gray-600 dark:text-slate-400">Total Price</p>
-                                  <p className="text-2xl font-bold text-gray-900 dark:text-slate-100">
+                                  <p className="text-xs sm:text-sm text-gray-600 dark:text-slate-400">Total Price</p>
+                                  <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-slate-100">
                                     ₹{selectedMultiCityFlights.reduce((sum, f) => sum + (f.pricing?.calculatedFare || f.pricing?.baseFare || 0), 0).toLocaleString()}
                                   </p>
                                 </div>
@@ -611,7 +661,7 @@ export default function FlightBooking(){
                                       }
                                     });
                                   }}
-                                  className="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors"
+                                  className="bg-blue-600 text-white px-6 sm:px-8 py-2.5 sm:py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors text-sm sm:text-base"
                                 >
                                   Continue to Booking
                                 </button>
@@ -628,8 +678,8 @@ export default function FlightBooking(){
                       /* Round-Trip Results Display */
                       <div className="space-y-6">
                         {/* Outbound Flights */}
-                        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-4">
-                          <h3 className="text-lg font-bold text-gray-900 dark:text-slate-100 mb-4">
+                        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-3 sm:p-4">
+                          <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-slate-100 mb-3 sm:mb-4">
                             Outbound: {from} → {to} ({date})
                           </h3>
                           {selectedOutbound && (
@@ -650,6 +700,9 @@ export default function FlightBooking(){
                                 <FlightCard 
                                   flight={flight}
                                   isSelected={selectedOutbound?._id === flight._id}
+                                  isCompared={isFlightCompared(flight)}
+                                  onAddToCompare={() => handleAddToCompare(flight)}
+                                  onRemoveFromCompare={() => handleRemoveFromCompare(flight)}
                                   onSelect={() => setSelectedOutbound(flight)}
                                 />
                               </div>
@@ -660,8 +713,8 @@ export default function FlightBooking(){
                         </div>
 
                         {/* Return Flights */}
-                        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-4">
-                          <h3 className="text-lg font-bold text-gray-900 dark:text-slate-100 mb-4">
+                        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-3 sm:p-4">
+                          <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-slate-100 mb-3 sm:mb-4">
                             Return: {to} → {from} ({returnDate})
                           </h3>
                           {loadingReturn ? (
@@ -687,6 +740,9 @@ export default function FlightBooking(){
                                 <FlightCard 
                                   flight={flight}
                                   isSelected={selectedReturn?._id === flight._id}
+                                  isCompared={isFlightCompared(flight)}
+                                  onAddToCompare={() => handleAddToCompare(flight)}
+                                  onRemoveFromCompare={() => handleRemoveFromCompare(flight)}
                                   onSelect={() => setSelectedReturn(flight)}
                                 />
                               </div>
@@ -698,10 +754,10 @@ export default function FlightBooking(){
 
                         {/* Continue Button for Round-Trip */}
                         {selectedOutbound && selectedReturn && (
-                          <div className="sticky bottom-4 bg-white dark:bg-slate-800 rounded-xl shadow-lg p-4 flex items-center justify-between">
+                          <div className="sticky bottom-4 bg-white dark:bg-slate-800 rounded-xl shadow-lg p-3 sm:p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                             <div>
-                              <p className="text-sm text-gray-600 dark:text-slate-400">Total Price (Round Trip)</p>
-                              <p className="text-2xl font-bold text-gray-900 dark:text-slate-100">
+                              <p className="text-xs sm:text-sm text-gray-600 dark:text-slate-400">Total Price (Round Trip)</p>
+                              <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-slate-100">
                                 ₹{((selectedOutbound.pricing?.calculatedFare || selectedOutbound.pricing?.baseFare || 0) + 
                                    (selectedReturn.pricing?.calculatedFare || selectedReturn.pricing?.baseFare || 0)).toLocaleString()}
                               </p>
@@ -721,7 +777,7 @@ export default function FlightBooking(){
                                   }
                                 });
                               }}
-                              className="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors"
+                              className="bg-blue-600 text-white px-6 sm:px-8 py-2.5 sm:py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors text-sm sm:text-base"
                             >
                               Continue to Booking
                             </button>
@@ -737,7 +793,7 @@ export default function FlightBooking(){
                            isCompared={isFlightCompared(flight)}
                            onAddToCompare={() => handleAddToCompare(flight)}
                            onRemoveFromCompare={() => handleRemoveFromCompare(flight)}
-                           onToggleCompareSidebar={toggleCompareSidebar}
+                           onToggleCompareSidebar={openCompareSidebar}
                          />
                         </div>
                       ))

@@ -95,10 +95,25 @@ export default function FlightPassengerDetails() {
     return isValid;
   };
 
+  // Check if passenger form is valid (all fields filled correctly)
+  const isPassengerFormValid = () => {
+    if (!passengers || passengers.length === 0) return false;
+    return passengers.every(p => {
+      const hasValidName = p.name && p.name.trim() && p.name.trim().length >= 2;
+      const hasValidAge = p.age && p.age !== "" && !isNaN(parseInt(p.age)) && parseInt(p.age) >= 1 && parseInt(p.age) <= 120;
+      const hasValidGender = p.gender && p.gender !== "";
+      return hasValidName && hasValidAge && hasValidGender;
+    });
+  };
+
+  const hasErrors = !isPassengerFormValid();
+
   // Handle continue to checkout
   const handleContinue = () => {
     setFormTouched(true); // Mark form as touched to show errors
-    if (!validatePassengers()) {
+    const isValid = validatePassengers();
+    
+    if (!isValid) {
       // Scroll to first error
       setTimeout(() => {
         const firstError = document.querySelector('.border-red-500');
@@ -316,7 +331,12 @@ export default function FlightPassengerDetails() {
 
             <button
               onClick={handleContinue}
-              className="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors flex items-center gap-2"
+              disabled={hasErrors}
+              className={`px-8 py-3 rounded-lg font-bold transition-colors flex items-center gap-2 ${
+                hasErrors 
+                  ? "bg-gray-400 cursor-not-allowed" 
+                  : "bg-blue-600 hover:bg-blue-700 text-white"
+              }`}
             >
               CONTINUE
               <ArrowRight size={18} />

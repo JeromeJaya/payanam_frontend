@@ -51,22 +51,40 @@ export function AuthProvider({ children }) {
         setUser(payload);
         setIsAuthenticated(Boolean(payload));
       } catch (error) {
-        // if backend check fails, keep client-side user if present (allows offline UI), otherwise clear
-        const cached = (() => {
-          try {
-            return JSON.parse(localStorage.getItem("payanam_user"));
-          } catch (e) {
-            return null;
-          }
-        })();
-        setUser(cached || null);
-        setIsAuthenticated(Boolean(cached));
+        const status = error.response?.status;
+        // 403 = account suspended/banned — do NOT fall back to cache
+        if (status === 403) {
+          setUser(null);
+          setIsAuthenticated(false);
+          try { localStorage.removeItem("payanam_user"); } catch {}
+        } else {
+          // Other errors (network, 401 mid-refresh, etc.) — use cache as fallback
+          const cached = (() => {
+            try {
+              return JSON.parse(localStorage.getItem("payanam_user"));
+            } catch (e) {
+              return null;
+            }
+          })();
+          setUser(cached || null);
+          setIsAuthenticated(Boolean(cached));
+        }
       } finally {
         setAuthLoading(false);
       }
     };
 
     checkAuth();
+
+    // Listen for force-logout events dispatched by the axios interceptor
+    // (e.g. when a 403 "account suspended" response is received)
+    const handleForceLogout = () => {
+      setUser(null);
+      setIsAuthenticated(false);
+      try { localStorage.removeItem("payanam_user"); } catch {}
+    };
+    window.addEventListener("payanam:force-logout", handleForceLogout);
+    return () => window.removeEventListener("payanam:force-logout", handleForceLogout);
   }, []);
 
   return (

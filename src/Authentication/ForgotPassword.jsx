@@ -1,24 +1,19 @@
 import { useState, useEffect } from "react";
-import { MobileLogin } from "./MobileLogin.jsx";
 import {But3} from "../Buttons/But3.jsx";
 import bgImage from "../assets/bg3.png";
 import Nav from "../NavComponent.jsx";
-import {Link,Outlet} from "react-router-dom";
+import {Link} from "react-router-dom";
 import {useNavigate} from "react-router-dom";
 import api from "../api/axios.js"
 
 export default function ForgotPassword() {
     const [show, setShow] = useState(false);
-    const [showMobileLogin, setShowMobileLogin] = useState(false);
     const navigate = useNavigate();
     const [email, setEmail] = useState("");
     const [loading, setLoading] = useState(false);
-    const [step, setStep] = useState("request"); // 'request' or 'verify'
-
   useEffect(() => {
     setShow(true);
   }, []);
-  if (showMobileLogin) return <MobileLogin />; 
 
   async function handleSendOTP(event) {
     event.preventDefault();
@@ -124,7 +119,6 @@ export default function ForgotPassword() {
           <p className="mt-8 text-center text-sm text-gray-600 dark:text-gray-400 flex flex-wrap justify-center gap-1">
             <span>Don't have an account?</span>
             <Link to="/EmailSignUp" className="font-medium text-lime-600 dark:text-lime-400 hover:text-lime-500 dark:hover:text-lime-300">Sign up</Link>
-            <Outlet/>
           </p>
         </div>
       </div>

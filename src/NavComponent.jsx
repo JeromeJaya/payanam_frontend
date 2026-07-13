@@ -1,5 +1,5 @@
 // 1. Import NavLink instead of Link from react-router-dom
-import { useNavigate, NavLink, Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import { useTheme } from "./context/ThemeContext";
 import { useState } from "react";
@@ -89,7 +89,7 @@ export default function Nav() {
   return (
     <>
     {/* FIXED: Enforced strict h-20 size property matching on header shell level container wrapper */}
-    <header className="fixed top-0 left-0 right-0 h-20 z-50 border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 shadow-xs">
+    <header className="fixed top-0 left-0 right-0 h-20 z-50 border-b border-slate-200/50 bg-white/70 dark:border-slate-800/50 dark:bg-slate-900/70 backdrop-blur-md shadow-xs">
         <div className="flex h-20 max-w-screen-2xl items-center justify-between px-4 sm:px-6 lg:px-8 mx-auto">
           
           {/* Left Side Branding & Aligned Search Input */}
@@ -133,23 +133,22 @@ export default function Nav() {
 
             <span aria-hidden="true" className="hidden h-6 w-px rounded-full bg-slate-200 md:block dark:bg-slate-700" />
 
-            <Link className="flex items-center gap-3 shrink-0 group" to="/profile" onClick={closeMobileMenu}>
-              <span className="sr-only">Profile</span>
-              {user?.profileImage ? (
-                <img
-                  alt="Profile avatar"
-                  src={user.profileImage}
-                  className="h-9 w-9 rounded-full object-cover border border-slate-200 dark:border-slate-700 group-hover:border-lime-500 transition-colors"
-                />
-              ) : (
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-tr from-lime-600 to-lime-500 text-xs font-bold text-lime-950 border border-slate-200 dark:border-slate-700 group-hover:border-lime-500 transition-colors">
-                  {(user?.name || user?.userName || "TR").split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
-                </span>
-              )}
-              <span className="hidden sm:inline text-base font-extrabold text-slate-700 dark:text-slate-200 max-w-[130px] truncate group-hover:text-slate-900">
-                {user?.name || user?.userName || "My Account"}
-              </span>
-            </Link>
+            {isAuthenticated && (
+              <Link className="flex items-center gap-3 shrink-0 group" to="/profile" onClick={closeMobileMenu}>
+                <span className="sr-only">Profile</span>
+                {user?.profileImage ? (
+                  <img
+                    alt="Profile avatar"
+                    src={user.profileImage}
+                    className="h-9 w-9 rounded-full object-cover border border-slate-200 dark:border-slate-700 group-hover:border-lime-500 transition-colors"
+                  />
+                ) : (
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-tr from-lime-600 to-lime-500 text-xs font-bold text-lime-950 border border-slate-200 dark:border-slate-700 group-hover:border-lime-500 transition-colors">
+                    {(user?.name || user?.userName || "TR").split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
+                  </span>
+                )}
+              </Link>
+            )}
 
             {!isAuthenticated ? (
               <Link to="/login" onClick={closeMobileMenu} className="hidden sm:block text-base font-extrabold rounded-xl bg-lime-500 px-5 py-2.5 text-white shadow-sm hover:bg-lime-600 transition">

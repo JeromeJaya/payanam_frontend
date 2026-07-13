@@ -176,9 +176,16 @@ export default function FlightSeatSelection() {
       <div className="min-h-screen bg-gray-50">
         <Nav />
         <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 64px)' }}>
-          <div className="text-center">
+          <div className="text-center max-w-lg">
             <p className="text-gray-600 font-semibold mb-2">No seats available for this flight</p>
-            <p className="text-sm text-gray-500 mb-4">The seat layout may not be configured yet.</p>
+            <p className="text-sm text-gray-500 mb-4">
+              The seat layout may not be configured yet for schedule ID: {scheduleId || "Not provided"}.
+            </p>
+            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-xs text-yellow-800">
+                Debug Info: Flight ID: {flight?._id || flight?.id || "N/A"} | Schedule ID: {scheduleId || "Missing"}
+              </p>
+            </div>
             <button 
               onClick={() => navigate(-1)}
               className="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700"

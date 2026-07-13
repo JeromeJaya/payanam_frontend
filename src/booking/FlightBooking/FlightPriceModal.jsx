@@ -58,7 +58,8 @@ export default function FlightPriceModal({ flight, onClose }) {
       state: { 
         flight, 
         fare,
-        serviceType: 'flight'
+        serviceType: 'flight',
+        scheduleId: flight.scheduleId || flight._id
       } 
     });
     onClose();
