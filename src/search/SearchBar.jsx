@@ -456,13 +456,13 @@ export default function SearchBar({ input, service }) {
                 ref={wrapperRef}
                 className="relative"
               >
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">
+                <label className="block text-md font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">
                   {field.label}
                 </label>
                 
                 <input
                   id={field.name}
-                  className="w-full px-3 py-2.5 text-sm border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-lime-400 focus:border-transparent transition-all bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100 hover:border-slate-300 dark:hover:border-slate-500"
+                  className="w-full px-3 py-2.5 text-lg border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-lime-400 focus:border-transparent transition-all bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100 hover:border-slate-300 dark:hover:border-slate-500"
                   placeholder={field.mid || `Enter ${field.label.toLowerCase()}`}
                   type={field.type || "text"}
                   defaultValue={valueProp !== undefined ? undefined : (field.type === "date" ? today : field.mid)}
@@ -528,13 +528,13 @@ export default function SearchBar({ input, service }) {
                     ref={wrapperRef}
                     className="relative"
                   >
-                    <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">
+                    <label className="block text-md font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">
                       {field.label}
                     </label>
                     
                     <input
                       id={field.name}
-                      className={`w-full px-3 py-2.5 text-sm border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-lime-400 focus:border-transparent transition-all bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100 hover:border-slate-300 dark:hover:border-slate-500 ${isNumberField && 'w-20'}`}
+                      className={`w-full px-3 py-2.5 text-lg border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-lime-400 focus:border-transparent transition-all bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100 hover:border-slate-300 dark:hover:border-slate-500 ${isNumberField && 'w-20'}`}
                       placeholder={field.mid || `Enter ${field.label.toLowerCase()}`}
                       type={field.type || "text"}
                       defaultValue={valueProp !== undefined ? undefined : (field.type === "date" ? today : field.mid)}

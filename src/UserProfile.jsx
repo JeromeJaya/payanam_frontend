@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Calendar, Armchair, Ticket, MapPin, Eye, Trash2, Camera, Bus, Plane, Lock, Clock, CreditCard, TrendingUp, Shield, CheckCircle2, XCircle, AlertTriangle } from "lucide-react"; 
+import { Ticket, Trash2, Camera, Bus, Plane, Lock, Clock, CreditCard, TrendingUp, Shield, CheckCircle2, XCircle, AlertTriangle, Star, MessageCircle, Send, Loader2 } from "lucide-react"; 
 import Nav from "./NavComponent.jsx";
 import api from "./api/axios.js";
 import { useAuth } from "./context/AuthContext.jsx";
@@ -23,6 +23,13 @@ export default function UserProfile() {
   const [priceLocksLoading, setPriceLocksLoading] = useState(true);
   const [profileImage, setProfileImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewBooking, setReviewBooking] = useState(null);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewText, setReviewText] = useState("");
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewError, setReviewError] = useState("");
+  const [reviewSuccess, setReviewSuccess] = useState("");
   const fileInputRef = useRef(null);
   const isAdminView = !!userId;
 
@@ -162,6 +169,64 @@ export default function UserProfile() {
     } finally { setCancelLoading(null); }
   };
 
+  const openReviewModal = (booking) => {
+    setReviewBooking(booking);
+    setReviewRating(0);
+    setReviewText("");
+    setReviewError("");
+    setReviewSuccess("");
+    setShowReviewModal(true);
+  };
+
+  const handleReviewSubmit = async (e) => {
+    e.preventDefault();
+    if (reviewRating < 1 || reviewRating > 5) {
+      setReviewError("Please select a rating between 1 and 5 stars");
+      return;
+    }
+    if (reviewText.trim().length < 10) {
+      setReviewError("Review must be at least 10 characters long");
+      return;
+    }
+
+    setReviewLoading(true);
+    setReviewError("");
+    setReviewSuccess("");
+
+    try {
+      const busId = reviewBooking.busId?._id || 
+                    (typeof reviewBooking.busId === 'string' ? reviewBooking.busId : null) || 
+                    reviewBooking.scheduleId?.busId;
+      const res = await api.post(`/api/v1/buses/${busId}/reviews`, {
+        bookingId: reviewBooking._id,
+        rating: reviewRating,
+        review: reviewText.trim(),
+      });
+
+      if (res.data.success) {
+        setReviewSuccess("Review added successfully!");
+        setTimeout(() => {
+          setReviewSuccess("");
+          setShowReviewModal(false);
+          setReviewBooking(null);
+        }, 1500);
+      }
+    } catch (err) {
+      setReviewError(err.response?.data?.message || "Failed to add review");
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+
+  const closeReviewModal = () => {
+    setShowReviewModal(false);
+    setReviewBooking(null);
+    setReviewRating(0);
+    setReviewText("");
+    setReviewError("");
+    setReviewSuccess("");
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -266,6 +331,16 @@ export default function UserProfile() {
                     const destination = b.droppingPoint?.city || b.routeId?.destination || b.destination || "Destination";
                     const totalFare = b.totalFare || 0;
                     const isCancelled = b.status?.toLowerCase() === 'cancelled' || b.bookingStatus?.toLowerCase() === 'cancelled';
+                    let travelFinished = false;
+                    const depDateVal = b.scheduleId?.departureDate || b.travelDate;
+                    if (depDateVal) {
+                      const depDate = new Date(depDateVal);
+                      const depTimeStr = b.scheduleId?.departureTime || "00:00";
+                      const [hours, minutes] = depTimeStr.split(":").map(Number);
+                      depDate.setHours(hours || 0, minutes || 0, 0, 0);
+                      travelFinished = depDate < new Date();
+                    }
+                    const isCompleted = b.bookingStatus?.toLowerCase() === 'completed' || b.status?.toLowerCase() === 'completed' || (!isCancelled && travelFinished);
                     const isFlight = bookingId?.startsWith("FLY-") || b.serviceType === "flight";
                     const ServiceIcon = isFlight ? Plane : Bus;
                     const serviceName = isFlight ? (b.busId?.airlineName || "Airline") : (b.busId?.busName || "");
@@ -277,7 +352,15 @@ export default function UserProfile() {
                       <div key={bookingId} onClick={() => handleViewTicketDetails(b)} className="cursor-pointer rounded-xl bg-slate-50 dark:bg-slate-700/30 p-4 border border-slate-200/60 hover:border-lime-300 hover:bg-white transition-all">
                         <div className="flex items-center justify-between border-b border-slate-200/50 pb-2 mb-3 text-[11px]">
                           <span className="font-mono font-bold text-slate-600">PNR: <span className="text-slate-900">{bookingId}</span></span>
-                          <span className={`px-2 py-0.5 rounded-md font-bold uppercase ${isCancelled ? 'bg-red-100 text-red-700' : 'bg-lime-100 text-lime-800'}`}>{b.status || b.bookingStatus || "Confirmed"}</span>
+                          <span className={`px-2 py-0.5 rounded-md font-bold uppercase ${
+                            isCancelled
+                              ? 'bg-red-100 text-red-700'
+                              : isCompleted
+                                ? 'bg-blue-100 text-blue-700'
+                                : 'bg-lime-100 text-lime-800'
+                          }`}>
+                            {isCompleted ? 'Completed' : (b.status || b.bookingStatus || "Confirmed")}
+                          </span>
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex-1"><p className="text-xs font-bold text-slate-400">Departure</p><p className="text-base font-extrabold text-slate-900">{source}</p><p className="text-sm text-slate-500">{depDate} · {depTime}</p></div>
@@ -287,7 +370,13 @@ export default function UserProfile() {
                         <div className="flex items-center justify-between pt-2.5 border-t border-slate-200/50 mt-3">
                           <span className="text-xs font-semibold text-slate-600">Seats: <span className="font-bold text-slate-800">{seats}</span></span>
                           <div className="flex items-center gap-4">
-                            {!isCancelled && <button onClick={(e) => handleCancelBooking(e, bookingId)} disabled={cancelLoading === bookingId} className="text-xs font-bold text-red-600 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1 hover:bg-red-100 disabled:opacity-50">Cancel</button>}
+                            {!isCancelled && !isCompleted && <button onClick={(e) => handleCancelBooking(e, bookingId)} disabled={cancelLoading === bookingId} className="text-xs font-bold text-red-600 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1 hover:bg-red-100 disabled:opacity-50">Cancel</button>}
+                            {!isCancelled && isCompleted && !isFlight && (
+                              <button onClick={(e) => { e.stopPropagation(); openReviewModal(b); }} className="text-xs font-bold text-lime-600 bg-lime-50 border border-lime-200 rounded-lg px-2.5 py-1 hover:bg-lime-100 flex items-center gap-1">
+                                <Star size={10} />
+                                Review
+                              </button>
+                            )}
                             <span className="text-sm font-extrabold text-slate-900">₹{totalFare.toLocaleString()}</span>
                           </div>
                         </div>
@@ -300,6 +389,93 @@ export default function UserProfile() {
           </div>
         </div>
       </div>
+
+      {showReviewModal && reviewBooking && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={closeReviewModal} role="dialog" aria-modal="true">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Star className="w-5 h-5 text-lime-500" />
+                Write a Review
+              </h3>
+              <button onClick={closeReviewModal} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">
+                <XCircle className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+              How was your experience with {reviewBooking.busId?.busName || "this service"}?
+            </p>
+            {reviewError && (
+              <div className="mb-3 p-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
+                <p className="text-xs text-red-700 dark:text-red-400">{reviewError}</p>
+              </div>
+            )}
+            {reviewSuccess && (
+              <div className="mb-3 p-2 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg">
+                <p className="text-xs text-green-700 dark:text-green-400">{reviewSuccess}</p>
+              </div>
+            )}
+            <form onSubmit={handleReviewSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Rating *
+                </label>
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setReviewRating(star)}
+                      className={`p-0.5 transition-colors ${
+                        star <= reviewRating
+                          ? "text-yellow-400"
+                          : "text-slate-300 hover:text-yellow-300"
+                      }`}
+                    >
+                      <Star className="w-5 h-5" fill={star <= reviewRating ? "currentColor" : "none"} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Your Review *
+                </label>
+                <textarea
+                  value={reviewText}
+                  onChange={(e) => setReviewText(e.target.value)}
+                  placeholder="Share your experience..."
+                  rows={3}
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-lime-500 outline-none resize-y"
+                />
+                <div className="flex justify-between items-center mt-1">
+                  <span className="text-xs text-slate-400">{reviewText.length}/1000 characters</span>
+                  {reviewText.length < 10 && reviewText.length > 0 && (
+                    <span className="text-xs text-red-500">Minimum 10 characters</span>
+                  )}
+                </div>
+              </div>
+              <button
+                type="submit"
+                disabled={reviewLoading || reviewRating === 0 || reviewText.trim().length < 10}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-lime-600 hover:bg-lime-700 text-white text-sm font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {reviewLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    Submit Review
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

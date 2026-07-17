@@ -169,7 +169,7 @@ export default function TicketDetails() {
               {(meta?.passengers || []).map((p, index) => (
                 <div key={index} className="flex justify-between items-center bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-600 print:border-slate-300 rounded-xl p-3 shadow-3xs print:shadow-none">
                   <div>
-                    <p className="text-xs font-bold text-slate-900 dark:text-slate-100">{p.name}</p>
+                    <p className="text-md font-bold text-slate-900 dark:text-slate-100">{p.name}</p>
                     <p className="text-sm text-slate-500 dark:text-slate-400 font-medium uppercase mt-0.5">Age: {p.age} • Gender: {p.gender}</p>
                   </div>
                   <span className="text-xs font-extrabold text-lime-800 dark:text-lime-300 bg-lime-50 dark:bg-lime-900/30 border border-lime-200 dark:border-lime-700 rounded-lg px-2.5 py-1 flex items-center gap-1 print:bg-transparent print:border-slate-300 print:text-slate-900">

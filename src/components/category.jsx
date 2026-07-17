@@ -33,7 +33,7 @@ export default function Category({ icon, title, onClick, active }) {
         )}
       </div>
       <span className={`
-        text-[10px] sm:text-xs md:text-sm lg:text-base 
+        text-md sm:text-xs md:text-sm lg:text-base 
         font-medium leading-tight whitespace-nowrap
         overflow-hidden text-ellipsis max-w-full
         ${active ? "font-semibold" : "font-medium"}

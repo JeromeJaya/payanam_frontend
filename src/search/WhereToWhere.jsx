@@ -280,7 +280,7 @@ export default function SearchBar({
                           onClick={() => selectFromSuggestion(place)}
                           className="w-full text-left px-3 py-2 hover:bg-lime-50/80 dark:hover:bg-lime-900/20 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-b-0"
                         >
-                          <div className="text-xs font-bold text-slate-900 dark:text-slate-100">{place.name}</div>
+                          <div className="text-md font-bold text-slate-900 dark:text-slate-100">{place.name}</div>
                           <div className="text-[10px] text-slate-500 dark:text-slate-400">{place.state}</div>
                         </button>
                       ))
@@ -331,7 +331,7 @@ export default function SearchBar({
                           onClick={() => selectToSuggestion(place)}
                           className="w-full text-left px-3 py-2 hover:bg-lime-50/80 dark:hover:bg-lime-900/20 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-b-0"
                         >
-                          <div className="text-xs font-bold text-slate-900 dark:text-slate-100">{place.name}</div>
+                          <div className="text-md font-bold text-slate-900 dark:text-slate-100">{place.name}</div>
                           <div className="text-[10px] text-slate-500 dark:text-slate-400">{place.state}</div>
                         </button>
                       ))

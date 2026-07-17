@@ -1,6 +1,7 @@
-import { Star, ChevronDown } from "lucide-react";
+import { Star } from "lucide-react";
 import { useState } from "react";
 import SeatSelection from "../booking/BusBooking/SeatSelection.jsx";
+import BusReviewForm from "../components/BusReviewForm.jsx";
 
 /** Converts a total minutes value to "Xh Ym" format (e.g. 435 → "7h 15m") */
 function formatDuration(minutes) {
@@ -25,8 +26,10 @@ export default function BusCard({
   scheduleId,
   boardingPoints = [],
   droppingPoints = [],
+  busId,
 }) {
   const [showLayout, setShowLayout] = useState(false);
+  const [showReviewForm, setShowReviewForm] = useState(false);
 
   return (
     <>
@@ -58,6 +61,14 @@ export default function BusCard({
                   ({totalRatings ?? 0} Reviews)
                 </span>
               </div>
+              {busId && (
+                <button
+                  onClick={() => setShowReviewForm(true)}
+                  className="text-xs text-lime-600 dark:text-lime-400 hover:underline font-medium"
+                >
+                  Write a Review
+                </button>
+              )}
 
               {/* Amenities tags */}
               <div className="flex flex-wrap gap-1.5 pt-1">
@@ -146,6 +157,16 @@ export default function BusCard({
             scheduleId={scheduleId}
             boardingPoints={boardingPoints}
             droppingPoints={droppingPoints}
+          />
+        </div>
+      )}
+
+      {showReviewForm && busId && (
+        <div className="w-full mt-4 px-4 sm:px-5 md:px-6">
+          <BusReviewForm
+            busId={busId}
+            busName={busName}
+            onReviewAdded={() => setShowReviewForm(false)}
           />
         </div>
       )}

@@ -273,17 +273,23 @@ export default function App() {
       <div 
         id="search-section" 
         data-animation-id="search"
-        className={`relative z-20 w-full mx-auto px-6 -mt-8 mb-10 transition-all duration-700 ${
+        className={`relative z-20 w-full mx-auto px-[5%] mb-10 transition-all duration-700 ${
           visibleElements.has('search') 
             ? 'opacity-100 translate-y-0' 
             : 'opacity-0 translate-y-10'
         }`}
       >
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-8 border border-slate-200 dark:border-slate-700">
-          {/* Service Category Tabs */}
-          <div className="flex flex-wrap justify-center gap-10 mb-8">
+
+
+        <div className="bg-neutral-100
+        0 dark:bg-slate-800 rounded-2xl shadow-lg p-8 border border-slate-200 dark:border-slate-700">
+          
+          {/* Dynamic Search Form */}
+          <div className="relative pt-15">
+
+        <div className="absolute left-1/2 bg-transparent backdrop-blur-xl rounded-xl  px-5 py-2  -top-25 -translate-x-1/2 flex flex-wrap justify-center gap-10 mb-4">
             <Category 
-              icon={<img src={flight} alt="Flights" className="w-8 h-8" />} 
+              icon={<img src={flight} alt="Flights" className="w-8 h-8 rounded-full" />} 
               title="Flights" 
               onClick={() => setService('flight')} 
               active={service === 'flight'} 
@@ -295,9 +301,6 @@ export default function App() {
               active={service === 'bus'} 
             />
           </div>
-
-          {/* Dynamic Search Form */}
-          <div className="relative">
             <SearchBar input={formFields[service]} service={service} />
           </div>
         </div>
@@ -322,10 +325,9 @@ export default function App() {
               <div 
                 key={index}
                 data-animation-id={`feature-${index}`}
-                className={`bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all duration-500 border border-slate-200 dark:border-slate-700 hover:border-lime-300 ${animClasses.container}`}
+                className={`bg-white dark:bg-slate-800 rounded-2xl shadow-lg px-16 py-4 hover:shadow-xl transition-all duration-500 border border-slate-200 dark:border-slate-700 hover:border-lime-300 ${animClasses.container}`}
                 style={animClasses.style}
               >
-                <div className="text-4xl mb-4">{feature.icon}</div>
                 <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">{feature.title}</h3>
                 <p className="text-slate-600 dark:text-slate-400">{feature.desc}</p>
               </div>
