@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Ticket, Trash2, Camera, Bus, Plane, Lock, Clock, CreditCard, TrendingUp, Shield, CheckCircle2, XCircle, AlertTriangle, Star, MessageCircle, Send, Loader2 } from "lucide-react"; 
+import { Ticket, Trash2, Camera, Bus, Plane, Lock, Clock, CreditCard, TrendingUp, Shield, CheckCircle2, X, XCircle, AlertTriangle, Star, MessageCircle, Send, Loader2 } from "lucide-react";
 import Nav from "./NavComponent.jsx";
 import api from "./api/axios.js";
 import { useAuth } from "./context/AuthContext.jsx";
@@ -18,6 +18,7 @@ export default function UserProfile() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [form, setForm] = useState({ name: "", email: "", phoneNo: "", address: "", role: "" });
+  const [savedProfile, setSavedProfile] = useState({ name: "", email: "", phoneNo: "", address: "", role: "" });
   const [bookings, setBookings] = useState([]);
   const [priceLocks, setPriceLocks] = useState([]);
   const [priceLocksLoading, setPriceLocksLoading] = useState(true);
@@ -40,13 +41,15 @@ export default function UserProfile() {
         : "/api/users/profile";
       const res = await api.get(endpoint);
       const u = res.data?.data ?? res.data?.user ?? {};
-      setForm({
+      const profileData = {
         name: u.name || "",
         email: u.email || "",
         phoneNo: u.phoneNo || u.phone || "",
         address: u.address || "",
         role: u.role || "",
-      });
+      };
+      setForm(profileData);
+      setSavedProfile(profileData);
       if (u.profileImage) {
         setProfileImage(u.profileImage);
         setImagePreview(u.profileImage);
@@ -54,13 +57,15 @@ export default function UserProfile() {
     } catch (err) {
       const local = (() => { try { return JSON.parse(localStorage.getItem("payanam_user")); } catch { return null; } })();
       if (local) {
-        setForm({
+        const localData = {
           name: local.name || local.userName || "",
           email: local.email || "",
           phoneNo: local.phoneNo || local.phone || "",
           address: "",
           role: local.role || "",
-        });
+        };
+        setForm(localData);
+        setSavedProfile(localData);
       }
       setError(local ? null : "Failed to load profile");
     } finally {
@@ -91,6 +96,20 @@ export default function UserProfile() {
   useEffect(() => {
     fetchProfileAndBookings();
   }, [userId]);
+
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(""), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(""), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
 
   const onChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -165,7 +184,7 @@ export default function UserProfile() {
         setBookings(prev => prev.map(b => b.bookingId === bookingId ? { ...b, status: "Cancelled" } : b));
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to cancel");
+      setError(err.response?.data?.errors?.[0] || "Failed to cancel");
     } finally { setCancelLoading(null); }
   };
 
@@ -230,12 +249,31 @@ export default function UserProfile() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
+    const payload = {
+      name: form.name.trim(),
+      email: form.email.trim(),
+    };
+    if (form.phoneNo && form.phoneNo.trim() !== "") {
+      payload.phoneNo = form.phoneNo.trim();
+    }
+    
     try {
-      const res = await api.put("/api/users/profile", { name: form.name, email: form.email, phoneNo: form.phoneNo, address: form.address });
+      const res = await api.put("/api/users/profile", payload);
+      const updatedUser = res.data?.data;
+      if (updatedUser) {
+        updateUser(updatedUser);
+        setSavedProfile({
+          name: updatedUser.name || "",
+          email: updatedUser.email || "",
+          phoneNo: updatedUser.phoneNo || updatedUser.phone || "",
+          address: updatedUser.address || "",
+          role: updatedUser.role || "",
+        });
+      }
       setSuccess("Profile updated");
       setEditing(false);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to update");
+      setError(err.response?.data?.errors?.[0] || err.response?.data?.message || "Failed to update");
     } finally { setSaving(false); }
   };
 
@@ -255,7 +293,7 @@ export default function UserProfile() {
         setSuccess("Profile image updated");
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to upload image");
+      setError(err.response?.data?.errors?.[0] || "Failed to upload image");
     } finally {
       setUploadingImage(false);
     }
@@ -280,8 +318,38 @@ export default function UserProfile() {
           </div>
         </div>
 
-        {error && <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-        {success && <div className="mb-6 rounded-xl border border-lime-200 bg-lime-50 px-4 py-3 text-sm text-lime-800">{success}</div>}
+        {error && (
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-center justify-between shadow-sm">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500 shrink-0" />
+              <span>{error}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setError("")}
+              className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors text-red-700 dark:text-red-400"
+              aria-label="Dismiss error"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+        {success && (
+          <div className="mb-6 rounded-xl border border-lime-200 bg-lime-50 px-4 py-3 text-sm text-lime-800 flex items-center justify-between shadow-sm">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-lime-600 shrink-0" />
+              <span>{success}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSuccess("")}
+              className="p-1 hover:bg-lime-100 dark:hover:bg-lime-900/30 rounded-lg transition-colors text-lime-800 dark:text-lime-400"
+              aria-label="Dismiss success"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
           <div className="space-y-6 lg:col-span-1">
@@ -290,8 +358,8 @@ export default function UserProfile() {
                 {imagePreview || profileImage ? <img src={imagePreview || profileImage} alt="Profile" className="h-full w-full object-cover" /> : (form.name || "AD").split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
               </div>
               <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-              <h3 className="mt-4 text-lg font-bold text-slate-900 dark:text-slate-100">{form.name || "Adventurer"}</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">{form.email}</p>
+              <h3 className="mt-4 text-lg font-bold text-slate-900 dark:text-slate-100">{savedProfile.name || form.name || "Adventurer"}</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{savedProfile.email || form.email}</p>
               <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-lime-100 dark:bg-lime-900/30 px-3 py-1 text-xs font-semibold text-lime-800 dark:text-lime-400">
                 <span className="h-1.5 w-1.5 rounded-full bg-lime-500 animate-pulse"></span> Verified Member
               </div>
@@ -312,7 +380,7 @@ export default function UserProfile() {
               <div className="mt-6 flex justify-end gap-3 border-t border-slate-100 dark:border-slate-700 pt-4">
                 {editing ? (
                   <>
-                    <button type="button" onClick={() => setEditing(false)} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-sm font-medium text-slate-500 hover:bg-slate-50">Cancel</button>
+                    <button type="button" onClick={() => { setEditing(false); setForm(savedProfile); }} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-sm font-medium text-slate-500 hover:bg-slate-50">Cancel</button>
                     <button type="submit" disabled={saving} className="rounded-xl bg-lime-500 dark:bg-lime-600 px-5 py-2 text-sm font-bold text-white hover:bg-lime-600 disabled:opacity-50">{saving ? "Saving..." : "Save"}</button>
                   </>
                 ) : !isAdminView && <button type="button" onClick={() => setEditing(true)} className="rounded-xl bg-lime-500 dark:bg-lime-600 px-5 py-2 text-sm font-bold text-white hover:bg-lime-600">Modify Profile</button>}

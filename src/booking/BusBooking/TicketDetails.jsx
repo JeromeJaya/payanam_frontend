@@ -82,13 +82,30 @@ export default function TicketDetails() {
         </div>
 
         {/* Dynamic Context Banner (Hidden on printable version) */}
-        <div className="mb-6 rounded-2xl bg-lime-50 dark:bg-lime-900/20 border border-lime-200 dark:border-lime-800 p-4 flex items-start gap-3 print:hidden shadow-3xs">
-          <CheckCircle2 className="text-lime-600 dark:text-lime-400 shrink-0 mt-0.5" size={18} />
-          <div>
-            <h2 className="text-md font-bold text-lime-900 dark:text-lime-200">Booking Confirmed Successfully!</h2>
-            <p className="text-xs text-lime-700 dark:text-lime-400 mt-0.5">Your ticket itinerary details have been locked. Click the download button above to save your offline travel pass.</p>
-          </div>
-        </div>
+        {(() => {
+          const status = String(ticket.bookingStatus || "").toUpperCase();
+          const isCancelled = status === "CANCELLED" || status === "CANCELED" || status === "CANCELLATION_REQUESTED";
+          if (isCancelled) {
+            return (
+              <div className="mb-6 rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 flex items-start gap-3 print:hidden shadow-3xs">
+                <CheckCircle2 className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" size={18} />
+                <div>
+                  <h2 className="text-md font-bold text-red-900 dark:text-red-200">Booking Has Been Cancelled</h2>
+                  <p className="text-xs text-red-700 dark:text-red-400 mt-0.5">Your booking has been successfully cancelled. Any applicable refunds will be processed to your original payment method.</p>
+                </div>
+              </div>
+            );
+          }
+          return (
+            <div className="mb-6 rounded-2xl bg-lime-50 dark:bg-lime-900/20 border border-lime-200 dark:border-lime-800 p-4 flex items-start gap-3 print:hidden shadow-3xs">
+              <CheckCircle2 className="text-lime-600 dark:text-lime-400 shrink-0 mt-0.5" size={18} />
+              <div>
+                <h2 className="text-md font-bold text-lime-900 dark:text-lime-200">Booking Confirmed Successfully!</h2>
+                <p className="text-xs text-lime-700 dark:text-lime-400 mt-0.5">Your ticket itinerary details have been locked. Click the download button above to save your offline travel pass.</p>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Core Digital Ticket Layout Wrapper (print:border-slate-300 forces clean borders in dark/light printers) */}
         <div className="relative bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 print:border-slate-300 shadow-md dark:shadow-slate-900/30 print:shadow-none overflow-hidden">

@@ -70,7 +70,9 @@ export default function ResetLogin() {
         });
         if (response?.data?.success) {
           alert(response.data.message || "Password reset successful");
-          navigate("/login");
+          navigate("/login", { replace: true });
+        } else {
+          alert(response?.data?.message || "Password Reset failed");
         }
       } catch (err) {
         alert(err.response?.data?.message || "Password Reset failed");

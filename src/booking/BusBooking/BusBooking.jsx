@@ -11,10 +11,10 @@ import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import api from "../../api/axios.js";
 
-export default function BusBooking(){
-
+export default function BusBooking() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  
   const fromParam = searchParams.get("from") || "";
   const toParam = searchParams.get("to") || "";
   const dateParam = searchParams.get("date") || (() => {
@@ -27,6 +27,7 @@ export default function BusBooking(){
   const [to, setTo] = useState(toParam);
   const [date, setDate] = useState(dateParam);
 
+  // Filter States
   const [acFilter, setAcFilter] = useState("ALL");
   const [seatType, setSeatType] = useState("ALL");
   const [pickupTimeFilter, setPickupTimeFilter] = useState("ALL");
@@ -35,7 +36,8 @@ export default function BusBooking(){
   const [selectedPickupPoints, setSelectedPickupPoints] = useState([]);
   const [selectedDropPoints, setSelectedDropPoints] = useState([]);
   const [selectedOperators, setSelectedOperators] = useState([]);
-  const [buses, setBuses] = useState([]);
+  
+  // Single State of Truth for Raw Data
   const [allBuses, setAllBuses] = useState([]); 
   const [loading, setLoading] = useState(false);
   const [sortBy, setSortBy] = useState("Relevance");
@@ -68,142 +70,101 @@ export default function BusBooking(){
     return minutes >= start && minutes < end;
   };
 
-  const applyFilters = (data, {
-    selectedAc = acFilter,
-    selectedSeatType = seatType,
-    selectedPickupTime = pickupTimeFilter,
-    selectedDropTime = dropTimeFilter,
-    selectedBoardingPoints = selectedPickupPoints,
-    selectedDroppingPoints = selectedDropPoints,
-    selectedOperatorNames = selectedOperators,
-    selectedPassengerCount = passengerCount,
-  } = {}) => {
-    let results = [...data];
+  // 1. Unified Declarative Filter Logic
+  const filteredBuses = useMemo(() => {
+    let results = [...allBuses];
 
-    if (selectedAc === "AC") {
-      results = results.filter((schedule) => {
-        if (!schedule.bus) return false;
-        return schedule.bus.isAC === true || schedule.bus.isAC === "true";
-      });
-    } else if (selectedAc === "NON-AC") {
-      results = results.filter((schedule) => {
-        if (!schedule.bus) return false;
-        return schedule.bus.isAC === false || schedule.bus.isAC === "false";
-      });
+    // AC Filter
+    if (acFilter === "AC") {
+      results = results.filter((schedule) => schedule.bus?.isAC === true || schedule.bus?.isAC === "true");
+    } else if (acFilter === "NON-AC") {
+      results = results.filter((schedule) => schedule.bus?.isAC === false || schedule.bus?.isAC === "false");
     }
 
-    if (selectedSeatType === "SEATER") {
-      results = results.filter((schedule) =>
-        schedule.bus?.type?.toLowerCase().includes("seater")
-      );
-    } else if (selectedSeatType === "SLEEPER") {
-      results = results.filter((schedule) =>
-        schedule.bus?.type?.toLowerCase().includes("sleeper")
-      );
+    // Seat Type Filter
+    if (seatType === "SEATER") {
+      results = results.filter((schedule) => schedule.bus?.type?.toLowerCase().includes("seater"));
+    } else if (seatType === "SLEEPER") {
+      results = results.filter((schedule) => schedule.bus?.type?.toLowerCase().includes("sleeper"));
     }
 
-    if (selectedPickupTime !== "ALL") {
-      results = results.filter((schedule) =>
-        matchesTimeRange(schedule.journey?.departureTime, selectedPickupTime)
-      );
+    // Pickup & Drop Time Filter
+    if (pickupTimeFilter !== "ALL") {
+      results = results.filter((schedule) => matchesTimeRange(schedule.journey?.departureTime, pickupTimeFilter));
+    }
+    if (dropTimeFilter !== "ALL") {
+      results = results.filter((schedule) => matchesTimeRange(schedule.journey?.arrivalTime, dropTimeFilter));
     }
 
-    if (selectedDropTime !== "ALL") {
-      results = results.filter((schedule) =>
-        matchesTimeRange(schedule.journey?.arrivalTime, selectedDropTime)
-      );
-    }
-
-    if (Array.isArray(selectedBoardingPoints) && selectedBoardingPoints.length > 0) {
+    // Boarding, Dropping & Operators Filter
+    if (selectedPickupPoints.length > 0) {
       results = results.filter((schedule) =>
         Array.isArray(schedule.boardingPoints) &&
-        schedule.boardingPoints.some((bp) => selectedBoardingPoints.includes(bp.name))
+        schedule.boardingPoints.some((bp) => selectedPickupPoints.includes(bp.name))
       );
     }
-
-    if (Array.isArray(selectedDroppingPoints) && selectedDroppingPoints.length > 0) {
+    if (selectedDropPoints.length > 0) {
       results = results.filter((schedule) =>
         Array.isArray(schedule.droppingPoints) &&
-        schedule.droppingPoints.some((dp) => selectedDroppingPoints.includes(dp.name))
+        schedule.droppingPoints.some((dp) => selectedDropPoints.includes(dp.name))
       );
     }
-
-    if (Array.isArray(selectedOperatorNames) && selectedOperatorNames.length > 0) {
-      results = results.filter((schedule) =>
-        selectedOperatorNames.includes(schedule.operator?.name)
-      );
+    if (selectedOperators.length > 0) {
+      results = results.filter((schedule) => selectedOperators.includes(schedule.operator?.name));
     }
 
-    // Passenger count filter — only show buses with enough available seats
-    if (selectedPassengerCount && selectedPassengerCount !== "ANY" && selectedPassengerCount !== "") {
-      const required = parseInt(selectedPassengerCount, 10);
+    // Seat Availability Filter
+    if (passengerCount && passengerCount !== "ANY" && passengerCount !== "") {
+      const required = parseInt(passengerCount, 10);
       if (!isNaN(required) && required >= 1) {
-        results = results.filter((schedule) => {
-          const avail = schedule.seats?.available ?? 0;
-          return avail >= required;
-        });
+        results = results.filter((schedule) => (schedule.seats?.available ?? 0) >= required);
       }
     }
 
     return results;
-  };
+  }, [allBuses, acFilter, seatType, pickupTimeFilter, dropTimeFilter, selectedPickupPoints, selectedDropPoints, selectedOperators, passengerCount]);
 
-  const handleFetchBus = async (
-    selectedAc = acFilter,
-    selectedSeatType = seatType,
-    selectedPickupTime = pickupTimeFilter,
-    selectedDropTime = dropTimeFilter,
-    selectedBoardingPoints = selectedPickupPoints,
-    selectedDroppingPoints = selectedDropPoints,
-    selectedOperatorNames = selectedOperators,
-    selectedDate = date
-  ) => {
+  // 2. Sorting applied on top of filtered results
+  const sortedAndFilteredBuses = useMemo(() => {
+    const sorted = [...filteredBuses];
+    if (sortBy === "Rating") {
+      sorted.sort((a, b) => (b.bus?.rating || 0) - (a.bus?.rating || 0));
+    } else if (sortBy === "Price") {
+      sorted.sort((a, b) => (a.pricing?.calculatedFare || a.pricing?.baseFare) - (b.pricing?.calculatedFare || b.pricing?.baseFare));
+    } else if (sortBy === "Fastest") {
+      sorted.sort((a, b) => {
+        const durationA = getTimeMinutes(a.journey?.arrivalTime) - getTimeMinutes(a.journey?.departureTime);
+        const durationB = getTimeMinutes(b.journey?.arrivalTime) - getTimeMinutes(b.journey?.departureTime);
+        return durationA - durationB;
+      });
+    } else if (sortBy === "Departure") {
+      sorted.sort((a, b) => a.journey?.departureTime.localeCompare(b.journey?.departureTime));
+    } else if (sortBy === "Arrival") {
+      sorted.sort((a, b) => a.journey?.arrivalTime.localeCompare(b.journey?.arrivalTime));
+    }
+    return sorted;
+  }, [filteredBuses, sortBy]);
+
+  // Fetch logic simply sets raw data
+  const handleFetchBus = async (selectedDate = date) => {
     const storageKey = getStorageKey(from, to, selectedDate);
     const cachedData = sessionStorage.getItem(storageKey);
 
     if (cachedData) {
-      const allBusesData = JSON.parse(cachedData);
-      setAllBuses(allBusesData);
-      const filtered = applyFilters(allBusesData, {
-        selectedAc,
-        selectedSeatType,
-        selectedPickupTime,
-        selectedDropTime,
-        selectedBoardingPoints,
-        selectedDroppingPoints,
-        selectedOperatorNames,
-        selectedPassengerCount: passengerCount,
-      });
-      setBuses(filtered);
+      setAllBuses(JSON.parse(cachedData));
       return;
     }
 
     setLoading(true);
     try {
       const params = { from, to, date: selectedDate };
-      if (selectedAc === "AC") params.isAC = "true";
-      if (selectedAc === "NON-AC") params.isAC = "false";
-
       const res = await api.get("/api/v1/buses/search", { params });
       const allResults = res?.data?.data || [];
-
       sessionStorage.setItem(storageKey, JSON.stringify(allResults));
       setAllBuses(allResults);
-
-      const filtered = applyFilters(allResults, {
-        selectedAc,
-        selectedSeatType,
-        selectedPickupTime,
-        selectedDropTime,
-        selectedBoardingPoints,
-        selectedDroppingPoints,
-        selectedOperatorNames,
-        selectedPassengerCount: passengerCount,
-      });
-      setBuses(filtered);
     } catch (err) {
       console.error(err);
-      setBuses([]);
+      setAllBuses([]);
     } finally {
       setLoading(false);
     }
@@ -211,38 +172,9 @@ export default function BusBooking(){
 
   const handleDateSelect = (selectedDate) => {
     setDate(selectedDate);
-    const storageKey = getStorageKey(from, to, selectedDate);
-    const cachedData = sessionStorage.getItem(storageKey);
-
-    if (cachedData) {
-      const allBusesData = JSON.parse(cachedData);
-      setAllBuses(allBusesData);
-      const filtered = applyFilters(allBusesData, {
-        selectedAc: acFilter,
-        selectedSeatType: seatType,
-        selectedPickupTime: pickupTimeFilter,
-        selectedDropTime: dropTimeFilter,
-        selectedBoardingPoints: selectedPickupPoints,
-        selectedDroppingPoints: selectedDropPoints,
-        selectedOperatorNames: selectedOperators,
-        selectedPassengerCount: passengerCount,
-      });
-      setBuses(filtered);
-    } else {
-      handleFetchBus(
-        acFilter,
-        seatType,
-        pickupTimeFilter,
-        dropTimeFilter,
-        selectedPickupPoints,
-        selectedDropPoints,
-        selectedOperators,
-        selectedDate
-      );
-    }
+    handleFetchBus(selectedDate);
   };
 
-  // Jump to the next day seamlessly if current selections produce no results
   const handleNextDaySearch = () => {
     const nextDate = new Date(date);
     nextDate.setDate(nextDate.getDate() + 1);
@@ -250,7 +182,6 @@ export default function BusBooking(){
     handleDateSelect(formattedDate);
   };
 
-  // Hard wipe active sub-filters back to initial values
   const handleClearFilters = (e) => {
     if (e) e.preventDefault();
     setAcFilter("ALL");
@@ -261,28 +192,16 @@ export default function BusBooking(){
     setSelectedPickupPoints([]);
     setSelectedDropPoints([]);
     setSelectedOperators([]);
-    setBuses(applyFilters(allBuses, {
-      selectedAc: "ALL",
-      selectedSeatType: "ALL",
-      selectedPickupTime: "ALL",
-      selectedDropTime: "ALL",
-      selectedBoardingPoints: [],
-      selectedDroppingPoints: [],
-      selectedOperatorNames: [],
-      selectedPassengerCount: "1",
-    }));
   };
 
+  // Clean mount initial fetch
   useEffect(() => {
     const fetchInitial = async () => {
       const storageKey = getStorageKey(from, to, date);
       const cachedData = sessionStorage.getItem(storageKey);
 
       if (cachedData) {
-        const allBusesData = JSON.parse(cachedData);
-        setAllBuses(allBusesData);
-        const filtered = applyFilters(allBusesData);
-        setBuses(filtered);
+        setAllBuses(JSON.parse(cachedData));
         return;
       }
 
@@ -294,10 +213,9 @@ export default function BusBooking(){
         const allResults = res?.data?.data || [];
         sessionStorage.setItem(storageKey, JSON.stringify(allResults));
         setAllBuses(allResults);
-        setBuses(allResults);
       } catch (err) {
         console.error(err);
-        setBuses([]);
+        setAllBuses([]);
       } finally {
         setLoading(false);
       }
@@ -321,31 +239,7 @@ export default function BusBooking(){
     [allBuses]
   );
 
-  const sortedBuses = useMemo(() => {
-    const sorted = [...buses];
-    if (sortBy === "Rating") {
-      sorted.sort((a, b) => (b.bus?.rating || 0) - (a.bus?.rating || 0));
-    } else if (sortBy === "Price") {
-      sorted.sort((a, b) => (a.pricing?.calculatedFare || a.pricing?.baseFare) - (b.pricing?.calculatedFare || b.pricing?.baseFare));
-    } else if (sortBy === "Fastest") {
-      sorted.sort((a, b) => {
-        const durationA = getTimeMinutes(a.journey?.arrivalTime) - getTimeMinutes(a.journey?.departureTime);
-        const durationB = getTimeMinutes(b.journey?.arrivalTime) - getTimeMinutes(b.journey?.departureTime);
-        return durationA - durationB;
-      });
-    } else if (sortBy === "Departure") {
-      sorted.sort((a, b) => a.journey?.departureTime.localeCompare(b.journey?.departureTime));
-    } else if (sortBy === "Arrival") {
-      sorted.sort((a, b) => a.journey?.arrivalTime.localeCompare(b.journey?.arrivalTime));
-    }
-    return sorted;
-  }, [buses, sortBy]);
-
-  const handleSortSelect = (option) => {
-    setSortBy(option);
-  };
-
-  const hasBuses = Array.isArray(sortedBuses) && sortedBuses.length > 0;
+  const hasBuses = sortedAndFilteredBuses.length > 0;
 
   return (
     <>
@@ -359,16 +253,13 @@ export default function BusBooking(){
           setTo={setTo}
           date={date}
           setDate={setDate}
-          handleFetchBus={handleFetchBus}
+          handleFetchBus={() => handleFetchBus(date)}
           passengerCount={passengerCount}
-          onPassengerCountChange={(val) => {
-            setPassengerCount(val);
-            setBuses(applyFilters(allBuses, { selectedPassengerCount: val }));
-          }}
+          onPassengerCountChange={setPassengerCount}
         />
         
-        {/* Mobile Filter Toggle Button (Only displays when buses exist) */}
-        {hasBuses && !loading && (
+        {/* Mobile Filter Toggle Button */}
+        {!loading && allBuses.length > 0 && (
           <div className="lg:hidden px-2 sm:px-4 mt-4 mb-2">
             <button
               onClick={() => setShowMobileFilters(!showMobileFilters)}
@@ -389,93 +280,60 @@ export default function BusBooking(){
 
         <div className="bg-slate-50 dark:bg-slate-900 pt-4 h-auto my-4 md:my-5 mx-2 sm:mx-4 md:mx-[100px] flex flex-col lg:flex-row">
             
-                {/* LEFT FILTER PANEL (Hidden only during initial load when no data exists yet) */}
-            {!loading && (allBuses.length > 0 || hasBuses) && (
+            {/* LEFT FILTER PANEL */}
+            {!loading && allBuses.length > 0 && (
               <div 
-                onKeyDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
-                onClick={(e) => e.stopPropagation()}
-                onSubmit={(e) => e.preventDefault()}
                 className={`filter bg-white dark:bg-slate-800 w-full lg:w-[25%] h-auto rounded-lg shadow-xl dark:shadow-slate-900/30 ${showMobileFilters ? 'block' : 'hidden lg:block'} sticky top-16 lg:top-20 max-h-[calc(100vh-80px)] overflow-y-auto`}
               >
-                  <div className = "flex justify-center mt-5 font-bold text-slate-800 dark:text-slate-200">FILTERS</div>
+                  <div className="flex justify-center mt-5 font-bold text-slate-800 dark:text-slate-200">FILTERS</div>
                   <SelectBox
                     title={"AC type"}
                     text={['ALL', 'AC', 'NON-AC']}
                     value={acFilter}
-                    onChange={(option) => {
-                      setAcFilter(option);
-                      setBuses(applyFilters(allBuses, { selectedAc: option }));
-                    }}
+                    onChange={setAcFilter}
                   />
                   <SelectBox
-                    title ="Seat type"
-                    text = {["ALL", "SEATER", "SLEEPER"]}
+                    title="Seat type"
+                    text={["ALL", "SEATER", "SLEEPER"]}
                     value={seatType}
-                    onChange={(option) => {
-                      setSeatType(option);
-                      setBuses(applyFilters(allBuses, { selectedSeatType: option }));
-                    }}
+                    onChange={setSeatType}
                   />
                   <SelectBox
                     text={["ALL", "12 AM - 6AM", "6 AM - 12 PM", "12 PM - 6 PM", "6 PM - 12 AM"]}
-                    title = {"Pick up time"}
+                    title="Pick up time"
                     value={pickupTimeFilter}
-                    onChange={(option) => {
-                      setPickupTimeFilter(option);
-                      setBuses(applyFilters(allBuses, { selectedPickupTime: option }));
-                    }}
+                    onChange={setPickupTimeFilter}
                   />
                   <SelectBox
                     text={["ALL", "12 AM - 6AM", "6 AM - 12 PM", "12 PM - 6 PM", "6 PM - 12 AM"]}
-                    title ="Drop time"
+                    title="Drop time"
                     value={dropTimeFilter}
-                    onChange={(option) => {
-                      setDropTimeFilter(option);
-                      setBuses(applyFilters(allBuses, { selectedDropTime: option }));
-                    }}
+                    onChange={setDropTimeFilter}
                   />
                   <Checkbox title={"Single Seater/Sleeper"} text={"Single Seats"} />
                   <SearchheckBox
                     title={`Pick up point - ${from || "Source"}`}
                     text={pickupPointOptions}
                     selectedPoints={selectedPickupPoints}
-                    onChange={(updatedPoints) => {
-                      setSelectedPickupPoints(updatedPoints);
-                      setBuses(applyFilters(allBuses, { selectedBoardingPoints: updatedPoints }));
-                    }}
-                    onClear={() => {
-                      setSelectedPickupPoints([]);
-                      setBuses(applyFilters(allBuses, { selectedBoardingPoints: [] }));
-                    }}
+                    onChange={setSelectedPickupPoints}
+                    onClear={() => setSelectedPickupPoints([])}
                   />
                   <SearchheckBox
                     title={"Operators"}
                     text={operatorOptions}
                     selectedPoints={selectedOperators}
-                    onChange={(updatedPoints) => {
-                      setSelectedOperators(updatedPoints);
-                      setBuses(applyFilters(allBuses, { selectedOperatorNames: updatedPoints }));
-                    }}
-                    onClear={() => {
-                      setSelectedOperators([]);
-                      setBuses(applyFilters(allBuses, { selectedOperatorNames: [] }));
-                    }}
+                    onChange={setSelectedOperators}
+                    onClear={() => setSelectedOperators([])}
                   />
                   <SearchheckBox
                     title={`Drop point - ${to || "Destination"}`}
                     text={dropPointOptions}
                     selectedPoints={selectedDropPoints}
-                    onChange={(updatedPoints) => {
-                      setSelectedDropPoints(updatedPoints);
-                      setBuses(applyFilters(allBuses, { selectedDroppingPoints: updatedPoints }));
-                    }}
-                    onClear={() => {
-                      setSelectedDropPoints([]);
-                      setBuses(applyFilters(allBuses, { selectedDroppingPoints: [] }));
-                    }}
+                    onChange={setSelectedDropPoints}
+                    onClear={() => setSelectedDropPoints([])}
                   />
                   <div className="lg:hidden px-4 py-4">
-                    <button type="button" onClick={(e) => { e.stopPropagation(); setShowMobileFilters(false); }} className="w-full bg-lime-600 text-white py-3 rounded-lg font-medium hover:bg-lime-700 transition-colors">
+                    <button type="button" onClick={() => setShowMobileFilters(false)} className="w-full bg-lime-600 text-white py-3 rounded-lg font-medium hover:bg-lime-700 transition-colors">
                       Apply Filters
                     </button>
                   </div>
@@ -483,17 +341,17 @@ export default function BusBooking(){
             )}
 
             {/* RIGHT MAIN LAYOUT WRAPPER */}
-            <div className={`w-full ${hasBuses && !loading ? 'lg:w-[80%] lg:ml-[2%]' : 'lg:w-full'} px-2 sm:px-3 md:px-5 flex flex-col`}>
+            <div className={`w-full ${allBuses.length > 0 && !loading ? 'lg:w-[80%] lg:ml-[2%]' : 'lg:w-full'} px-2 sm:px-3 md:px-5 flex flex-col`}>
                 
-                {/* BUS FILTER SUB-HEADER SLIDER BAR (Only shows if listings exist) */}
-                {hasBuses && !loading && (
-                  <div className = "bg-white dark:bg-slate-800 w-full h-auto my-5 rounded-3xl shadow-xl dark:shadow-slate-900/30">
+                {/* BUS FILTER SUB-HEADER SLIDER BAR */}
+                {allBuses.length > 0 && !loading && (
+                  <div className="bg-white dark:bg-slate-800 w-full h-auto my-5 rounded-3xl shadow-xl dark:shadow-slate-900/30">
                       <BusFillterBar
-                        NoOfBus={sortedBuses.length}
+                        NoOfBus={sortedAndFilteredBuses.length}
                         selectedDate={date}
                         onDateSelect={handleDateSelect}
                         selectedSort={sortBy}
-                        onSortSelect={handleSortSelect}
+                        onSortSelect={setSortBy}
                       />
                   </div>
                 )}
@@ -514,7 +372,7 @@ export default function BusBooking(){
                   </div>
                 ) : hasBuses ? (
                   /* CARD RENDER GRID LAYOUT */
-                  sortedBuses.map((schedule) => (
+                  sortedAndFilteredBuses.map((schedule) => (
                     <div key={schedule.scheduleId} className="bg-white dark:bg-slate-800 w-full h-auto mb-3 rounded-3xl shadow-xl dark:shadow-slate-900/30">
                       <BusCard
                         busName={schedule.bus?.name}
@@ -567,7 +425,7 @@ export default function BusBooking(){
                         </button>
                         <button 
                           type="button"
-                          onClick={(e) => { e.preventDefault(); handleClearFilters(); }}
+                          onClick={handleClearFilters}
                           className="w-full sm:flex-1 flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold text-sm px-4 py-3 rounded-xl transition-all"
                         >
                           <RefreshCw size={14} />
@@ -575,7 +433,7 @@ export default function BusBooking(){
                         </button>
                         <button 
                           type="button"
-                          onClick={(e) => { e.preventDefault(); handleNextDaySearch(); }}
+                          onClick={handleNextDaySearch}
                           className="w-full sm:flex-1 flex items-center justify-center gap-2 bg-sky-500 hover:bg-sky-600 text-white font-extrabold text-sm px-4 py-3 rounded-xl shadow-xs transition-all"
                         >
                           <CalendarDays size={14} />

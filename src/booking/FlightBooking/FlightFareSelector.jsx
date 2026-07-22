@@ -26,7 +26,11 @@ export default function FlightFareSelector({
   ];
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-  const base = selectedDate ? new Date(selectedDate) : new Date();
+  const parseLocalDate = (dateStr) => {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  };
+  const base = selectedDate ? parseLocalDate(selectedDate) : new Date();
   base.setHours(0, 0, 0, 0);
   base.setDate(base.getDate() + dateOffset);
 
@@ -75,7 +79,10 @@ export default function FlightFareSelector({
               <button
                 key={item.value}
                 type="button"
-                onClick={() => onDateSelect?.(item.value)}
+                onClick={() => {
+                  setDateOffset(0);
+                  onDateSelect?.(item.value);
+                }}
                 className={`px-3 md:px-6 py-3 md:py-5 text-center whitespace-nowrap transition text-xs md:text-sm font-semibold tracking-wide shrink-0 md:shrink border-b-2 ${
                   active
                     ? 'border-sky-500 dark:border-sky-400 text-sky-600 dark:text-sky-400 font-bold bg-sky-50/40 dark:bg-sky-900/20 md:bg-transparent'

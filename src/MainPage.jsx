@@ -10,17 +10,6 @@ import flightBG from "./assets/flight_bg.png";
 import busBG from "./assets/bus bg.png";
 import { useAuth } from "./context/AuthContext";
 
-
-
-    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.lang = 'en-IN';
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-
-  // Speak a question out loud, then listen once for the user's answer.
-  // Returns a Promise<string> with the transcript (or '' if nothing recognized).
-
-    
 // Custom hook for scroll animations
 const useScrollAnimation = () => {
   const [visibleElements, setVisibleElements] = useState(new Set());
@@ -69,12 +58,13 @@ export default function App() {
   // Read service from location state when navigating from navbar
   const location = useLocation();
 
-  // Redirect vendors to their dashboard — vendors must never see MainPage
+  // Redirect vendors to their dashboard
   useEffect(() => {
     if (!authLoading && user && user.role === "vendor") {
       navigate("/vendordashboard", { replace: true });
     }
   }, [user, authLoading, navigate]);
+
   useEffect(() => {
     if (location.state?.service) {
       setService(location.state.service);
@@ -159,25 +149,6 @@ export default function App() {
 
   const currentServiceData = serviceData[service];
 
-  const [date, setDate] = useState("");
-
-  const handleSearch = () => {
-    console.log("Searching for:", { service, from, to, date });
-    // Navigate to appropriate booking page based on service
-    const serviceRoutes = {
-      flight: '/flightbooking',
-      hotel: '/hotelbooking',
-      bus: '/busbooking',
-      train: '/trainbooking'
-    };
-    navigate(serviceRoutes[service], { 
-      state: { 
-        serviceType: service,
-        searchData: { from, to, date }
-      } 
-    });
-  };
-
   const formFields = {
     flight: [
       { name: "from", label: "From ", type: "text" },
@@ -212,7 +183,7 @@ export default function App() {
       {/* Hero Section with Dynamic Background */}
       <div
         data-animation-id="hero"
-        className={`relative h-[500px] w-full transition-all duration-1000 ${
+        className={`relative h-[450px] sm:h-[500px] w-full transition-all duration-1000 ${
           visibleElements.has('hero') 
             ? 'opacity-100' 
             : 'opacity-0'
@@ -220,11 +191,11 @@ export default function App() {
         style={{ backgroundImage: `url(${photo})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
       >
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-slate-50 dark:to-slate-900"></div>
-        <div className="relative max-w-7xl mx-auto h-full flex items-center px-6">
+        <div className="relative max-w-7xl mx-auto h-full flex items-center px-4 sm:px-6">
           <div className="text-white max-w-3xl">
             <h1 
               data-animation-id="hero-title"
-              className={`text-5xl md:text-6xl font-extrabold mb-4 leading-tight transition-all duration-700 ${
+              className={`text-3xl sm:text-5xl md:text-6xl font-extrabold mb-4 leading-tight transition-all duration-700 ${
                 visibleElements.has('hero-title') 
                   ? 'opacity-100 translate-y-0' 
                   : 'opacity-0 translate-y-8'
@@ -234,7 +205,7 @@ export default function App() {
             </h1>
             <p 
               data-animation-id="hero-subtitle"
-              className={`text-xl md:text-2xl text-gray-200 mb-8 transition-all duration-700 ${
+              className={`text-base sm:text-xl md:text-2xl text-gray-200 mb-8 transition-all duration-700 ${
                 visibleElements.has('hero-subtitle') 
                   ? 'opacity-100 translate-y-0' 
                   : 'opacity-0 translate-y-8'
@@ -245,7 +216,7 @@ export default function App() {
             </p>
             <div 
               data-animation-id="hero-buttons"
-              className={`flex gap-4 transition-all duration-700 ${
+              className={`flex flex-wrap gap-3 sm:gap-4 transition-all duration-700 ${
                 visibleElements.has('hero-buttons') 
                   ? 'opacity-100 translate-y-0' 
                   : 'opacity-0 translate-y-8'
@@ -254,13 +225,13 @@ export default function App() {
             >
               <button 
                 onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })}
-                className="bg-lime-500 hover:bg-lime-600 text-white px-8 py-4 rounded-full font-bold shadow-lg transition-all hover:shadow-xl"
+                className="bg-lime-500 hover:bg-lime-600 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-full font-bold shadow-lg transition-all hover:shadow-xl text-sm sm:text-base"
               >
                Our services
               </button>
               <button 
                 onClick={() => document.getElementById('offers')?.scrollIntoView({ behavior: 'smooth' })}
-                className="bg-white dark:bg-slate-800 hover:bg-lime-600 text-lime-500 px-8 py-4 rounded-full font-bold shadow-lg transition-all hover:shadow-xl"
+                className="bg-white dark:bg-slate-800 hover:bg-lime-600 hover:text-white text-lime-500 px-6 sm:px-8 py-3 sm:py-4 rounded-full font-bold shadow-lg transition-all hover:shadow-xl text-sm sm:text-base"
               >
                 Latest offers
               </button>
@@ -273,34 +244,33 @@ export default function App() {
       <div 
         id="search-section" 
         data-animation-id="search"
-        className={`relative z-20 w-full mx-auto px-[5%] mb-10 transition-all duration-700 ${
+        className={`relative z-20 w-full mx-auto px-4 sm:px-6 md:px-[5%] -mt-16 sm:-mt-24 mb-10 transition-all duration-700 ${
           visibleElements.has('search') 
             ? 'opacity-100 translate-y-0' 
             : 'opacity-0 translate-y-10'
         }`}
       >
-
-
-        <div className="bg-neutral-100
-        0 dark:bg-slate-800 rounded-2xl shadow-lg p-8 border border-slate-200 dark:border-slate-700">
+        <div className="bg-white mt-6 dark:bg-slate-800 rounded-2xl shadow-xl p-4 sm:p-8 border border-slate-200 dark:border-slate-700">
           
           {/* Dynamic Search Form */}
-          <div className="relative pt-15">
+          <div className="relative pt-2 sm:pt-12">
+            
+            {/* Category Selector (Responsive: natural flex column on small screens, absolutely overlaid on larger screens) */}
+            <div className="flex flex-row justify-center items-center gap-2 sm:gap-6 mb-6 sm:mb-0 sm:absolute sm:left-1/2 sm:-top-20 sm:-translate-x-1/2 bg-white/90 dark:bg-slate-800/95 sm:backdrop-blur-xl rounded-2xl border border-slate-200/50 dark:border-slate-700/50 p-1.5 sm:p-2 sm:shadow-md z-10">
+              <Category 
+                icon={<img src={flight} alt="Flights" className="w-5 h-5 sm:w-6 sm:h-6 rounded-full" />} 
+                title="Flights" 
+                onClick={() => setService('flight')} 
+                active={service === 'flight'} 
+              />
+              <Category 
+                icon={<img src={buses} alt="Buses" className="w-5 h-5 sm:w-6 sm:h-6 rounded-full" />} 
+                title="Buses" 
+                onClick={() => setService('bus')} 
+                active={service === 'bus'} 
+              />
+            </div>
 
-        <div className="absolute left-1/2 bg-transparent backdrop-blur-xl rounded-xl  px-5 py-2  -top-25 -translate-x-1/2 flex flex-wrap justify-center gap-10 mb-4">
-            <Category 
-              icon={<img src={flight} alt="Flights" className="w-8 h-8 rounded-full" />} 
-              title="Flights" 
-              onClick={() => setService('flight')} 
-              active={service === 'flight'} 
-            />
-            <Category 
-              icon={<img src={buses} alt="Buses" />} 
-              title="Buses" 
-              onClick={() => setService('bus')} 
-              active={service === 'bus'} 
-            />
-          </div>
             <SearchBar input={formFields[service]} service={service} />
           </div>
         </div>
@@ -308,15 +278,15 @@ export default function App() {
 
       {/* Service Features Section */}
       <section 
-      id = "services"
+        id="services"
         data-animation-id="features"
-        className={`max-w-7xl mx-auto px-6 py-3 transition-all duration-700 ${
+        className={`max-w-7xl mx-auto px-4 sm:px-6 py-6 transition-all duration-700 ${
           visibleElements.has('features') 
             ? 'opacity-100 translate-y-0' 
             : 'opacity-0 translate-y-10'
         }`}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {currentServiceData.features.map((feature, index) => {
             const isVisible = visibleElements.has(`feature-${index}`);
             const animClasses = getAnimationClasses(index, isVisible);
@@ -325,11 +295,12 @@ export default function App() {
               <div 
                 key={index}
                 data-animation-id={`feature-${index}`}
-                className={`bg-white dark:bg-slate-800 rounded-2xl shadow-lg px-16 py-4 hover:shadow-xl transition-all duration-500 border border-slate-200 dark:border-slate-700 hover:border-lime-300 ${animClasses.container}`}
+                className={`bg-white dark:bg-slate-800 rounded-2xl shadow-md p-6 hover:shadow-xl transition-all duration-500 border border-slate-200 dark:border-slate-700 hover:border-lime-300 ${animClasses.container}`}
                 style={animClasses.style}
               >
-                <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">{feature.title}</h3>
-                <p className="text-slate-600 dark:text-slate-400">{feature.desc}</p>
+                <div className="text-3xl mb-3">{feature.icon}</div>
+                <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">{feature.title}</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400">{feature.desc}</p>
               </div>
             );
           })}
@@ -339,17 +310,17 @@ export default function App() {
       {/* Why Choose Us Section */}
       <section 
         data-animation-id="why-us"
-        className={`bg-white dark:bg-slate-800 py-16 transition-all duration-700 ${
+        className={`bg-white dark:bg-slate-800 py-12 sm:py-16 transition-all duration-700 ${
           visibleElements.has('why-us') 
             ? 'opacity-100 translate-y-0' 
             : 'opacity-0 translate-y-10'
         }`}
       >
-        <div className="max-w-7xl mx-auto px-3">
-          <div className="text-center mb-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-10 sm:mb-12">
             <h2 
               data-animation-id="why-us-title"
-              className={`text-4xl font-bold text-slate-800 dark:text-slate-100 mb-4 transition-all duration-700 ${
+              className={`text-3xl sm:text-4xl font-bold text-slate-800 dark:text-slate-100 mb-4 transition-all duration-700 ${
                 visibleElements.has('why-us-title') 
                   ? 'opacity-100 translate-y-0' 
                   : 'opacity-0 translate-y-8'
@@ -359,7 +330,7 @@ export default function App() {
             </h2>
             <p 
               data-animation-id="why-us-subtitle"
-              className={`text-xl text-slate-600 dark:text-slate-400 transition-all duration-700 ${
+              className={`text-base sm:text-xl text-slate-600 dark:text-slate-400 transition-all duration-700 ${
                 visibleElements.has('why-us-subtitle') 
                   ? 'opacity-100 translate-y-0' 
                   : 'opacity-0 translate-y-8'
@@ -386,11 +357,11 @@ export default function App() {
                   className={`text-center transition-all duration-500 ${animClasses.container}`}
                   style={animClasses.style}
                 >
-                  <div className="bg-lime-100 dark:bg-lime-900/30 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-4xl">{item.icon}</span>
+                  <div className="bg-lime-100 dark:bg-lime-900/30 w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-3xl sm:text-4xl">{item.icon}</span>
                   </div>
-                  <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">{item.title}</h3>
-                  <p className="text-slate-600 dark:text-slate-400">{item.desc}</p>
+                  <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">{item.title}</h3>
+                  <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">{item.desc}</p>
                 </div>
               );
             })}
@@ -400,18 +371,18 @@ export default function App() {
 
       {/* Special Offers Section */}
       <section 
-      id ="offers"
+        id="offers"
         data-animation-id="offers"
-        className={`max-w-7xl mx-auto px-6 py-16 transition-all duration-700 ${
+        className={`max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-16 transition-all duration-700 ${
           visibleElements.has('offers') 
             ? 'opacity-100 translate-y-0' 
             : 'opacity-0 translate-y-10'
         }`}
       >
-        <div className="text-center mb-12">
+        <div className="text-center mb-10 sm:mb-12">
           <h2 
             data-animation-id="offers-title"
-            className={`text-4xl font-bold text-slate-800 dark:text-slate-100 mb-4 transition-all duration-700 ${
+            className={`text-3xl sm:text-4xl font-bold text-slate-800 dark:text-slate-100 mb-4 transition-all duration-700 ${
               visibleElements.has('offers-title') 
                 ? 'opacity-100 translate-y-0' 
                 : 'opacity-0 translate-y-8'
@@ -421,7 +392,7 @@ export default function App() {
           </h2>
           <p 
             data-animation-id="offers-subtitle"
-            className={`text-xl text-slate-600 dark:text-slate-400 transition-all duration-700 ${
+            className={`text-base sm:text-xl text-slate-600 dark:text-slate-400 transition-all duration-700 ${
               visibleElements.has('offers-subtitle') 
                 ? 'opacity-100 translate-y-0' 
                 : 'opacity-0 translate-y-8'
@@ -431,8 +402,7 @@ export default function App() {
             Save more with exclusive discounts and packages
           </p>
         </div>
-
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <OfferCard 
             title="Flight Sale" 
             text="Up to 30% OFF on domestic flights" 
@@ -452,39 +422,39 @@ export default function App() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-slate-800 dark:bg-slate-950 text-white py-12 mt-16">
+      <footer className="bg-slate-800 dark:bg-slate-950 text-white py-12">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
             <div>
-              <h3 className="text-2xl font-bold mb-4">PAYANAM</h3>
-              <p className="text-slate-300 dark:text-slate-400">Your trusted travel partner for flights, hotels, buses, and trains.</p>
+              <h3 className="text-2xl font-bold mb-4 font-mono">PAYANAM</h3>
+              <p className="text-slate-300 dark:text-slate-400 text-sm">Your trusted travel partner for flights, hotels, buses, and trains.</p>
             </div>
             <div>
               <h4 className="text-lg font-semibold mb-3">Services</h4>
-              <ul className="space-y-2 text-slate-300 dark:text-slate-400">
+              <ul className="space-y-2 text-slate-300 dark:text-slate-400 text-sm">
                 <li><Link to="/flightbooking" className="hover:text-lime-400">Flight Booking</Link></li>
                 <li><Link to="/busbooking" className="hover:text-lime-400">Bus Booking</Link></li>
               </ul>
             </div>
             <div>
               <h4 className="text-lg font-semibold mb-3">Support</h4>
-              <ul className="space-y-2 text-slate-300 dark:text-slate-400">
-                <li><a href="#" className="hover:text-lime-400">Help Center</a></li>
-                <li><a href="#" className="hover:text-lime-400">Contact Us</a></li>
-                <li><a href="#" className="hover:text-lime-400">FAQs</a></li>
-                <li><a href="#" className="hover:text-lime-400">Terms & Conditions</a></li>
+              <ul className="space-y-2 text-slate-300 dark:text-slate-400 text-sm">
+                <li><Link to="/help-center" className="hover:text-lime-400">Help Center</Link></li>
+                <li><Link to="/contact-us" className="hover:text-lime-400">Contact Us</Link></li>
+                <li><Link to="/faqs" className="hover:text-lime-400">FAQs</Link></li>
+                <li><Link to="/terms-conditions" className="hover:text-lime-400">Terms & Conditions</Link></li>
               </ul>
             </div>
             <div>
               <h4 className="text-lg font-semibold mb-3">Contact</h4>
-              <ul className="space-y-2 text-slate-300 dark:text-slate-400">
+              <ul className="space-y-2 text-slate-300 dark:text-slate-400 text-sm">
                 <li>📧 jeromeat2002@gmail.com</li>
                 <li>📞 9894855195</li>
                 <li>📍 Power house</li>
               </ul>
             </div>
           </div>
-          <div className="border-t border-slate-700 dark:border-slate-700 mt-8 pt-8 text-center text-slate-400">
+          <div className="border-t border-slate-700 dark:border-slate-800 mt-8 pt-8 text-center text-slate-400 text-sm">
             <p>&copy; 2026 Payanam. All rights reserved.</p>
           </div>
         </div>

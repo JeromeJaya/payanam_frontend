@@ -88,7 +88,8 @@ export default function FlightCard({
   // Aircraft details
   const aircraftType = flight?.flight?.aircraftType || flight?.aircraft?.type || "";
   const aircraftModel = flight?.flight?.aircraftModel || flight?.aircraft?.model || "";
-  const cabinClass = flight?.cabin?.class || flight?.cabinClass || flight?.flight?.cabinClasses?.[0] || "";
+  const cabinClassesList = flight?.flight?.cabinClasses || flight?.cabinClasses || [];
+  const cabinClass = flight?.cabin?.class || flight?.cabinClass || cabinClassesList[0] || "";
   
   // Available seats
   const availableSeats = flight?.seats?.available ?? flight?.availableSeats ?? flight?.seatAvailability ?? "N/A";
@@ -138,9 +139,13 @@ export default function FlightCard({
                   {aircraftType}
                 </span>
               )}
-              {cabinClass && (
+              {cabinClassesList.length > 1 ? cabinClassesList.map((cc, i) => (
+                <span key={cc} className="text-[10px] font-semibold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-2 py-0.5 rounded-md border border-purple-200 dark:border-purple-800">
+                  {cc.replace(/_/g, " ")}
+                </span>
+              )) : cabinClass && (
                 <span className="text-[10px] font-semibold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-2 py-0.5 rounded-md border border-purple-200 dark:border-purple-800">
-                  {cabinClass}
+                  {cabinClass.replace(/_/g, " ")}
                 </span>
               )}
             </div>

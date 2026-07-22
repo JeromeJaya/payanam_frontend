@@ -78,10 +78,13 @@ export default function SearchBar({ input, service }) {
   const inputRefs = useRef({});
 
 
-    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.lang = 'en-IN';
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = SpeechRecognitionAPI ? new SpeechRecognitionAPI() : null;
+    if (recognition) {
+      recognition.lang = 'en-IN';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+    }
 
   // Speak a question out loud, then listen once for the user's answer.
   // Returns a Promise<string> with the transcript (or '' if nothing recognized).
@@ -90,7 +93,9 @@ export default function SearchBar({ input, service }) {
       const utter = new SpeechSynthesisUtterance(question);
       utter.lang = 'en-IN';
       utter.onend = () => {
-        const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognitionAPI) { resolve(''); return; }
+        const rec = new SpeechRecognitionAPI();
         rec.lang = 'en-IN';
         rec.interimResults = false;
         rec.maxAlternatives = 1;
@@ -308,6 +313,10 @@ export default function SearchBar({ input, service }) {
   }
 
    const handleMic = () => {
+      if (!recognition) {
+        alert("Speech recognition is not supported in this browser.");
+        return;
+      }
       setIsListening(true); // Start listening animation state
       recognition.start();
       

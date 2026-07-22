@@ -25,7 +25,7 @@ export default function FlightBooking(){
   const toParam = searchParams.get('to') || searchData.to || "";
   const dateParam = searchParams.get('date') || searchParams.get('departure') || searchData.date || (() => {
     const d = new Date();
-    return d.toISOString().slice(0, 10);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   })();
    
   const [from, setFrom] = useState(fromParam);
@@ -71,11 +71,6 @@ export default function FlightBooking(){
   const [showCompareSidebar, setShowCompareSidebar] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
-  // Generate a unique sessionStorage key based on search params
-  const getStorageKey = (searchFrom, searchTo, searchDate) => {
-    return `flight_search_${(searchFrom || from).trim()}_${(searchTo || to).trim()}_${(searchDate || date)}`;
-  };
-
   // Apply all filters client-side from the given data array
   const applyFilters = (data, currentFilters = filters) => {
     let filteredData = [...data];
@@ -87,9 +82,15 @@ export default function FlightBooking(){
     }
 
     if (currentFilters.cabinClass && currentFilters.cabinClass !== "ANY") {
-      filteredData = filteredData.filter(flight => 
-        (flight.cabin?.class || flight.cabinClass) === currentFilters.cabinClass
-      );
+      filteredData = filteredData.filter(flight => {
+        const directClass = flight.cabin?.class || flight.cabinClass;
+        if (directClass === currentFilters.cabinClass) return true;
+
+        const cabinClasses = flight.flight?.cabinClasses || flight.cabinClasses;
+        if (Array.isArray(cabinClasses) && cabinClasses.includes(currentFilters.cabinClass)) return true;
+
+        return false;
+      });
     }
 
     if (currentFilters.minPrice) {
@@ -208,25 +209,6 @@ export default function FlightBooking(){
     }
 
     setHasSearched(true);
-    const storageKey = getStorageKey(fromVal, toVal, dateVal);
-    const cachedData = sessionStorage.getItem(storageKey);
-
-    if (cachedData && tripTypeVal !== 'Round Trip') {
-      // Use cached data from sessionStorage - apply filters and sort client-side
-      const allFlightData = JSON.parse(cachedData);
-      setAllFlights(allFlightData);
-      const filtered = applyFilters(allFlightData);
-      const sorted = applySorting(filtered);
-      setFlights(sorted);
-      
-      // Clear return flights if not round trip
-      if (tripTypeVal !== 'Round Trip') {
-        setReturnFlights([]);
-        setAllReturnFlights([]);
-      }
-      return;
-    }
-
     setLoading(true);
     try {
       const params = { from: fromVal, to: toVal, date: dateVal };
@@ -240,8 +222,6 @@ export default function FlightBooking(){
       const res = await api.get("/api/v1/flights/search", { params });
       const flightData = res?.data?.data || [];
       
-      // Store the FULL unfiltered response in sessionStorage
-      sessionStorage.setItem(storageKey, JSON.stringify(flightData));
       setAllFlights(flightData);
       
       // Apply client-side filtering for airlines (since backend doesn't support array filter yet)

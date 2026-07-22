@@ -19,9 +19,9 @@ export function Loading() {
               <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2 animate-pulse">Preparing Your Booking</h2>
               <p className="text-slate-600 dark:text-slate-400 mb-4">Please wait while we secure your seats...</p>
               <div className="flex justify-center gap-1">
-                <div className="w-2 h-2 bg-lime-500 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
-                <div className="w-2 h-2 bg-lime-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
-                <div className="w-2 h-2 bg-lime-500 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
+                  <div className="w-2 h-2 bg-lime-500 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
+                  <div className="w-2 h-2 bg-lime-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
+                  <div className="w-2 h-2 bg-lime-500 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
               </div>
             </div>
             </div>

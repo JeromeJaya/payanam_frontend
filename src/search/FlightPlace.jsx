@@ -7,8 +7,8 @@ export default function FlightPlace({service, from, to, selectFrom, selectTo, fr
                             onClick={() => selectFrom(airport)}
                             className="px-3 py-2 text-sm text-slate-700 hover:bg-lime-50 hover:text-lime-700 cursor-pointer transition-colors border-b border-slate-100 last:border-b-0"
                           >
-                            <div className="font-medium">{airport.displayText || `${airport.city} (${airport.iataCode})`}</div>
-                            <div className="text-xs text-slate-500">{airport.name}</div>
+                            <div className="font-medium truncate">{airport.displayText || `${airport.city} (${airport.iataCode})`}</div>
+                            <div className="text-xs text-slate-500 truncate">{airport.name}</div>
                           </li>
                         ))}
                         {service === 'flight' && isToField && toAirportSuggestions.map((airport, index) => (
@@ -17,8 +17,8 @@ export default function FlightPlace({service, from, to, selectFrom, selectTo, fr
                             onClick={() => selectTo(airport)}
                             className="px-3 py-2 text-sm text-slate-700 hover:bg-lime-50 hover:text-lime-700 cursor-pointer transition-colors border-b border-slate-100 last:border-b-0"
                           >
-                            <div className="font-medium">{airport.displayText || `${airport.city} (${airport.iataCode})`}</div>
-                            <div className="text-xs text-slate-500">{airport.name}</div>
+                            <div className="font-medium truncate">{airport.displayText || `${airport.city} (${airport.iataCode})`}</div>
+                            <div className="text-xs text-slate-500 truncate">{airport.name}</div>
                           </li>
                         ))}
                         {service !== 'flight' && (isFromField ? 
@@ -31,7 +31,7 @@ export default function FlightPlace({service, from, to, selectFrom, selectTo, fr
                               if (isFromField) selectFrom(item);
                               else if (isToField) selectTo(item);
                             }}
-                            className="px-3 py-2 text-sm text-slate-700 hover:bg-lime-50 hover:text-lime-700 cursor-pointer transition-colors border-b border-slate-100 last:border-b-0"
+                            className="px-3 py-2 text-sm text-slate-700 hover:bg-lime-50 hover:text-lime-700 cursor-pointer transition-colors border-b border-slate-100 last:border-b-0 truncate"
                           >
                             {item}
                           </li>
