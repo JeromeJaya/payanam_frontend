@@ -1,64 +1,23 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import Category from "./components/category.jsx";
+import { useState, useEffect } from "react";
 import OfferCard from "./Carousels/offer1.jsx";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import buses from "./assets/buses.png";
-import flight from "./assets/flight.png";
 import NavComponent from "./NavComponent.jsx";
 import SearchBar from "./search/SearchBar.jsx";
 import flightBG from "./assets/flight_bg.png";
 import busBG from "./assets/bus bg.png";
 import { useAuth } from "./context/AuthContext";
-
-// Custom hook for scroll animations
-const useScrollAnimation = () => {
-  const [visibleElements, setVisibleElements] = useState(new Set());
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setVisibleElements(prev => new Set([...prev, entry.target.dataset.animationId]));
-          }
-        });
-      },
-      {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-      }
-    );
-
-    const elements = document.querySelectorAll('[data-animation-id]');
-    elements.forEach(el => observer.observe(el));
-
-    return () => observer.disconnect();
-  }, []);
-
-  return visibleElements;
-};
-
-// Helper function to get animation classes based on index
-const getAnimationClasses = (index, isVisible, baseDelay = 0) => {
-  const direction = index % 2 === 0 ? '-translate-x-8' : 'translate-x-8';
-  const delay = `${baseDelay + (index * 100)}ms`;
-  
-  return {
-    container: `transition-all duration-700 ${isVisible ? 'opacity-100 translate-x-0' : `opacity-0 ${direction}`}`,
-    style: { transitionDelay: delay }
-  };
-};
+import useScrollAnimation from "./hooks/useScrollAnimation.js";
+import ServiceHero from "./components/main/ServiceHero.jsx";
+import ServiceTabs from "./components/main/ServiceTabs.jsx";
+import ServiceFeatures from "./components/main/ServiceFeatures.jsx";
 
 export default function App() {
   const [service, setService] = useState("bus");
   const navigate = useNavigate();
   const { user, authLoading } = useAuth();
   const visibleElements = useScrollAnimation();
-  
-  // Read service from location state when navigating from navbar
   const location = useLocation();
 
-  // Redirect vendors to their dashboard
   useEffect(() => {
     if (!authLoading && user && user.role === "vendor") {
       navigate("/vendordashboard", { replace: true });
@@ -70,8 +29,7 @@ export default function App() {
       setService(location.state.service);
     }
   }, [location.state]);
-  
-  // Service-specific background images
+
   const serviceBackgrounds = {
     flight: flightBG,
     bus: busBG,
@@ -79,7 +37,6 @@ export default function App() {
 
   const photo = serviceBackgrounds[service];
 
-  // Service-specific content data
   const serviceData = {
     flight: {
       title: "Discover and Book Your Next Journey",
@@ -88,7 +45,13 @@ export default function App() {
         { icon: "✈️", title: "Domestic Flights", desc: "500+ routes across India" },
         { icon: "🌍", title: "International Flights", desc: "100+ destinations worldwide" },
         { icon: "💰", title: "Best Price Guarantee", desc: "Compare and save up to 30%" },
-        { icon: "🔒", title: "Secure Booking", desc: "100% secure transactions" }
+        { icon: "🔒", title: "Secure Booking", desc: "100% secure transactions" },
+        { icon: "🧳", title: "Free Baggage", desc: "15kg check-in + 7kg cabin baggage included" },
+        { icon: "🎫", title: "Instant e-Ticket", desc: "Get your boarding pass instantly after booking" },
+        { icon: "🔄", title: "Free Cancellation", desc: "Cancel up to 24 hours before departure at no cost" },
+        { icon: "💺", title: "Choose Your Seat", desc: "Select preferred seats with our interactive seat map" },
+        { icon: "🍽️", title: "Pre-book Meals", desc: "Choose from 30+ cuisines and beverages" },
+        { icon: "⭐", title: "Premium Lounges", desc: "Access 200+ airport lounges across India" },
       ],
       popularRoutes: [
         { from: "Delhi", to: "Mumbai", price: "₹4,500" },
@@ -120,7 +83,10 @@ export default function App() {
         { icon: "🚌", title: "10,000+ Routes", desc: "Covering all major cities" },
         { icon: "✅", title: "Verified Operators", desc: "500+ trusted bus operators" },
         { icon: "💺", title: "Live Seat Selection", desc: "Choose your preferred seat" },
-        { icon: "🎫", title: "Instant Confirmation", desc: "Get e-ticket immediately" }
+        { icon: "🎫", title: "Instant Confirmation", desc: "Get e-ticket immediately" },
+        { icon: "🎯", title: "Best Prices", desc: "We guarantee the best prices for all your travel needs" },
+        { icon: "⚡", title: "Instant Booking", desc: "Get instant confirmation with e-tickets and QR codes" },
+        { icon: "🛡️", title: "100% Secure", desc: "Your payments and data are protected with bank-level security" }
       ],
       popularRoutes: [
         { from: "Chennai", to: "Bangalore", price: "₹800" },
@@ -180,221 +146,57 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <NavComponent />
 
-      {/* Hero Section with Dynamic Background */}
-      <div
-        data-animation-id="hero"
-        className={`relative h-[450px] sm:h-[500px] w-full transition-all duration-1000 ${
-          visibleElements.has('hero') 
-            ? 'opacity-100' 
-            : 'opacity-0'
-        }`}
-        style={{ backgroundImage: `url(${photo})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-slate-50 dark:to-slate-900"></div>
-        <div className="relative max-w-7xl mx-auto h-full flex items-center px-4 sm:px-6">
-          <div className="text-white max-w-3xl">
-            <h1 
-              data-animation-id="hero-title"
-              className={`text-3xl sm:text-5xl md:text-6xl font-extrabold mb-4 leading-tight transition-all duration-700 ${
-                visibleElements.has('hero-title') 
-                  ? 'opacity-100 translate-y-0' 
-                  : 'opacity-0 translate-y-8'
-              }`}
-            >
-              {currentServiceData.title}
-            </h1>
-            <p 
-              data-animation-id="hero-subtitle"
-              className={`text-base sm:text-xl md:text-2xl text-gray-200 mb-8 transition-all duration-700 ${
-                visibleElements.has('hero-subtitle') 
-                  ? 'opacity-100 translate-y-0' 
-                  : 'opacity-0 translate-y-8'
-              }`}
-              style={{ transitionDelay: '200ms' }}
-            >
-              {currentServiceData.subtitle}
-            </p>
-            <div 
-              data-animation-id="hero-buttons"
-              className={`flex flex-wrap gap-3 sm:gap-4 transition-all duration-700 ${
-                visibleElements.has('hero-buttons') 
-                  ? 'opacity-100 translate-y-0' 
-                  : 'opacity-0 translate-y-8'
-              }`}
-              style={{ transitionDelay: '400ms' }}
-            >
-              <button 
-                onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })}
-                className="bg-lime-500 hover:bg-lime-600 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-full font-bold shadow-lg transition-all hover:shadow-xl text-sm sm:text-base"
-              >
-               Our services
-              </button>
-              <button 
-                onClick={() => document.getElementById('offers')?.scrollIntoView({ behavior: 'smooth' })}
-                className="bg-white dark:bg-slate-800 hover:bg-lime-600 hover:text-white text-lime-500 px-6 sm:px-8 py-3 sm:py-4 rounded-full font-bold shadow-lg transition-all hover:shadow-xl text-sm sm:text-base"
-              >
-                Latest offers
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <ServiceHero
+        visibleElements={visibleElements}
+        photo={photo}
+        title={currentServiceData.title}
+        subtitle={currentServiceData.subtitle}
+      />
 
-      {/* Search Section */}
-      <div 
-        id="search-section" 
+      <div
+        id="search-section"
         data-animation-id="search"
         className={`relative z-20 w-full mx-auto px-4 sm:px-6 md:px-[5%] -mt-16 sm:-mt-24 mb-10 transition-all duration-700 ${
-          visibleElements.has('search') 
-            ? 'opacity-100 translate-y-0' 
+          visibleElements.has('search')
+            ? 'opacity-100 translate-y-0'
             : 'opacity-0 translate-y-10'
         }`}
       >
         <div className="bg-white mt-6 dark:bg-slate-800 rounded-2xl shadow-xl p-4 sm:p-8 border border-slate-200 dark:border-slate-700">
-          
-          {/* Dynamic Search Form */}
           <div className="relative pt-2 sm:pt-12">
-            
-            {/* Category Selector (Responsive: natural flex column on small screens, absolutely overlaid on larger screens) */}
-            <div className="flex flex-row justify-center items-center gap-2 sm:gap-6 mb-6 sm:mb-0 sm:absolute sm:left-1/2 sm:-top-20 sm:-translate-x-1/2 bg-white/90 dark:bg-slate-800/95 sm:backdrop-blur-xl rounded-2xl border border-slate-200/50 dark:border-slate-700/50 p-1.5 sm:p-2 sm:shadow-md z-10">
-              <Category 
-                icon={<img src={flight} alt="Flights" className="w-5 h-5 sm:w-6 sm:h-6 rounded-full" />} 
-                title="Flights" 
-                onClick={() => setService('flight')} 
-                active={service === 'flight'} 
-              />
-              <Category 
-                icon={<img src={buses} alt="Buses" className="w-5 h-5 sm:w-6 sm:h-6 rounded-full" />} 
-                title="Buses" 
-                onClick={() => setService('bus')} 
-                active={service === 'bus'} 
-              />
-            </div>
-
+            <ServiceTabs activeService={service} onServiceChange={setService} />
             <SearchBar input={formFields[service]} service={service} />
           </div>
         </div>
       </div>
 
-      {/* Service Features Section */}
-      <section 
-        id="services"
-        data-animation-id="features"
-        className={`max-w-7xl mx-auto px-4 sm:px-6 py-6 transition-all duration-700 ${
-          visibleElements.has('features') 
-            ? 'opacity-100 translate-y-0' 
-            : 'opacity-0 translate-y-10'
-        }`}
-      >
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          {currentServiceData.features.map((feature, index) => {
-            const isVisible = visibleElements.has(`feature-${index}`);
-            const animClasses = getAnimationClasses(index, isVisible);
-            
-            return (
-              <div 
-                key={index}
-                data-animation-id={`feature-${index}`}
-                className={`bg-white dark:bg-slate-800 rounded-2xl shadow-md p-6 hover:shadow-xl transition-all duration-500 border border-slate-200 dark:border-slate-700 hover:border-lime-300 ${animClasses.container}`}
-                style={animClasses.style}
-              >
-                <div className="text-3xl mb-3">{feature.icon}</div>
-                <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">{feature.title}</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400">{feature.desc}</p>
-              </div>
-            );
-          })}
-        </div>
-      </section>
+      <ServiceFeatures features={currentServiceData.features} visibleElements={visibleElements} />
 
-      {/* Why Choose Us Section */}
-      <section 
-        data-animation-id="why-us"
-        className={`bg-white dark:bg-slate-800 py-12 sm:py-16 transition-all duration-700 ${
-          visibleElements.has('why-us') 
-            ? 'opacity-100 translate-y-0' 
-            : 'opacity-0 translate-y-10'
-        }`}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-10 sm:mb-12">
-            <h2 
-              data-animation-id="why-us-title"
-              className={`text-3xl sm:text-4xl font-bold text-slate-800 dark:text-slate-100 mb-4 transition-all duration-700 ${
-                visibleElements.has('why-us-title') 
-                  ? 'opacity-100 translate-y-0' 
-                  : 'opacity-0 translate-y-8'
-              }`}
-            >
-              Why Choose Payanam?
-            </h2>
-            <p 
-              data-animation-id="why-us-subtitle"
-              className={`text-base sm:text-xl text-slate-600 dark:text-slate-400 transition-all duration-700 ${
-                visibleElements.has('why-us-subtitle') 
-                  ? 'opacity-100 translate-y-0' 
-                  : 'opacity-0 translate-y-8'
-              }`}
-              style={{ transitionDelay: '100ms' }}
-            >
-              We make travel booking simple, fast, and reliable
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { icon: "🎯", title: "Best Prices", desc: "We guarantee the best prices for all your travel needs" },
-              { icon: "⚡", title: "Instant Booking", desc: "Get instant confirmation with e-tickets and QR codes" },
-              { icon: "🛡️", title: "100% Secure", desc: "Your payments and data are protected with bank-level security" }
-            ].map((item, index) => {
-              const isVisible = visibleElements.has(`why-us-${index}`);
-              const animClasses = getAnimationClasses(index, isVisible, 2);
-              
-              return (
-                <div 
-                  key={index}
-                  data-animation-id={`why-us-${index}`}
-                  className={`text-center transition-all duration-500 ${animClasses.container}`}
-                  style={animClasses.style}
-                >
-                  <div className="bg-lime-100 dark:bg-lime-900/30 w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-3xl sm:text-4xl">{item.icon}</span>
-                  </div>
-                  <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">{item.title}</h3>
-                  <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">{item.desc}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Special Offers Section */}
-      <section 
+      <section
         id="offers"
         data-animation-id="offers"
         className={`max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-16 transition-all duration-700 ${
-          visibleElements.has('offers') 
-            ? 'opacity-100 translate-y-0' 
+          visibleElements.has('offers')
+            ? 'opacity-100 translate-y-0'
             : 'opacity-0 translate-y-10'
         }`}
       >
         <div className="text-center mb-10 sm:mb-12">
-          <h2 
+          <h2
             data-animation-id="offers-title"
             className={`text-3xl sm:text-4xl font-bold text-slate-800 dark:text-slate-100 mb-4 transition-all duration-700 ${
-              visibleElements.has('offers-title') 
-                ? 'opacity-100 translate-y-0' 
+              visibleElements.has('offers-title')
+                ? 'opacity-100 translate-y-0'
                 : 'opacity-0 translate-y-8'
             }`}
           >
             Special Offers & Deals
           </h2>
-          <p 
+          <p
             data-animation-id="offers-subtitle"
             className={`text-base sm:text-xl text-slate-600 dark:text-slate-400 transition-all duration-700 ${
-              visibleElements.has('offers-subtitle') 
-                ? 'opacity-100 translate-y-0' 
+              visibleElements.has('offers-subtitle')
+                ? 'opacity-100 translate-y-0'
                 : 'opacity-0 translate-y-8'
             }`}
             style={{ transitionDelay: '100ms' }}
@@ -403,25 +205,24 @@ export default function App() {
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <OfferCard 
-            title="Flight Sale" 
-            text="Up to 30% OFF on domestic flights" 
+          <OfferCard
+            title="Flight Sale"
+            text="Up to 30% OFF on domestic flights"
             subtitle="Valid till Dec 31"
           />
-          <OfferCard 
-            title="Hotel Packages" 
-            text="Flat ₹2000 OFF on hotel bookings" 
+          <OfferCard
+            title="Hotel Packages"
+            text="Flat ₹2000 OFF on hotel bookings"
             subtitle="Min. stay 2 nights"
           />
-          <OfferCard 
-            title="Bus Travel" 
-            text="Get 25% cashback on bus tickets" 
+          <OfferCard
+            title="Bus Travel"
+            text="Get 25% cashback on bus tickets"
             subtitle="Use code PAYANAM25"
           />
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="bg-slate-800 dark:bg-slate-950 text-white py-12">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">

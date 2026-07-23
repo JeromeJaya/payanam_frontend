@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { MessageSquare, X, Send, Bot, User, Loader2, Sparkles } from "lucide-react";
 import api from "../api/axios";
 

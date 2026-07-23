@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Heart, Star, Utensils, Sparkles, ArrowRight } from 'lucide-react';
 
 export default function HotelCard({
@@ -15,7 +15,7 @@ export default function HotelCard({
   imageUrl = "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=600&q=80" // Premium mock resort pool image
 }) {
   const [isFavorite, setIsFavorite] = useState(false);
-  const [currentSlide, setCurrentSlide] = useState(0);
+  const currentSlide = 0;
 
   return (
     <div className="w-full mx-auto bg-white border border-blue-400 rounded-sm shadow-sm overflow-hidden font-sans text-gray-900 select-none transition-all hover:shadow-md mb-4">

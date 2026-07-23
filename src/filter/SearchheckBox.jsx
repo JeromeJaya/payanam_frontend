@@ -44,7 +44,7 @@ export default function SearchheckBox({
   const displayedPoints = showAll ? filteredPoints : filteredPoints.slice(0, 4);
 
   return (
-    <div className="w-full h-auto rounded-3xl shadow-3xl bg-grey-50 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 max-w-md p-2 md:p-3">
+    <div className="w-full h-auto rounded-3xl shadow-3xl bg-grey-50 dark:bg-slate-800 dark:hover:bg-slate-700 max-w-md p-2 md:p-3">
       {/* Header */}
       <div className="flex items-center justify-between mb-2 md:mb-4">
         <h2 className="font-semibold text-sm md:text-xl text-gray-700 dark:text-slate-200">

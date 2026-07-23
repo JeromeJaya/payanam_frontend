@@ -1,4 +1,3 @@
-import React from "react";
 import { Bus, Plane, ArrowLeft, Plus, Route } from "lucide-react";
 
 const SERVICE_CATEGORIES = [

@@ -1,14 +1,14 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { User, Plus, ChevronDown } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Plus } from "lucide-react";
 
 export default function TravellerDetails({ onContactValidation }) {
-  const [adults, setAdults] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
   
   // Contact details state
   const [countryCode, setCountryCode] = useState("91");
   const [mobile, setMobile] = useState("");
   const [email, setEmail] = useState("");
+  const [selectedState, setSelectedState] = useState("");
   
   // Validation errors state
   const [errors, setErrors] = useState({});
@@ -96,14 +96,14 @@ export default function TravellerDetails({ onContactValidation }) {
       countryCode,
       errors
     };
-  }, [mobile, email, countryCode, errors.mobile, errors.email]);
+  }, [mobile, email, countryCode, errors]);
 
   // Notify parent component about validation state
   useEffect(() => {
     if (onContactValidation) {
       onContactValidation(validationState);
     }
-  }, [validationState.isValid, validationState.mobile, validationState.email, validationState.countryCode]);
+  }, [onContactValidation, validationState]);
 
   return (
     <div className="border border-gray-200 rounded-lg p-4 mb-4">
@@ -113,10 +113,10 @@ export default function TravellerDetails({ onContactValidation }) {
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
           <h4 className="text-sm font-semibold text-gray-900">ADULT (12 yrs+)</h4>
-          <span className="text-sm text-gray-600">{adults.length}/1 added</span>
+          <span className="text-sm text-gray-600">0/1 added</span>
         </div>
         
-        {adults.length === 0 && (
+        {!showAddForm && (
           <div className="border border-dashed border-gray-300 rounded-lg p-4 text-center">
             <p className="text-sm text-gray-600 mb-3">You have not added any adults to the list</p>
             {!showAddForm && (
@@ -157,7 +157,7 @@ export default function TravellerDetails({ onContactValidation }) {
               value={mobile}
               onChange={handleMobileChange}
               onBlur={() => handleBlur("mobile")}
-              className={`w-full border rounded-lg px-3 py-2 text-sm ${
+              className={`w-full border rounded-lg px-3 py-2 text-sm outline-none ${
                 touched.mobile && errors.mobile 
                   ? "border-red-500 focus:ring-red-500 focus:border-red-500" 
                   : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
@@ -175,7 +175,7 @@ export default function TravellerDetails({ onContactValidation }) {
               value={email}
               onChange={handleEmailChange}
               onBlur={() => handleBlur("email")}
-              className={`w-full border rounded-lg px-3 py-2 text-sm ${
+              className={`w-full border rounded-lg px-3 py-2 text-sm outline-none ${
                 touched.email && errors.email 
                   ? "border-red-500 focus:ring-red-500 focus:border-red-500" 
                   : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
@@ -203,8 +203,15 @@ export default function TravellerDetails({ onContactValidation }) {
         
         <div className="mb-3">
           <label className="block text-xs font-medium text-gray-700 mb-1">Select the State</label>
-          <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
-            <option>Tamil Nadu</option>
+          <select
+            value={selectedState}
+            onChange={(e) => setSelectedState(e.target.value)}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+          >
+            <option value="">Select your state</option>
+            {["Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand","Karnataka","Kerala","Madhya Pradesh","Maharashtra","Manipur","Meghalaya","Mizoram","Nagaland","Odisha","Punjab","Rajasthan","Sikkim","Tamil Nadu","Telangana","Tripura","Uttar Pradesh","Uttarakhand","West Bengal","Andaman and Nicobar Islands","Chandigarh","Dadra and Nagar Haveli and Daman and Diu","Delhi","Jammu and Kashmir","Ladakh","Lakshadweep","Puducherry"].map(st => (
+              <option key={st} value={st}>{st}</option>
+            ))}
           </select>
         </div>
 

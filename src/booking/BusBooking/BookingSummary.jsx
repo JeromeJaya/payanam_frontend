@@ -6,7 +6,6 @@ import { useAuth } from "../../context/AuthContext.jsx";
 
 export default function BookingSummary({
   busSelections,
-  onClear,
   scheduleId,
   boardingPoints = [],
   droppingPoints = [],
@@ -15,7 +14,7 @@ export default function BookingSummary({
 }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const entries = Object.entries(busSelections).filter(([ , data]) => data.seats.length > 0);
   const grandTotal = entries.reduce((sum, [ , data]) => sum + (data.total || 0), 0);
   const busName = entries[0]?.[0] || "Payanam Express";

@@ -1,10 +1,7 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "./context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { 
-  Calendar, TrendingUp,
-  Bus, Plane, 
-} from "lucide-react";
+import { Bus, Plane, Calendar, TrendingUp } from "lucide-react";
 import api from "./api/axios";
 import CreateBusForm from "./components/CreateBusForm";
 import EditBusForm from "./components/EditBusForm";
@@ -18,7 +15,7 @@ import VendorBookings from "./vendor/VendorBookings";
 import VendorRoutes from "./vendor/VendorRoutes";
 import VendorAnalytics from "./vendor/VendorAnalytics";
 import VendorHeader from "./vendor/VendorHeader";
-import VendorServiceCategoryGrid, { SERVICE_CATEGORIES } from "./vendor/VendorServiceCategoryGrid";
+import VendorServiceCategoryGrid from "./vendor/VendorServiceCategoryGrid";
 import VendorBusServiceView from "./vendor/VendorBusServiceView";
 import VendorFlightServiceView from "./vendor/VendorFlightServiceView";
 import VendorBusSchedule from "./vendor/VendorBusSchedule";
@@ -29,6 +26,10 @@ import FlightRouteFormModal from "./vendor/FlightRouteFormModal";
 import FlightScheduleFormModal from "./vendor/FlightScheduleFormModal";
 import { CancelFlightScheduleModal, CancelBusScheduleModal } from "./vendor/VendorCancelScheduleModals";
 import VendorBookingDetailModal from "./vendor/VendorBookingDetailModal";
+import DashboardStatsGrid from "./vendor/DashboardStatsGrid";
+import DashboardSearch from "./vendor/DashboardSearch";
+import DashboardSkeleton from "./vendor/DashboardSkeleton";
+import ScheduleCategorySelector from "./vendor/ScheduleCategorySelector";
 
 export default function VendorDashboard() {
   const { user, logout, authLoading } = useAuth();
@@ -47,8 +48,6 @@ export default function VendorDashboard() {
   const [deleteFlightConfirm, setDeleteFlightConfirm] = useState(null);
   const [buses, setBuses] = useState([]);
   const [busesLoading, setBusesLoading] = useState(false);
-  const [routes, setRoutes] = useState([]);
-  const [routesLoading, setRoutesLoading] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -58,21 +57,15 @@ export default function VendorDashboard() {
   const [searching, setSearching] = useState(false);
   const [dashboardData, setDashboardData] = useState(null);
   const [dashboardLoading, setDashboardLoading] = useState(true);
-
-  // Vendor Bookings
   const [vendorBookings, setVendorBookings] = useState([]);
   const [vendorBookingsLoading, setVendorBookingsLoading] = useState(false);
   const [vendorBookingsPage, setVendorBookingsPage] = useState(1);
   const [vendorBookingsTotal, setVendorBookingsTotal] = useState(0);
   const [selectedBooking, setSelectedBooking] = useState(null);
-
-  // Flights
   const [flights, setFlights] = useState([]);
   const [flightsLoading, setFlightsLoading] = useState(false);
-
   const [busSchedules, setBusSchedules] = useState([]);
   const [busSchedulesLoading, setBusSchedulesLoading] = useState(false);
-
   const [scheduleCategory, setScheduleCategory] = useState(null);
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [scheduleFormData, setScheduleFormData] = useState({
@@ -120,7 +113,6 @@ export default function VendorDashboard() {
   const [cancelScheduleConfirm, setCancelScheduleConfirm] = useState(null);
   const [cancelBusScheduleConfirm, setCancelBusScheduleConfirm] = useState(null);
 
-  // --- Handlers ---
   const handleSearch = async () => {
     const q = searchQuery.trim();
     if (!q) return;
@@ -410,65 +402,14 @@ export default function VendorDashboard() {
     green: "from-green-500 to-green-600", teal: "from-teal-500 to-teal-600", sky: "from-sky-500 to-sky-600",
   };
 
-  // Full page loading state
-  if (dashboardLoading) {
-    return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col">
-        <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-40">
-          <div className="w-full px-6 sm:px-12 lg:px-20 h-20 flex items-center justify-between">
-            <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-lime-600 to-lime-500 flex items-center justify-center text-white font-black text-xl shadow-md">V</div>
-              <div>
-                <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-slate-100">Vendor Dashboard</h1>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Loading dashboard...</p>
-              </div>
-            </div>
-          </div>
-        </header>
-        <div className="flex-1 w-full px-6 sm:px-12 lg:px-20 py-8">
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse"></div>
-                  <div className="h-6 w-16 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div>
-                </div>
-                <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded animate-pulse mb-2"></div>
-                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-24"></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (dashboardLoading) return <DashboardSkeleton />;
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <VendorHeader user={user} onLogout={handleLogout} isVendorApproved={isVendorApproved} vendorApprovalStatus={vendorApprovalStatus} />
-
       <div className="w-full px-6 sm:px-12 lg:px-20 py-8">
-       
-        {/* Stats Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat, idx) => {
-            const Icon = stat.icon;
-            return (
-              <div key={idx} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300">
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${colorClasses[stat.color]} flex items-center justify-center shadow-lg`}>
-                    <Icon className="w-6 h-6 text-white" />
-                  </div>
-                  {stat.change && <span className="text-xs font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-full">{stat.change}</span>}
-                </div>
-                <h3 className="text-2xl font-black text-slate-900 dark:text-slate-100 mb-1">{stat.value}</h3>
-                <p className="text-base text-slate-600 dark:text-slate-400">{stat.label}</p>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Tabs */}
+        <DashboardStatsGrid stats={stats} colorClasses={colorClasses} />
+        <DashboardSearch searchQuery={searchQuery} searchServiceType={searchServiceType} searching={searching} searchError={searchError} onSearchQueryChange={setSearchQuery} onServiceTypeChange={setSearchServiceType} onSearch={handleSearch} />
         <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm mb-8">
           <div className="border-b border-slate-200 dark:border-slate-700 px-6">
             <nav className="flex gap-8">
@@ -480,22 +421,18 @@ export default function VendorDashboard() {
               ))}
             </nav>
           </div>
-
           <div className="p-6">
             {activeTab === "overview" && <VendorOverview />}
-
             {activeTab === "bookings" && (
               <VendorBookings vendorBookings={vendorBookings} vendorBookingsLoading={vendorBookingsLoading}
                 vendorBookingsTotal={vendorBookingsTotal} vendorBookingsPage={vendorBookingsPage}
                 onSelectBooking={setSelectedBooking} onLoadMore={fetchVendorBookings} />
             )}
-
             {activeTab === "routes" && (
               <VendorRoutes routeCategory={routeCategory} setRouteCategory={setRouteCategory} buses={buses} flights={flights}
                 setShowCreateRouteForm={setShowCreateRouteForm} setShowFlightRouteForm={setShowFlightRouteForm}
                 setViewFlightRoutes={setViewRoutesBus} />
             )}
-
             {activeTab === "services" && (
               <>
                 {selectedCategory === null && <VendorServiceCategoryGrid busesCount={buses.length} flightsCount={flights.length} onSelectCategory={setSelectedCategory} />}
@@ -511,34 +448,10 @@ export default function VendorDashboard() {
                 )}
               </>
             )}
-
             {activeTab === "schedule" && (
               <div className="space-y-6">
                 {!scheduleCategory ? (
-                  <>
-                    <h3 className="text-xl font-bold text-slate-900">Select Service Type</h3>
-                    <p className="text-sm text-slate-600">Choose a service category to schedule a trip</p>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      {SERVICE_CATEGORIES.map((cat) => {
-                        const Icon = cat.icon;
-                        return (
-                          <button key={cat.id} onClick={() => { setScheduleCategory(cat.id); if (cat.id === "flight") fetchFlightSchedules(); }}
-                            className={`text-left bg-white border-2 border-slate-200 rounded-xl p-6 ${cat.hoverBorder} hover:shadow-md transition-all duration-300 group`}>
-                            <div className="flex items-center gap-4 mb-3">
-                              <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${cat.gradient} flex items-center justify-center shadow-lg`}>
-                                <Icon className="w-6 h-6 text-white" />
-                              </div>
-                              <div>
-                                <h4 className="text-lg font-bold text-slate-900 group-hover:text-slate-700 transition-colors">{cat.label}</h4>
-                                <p className="text-xs text-slate-500">{cat.description}</p>
-                              </div>
-                            </div>
-                            <span className="text-xs text-slate-400 group-hover:translate-x-1 transition-transform inline-block">Click to schedule →</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </>
+                  <ScheduleCategorySelector onSelectCategory={(id) => { setScheduleCategory(id); if (id === "flight") fetchFlightSchedules(); }} />
                 ) : scheduleCategory === "bus" ? (
                   <VendorBusSchedule busSchedules={busSchedules} busSchedulesLoading={busSchedulesLoading} buses={buses}
                     busRoutes={busRoutes} busRoutesLoading={busRoutesLoading} showScheduleForm={showScheduleForm}
@@ -566,23 +479,18 @@ export default function VendorDashboard() {
                 )}
               </div>
             )}
-
             {activeTab === "analytics" && <VendorAnalytics />}
           </div>
         </div>
       </div>
-
-      {/* Modals */}
       <DeleteBusModal bus={deleteConfirm} onClose={() => setDeleteConfirm(null)} onConfirm={handleDeleteBus} />
       <DeleteFlightModal flight={deleteFlightConfirm} onClose={() => setDeleteFlightConfirm(null)} onConfirm={handleDeleteFlight} />
-
       {showCreateBusForm && <CreateBusForm onClose={() => setShowCreateBusForm(false)} onSuccess={handleCreateSuccess} />}
       {showCreateFlightForm && <CreateFlightForm key={flightFormKey} onClose={() => setShowCreateFlightForm(false)} onSuccess={handleCreateFlightSuccess} />}
       {editFlight && <CreateFlightForm key={editFlight._id} flight={editFlight} isEdit={true} onClose={() => setEditFlight(null)} onSuccess={handleUpdateFlight} />}
       {editBus && <EditBusForm bus={editBus} onClose={() => setEditBus(null)} onSuccess={handleEditSuccess} />}
       {viewBusId && <BusDetailModal busId={viewBusId} onClose={() => setViewBusId(null)} />}
       {viewFlightId && <FlightDetailModal flightId={viewFlightId} onClose={() => setViewFlightId(null)} />}
-
       {showCreateRouteForm && (
         <CreateRouteForm buses={buses} initialBusId={pendingBusId}
           onClose={() => { setShowCreateRouteForm(false); setPendingBusId(null); }}
@@ -592,7 +500,6 @@ export default function VendorDashboard() {
             setScheduleFormData(prev => ({ ...prev, busId: createdRoute.busId, routeId: createdRoute._id }));
           }} />
       )}
-
       {viewRoutesBus && <BusRoutesModal bus={viewRoutesBus} onClose={() => setViewRoutesBus(null)} />}
       {viewFlightRoutes && <ViewFlightRoutesModal flightRoutes={flightRoutes} flightRoutesLoading={flightRoutesLoading} onClose={() => setViewFlightRoutes(null)} />}
       {showFlightRouteForm && (
@@ -606,14 +513,12 @@ export default function VendorDashboard() {
           onSearchAirports={searchAirports} onSelectAirport={selectAirport} onSelectStopAirport={selectStopAirport}
           onAddStop={addFlightStop} onUpdateStop={updateFlightStop} />
       )}
-
       {showFlightScheduleForm && (
         <FlightScheduleFormModal flights={flights} flightRoutes={flightRoutes} flightRoutesLoading={flightRoutesLoading}
           flightScheduleFormData={flightScheduleFormData} setFlightScheduleFormData={setFlightScheduleFormData}
           flightScheduleLoading={flightScheduleLoading} flightScheduleSuccess={flightScheduleSuccess} flightScheduleError={flightScheduleError}
           onSubmit={handleFlightScheduleSubmit} onClose={() => setShowFlightScheduleForm(false)} onFetchFlightRoutes={fetchFlightRoutesForSchedule} />
       )}
-
       <CancelFlightScheduleModal schedule={cancelScheduleConfirm} onClose={() => setCancelScheduleConfirm(null)} onConfirm={handleCancelSchedule} />
       <CancelBusScheduleModal schedule={cancelBusScheduleConfirm} onClose={() => setCancelBusScheduleConfirm(null)} onConfirm={handleCancelBusSchedule} />
       <VendorBookingDetailModal booking={selectedBooking} onClose={() => setSelectedBooking(null)} />

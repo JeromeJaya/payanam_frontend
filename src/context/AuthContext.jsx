@@ -8,7 +8,7 @@ export function AuthProvider({ children }) {
     try {
       const raw = localStorage.getItem("payanam_user");
       return raw ? JSON.parse(raw) : null;
-    } catch (e) {
+    } catch {
       return null;
     }
   });
@@ -20,7 +20,7 @@ export function AuthProvider({ children }) {
     setIsAuthenticated(true);
     try {
       localStorage.setItem("payanam_user", JSON.stringify(userData));
-    } catch (e) {
+    } catch {
       // ignore storage errors
     }
   };
@@ -30,7 +30,7 @@ export function AuthProvider({ children }) {
     setIsAuthenticated(false);
     try {
       localStorage.removeItem("payanam_user");
-    } catch (e) {}
+    } catch {}
   };
 
   // Merge partial updates into the current user (e.g. after profile image upload)
@@ -62,7 +62,7 @@ export function AuthProvider({ children }) {
           const cached = (() => {
             try {
               return JSON.parse(localStorage.getItem("payanam_user"));
-            } catch (e) {
+            } catch {
               return null;
             }
           })();

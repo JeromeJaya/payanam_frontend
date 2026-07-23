@@ -1,5 +1,3 @@
-import { Info } from "lucide-react";
-
 export default function CancellationPolicy({ cancellation, dateChange }) {
   return (
     <div className="border border-gray-200 rounded-lg p-4 mb-4">

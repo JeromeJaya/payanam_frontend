@@ -1,4 +1,4 @@
-export function But2({text="sample", mt=3, color="green", size}){
+export function But2({text="sample", mt=3, color="green"}){
     const colors = {
   red: "bg-red-400 dark:bg-red-300",
   blue: "bg-blue-400 dark:bg-blue-300",

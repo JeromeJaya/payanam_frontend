@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import api from "../api/axios";
-import { X, Bus, MapPin, Clock, Route } from "lucide-react";
+import { X, Bus, Clock, Route } from "lucide-react";
 
 export default function BusRoutesModal({ bus, onClose }) {
   const [routes, setRoutes] = useState([]);

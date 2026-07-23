@@ -1,91 +1,102 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Nav from "../../NavComponent.jsx";
-import { User, Plus, Trash2, ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
+import PassengerForm from "./components/PassengerForm";
 
 export default function FlightPassengerDetails() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { flight, fare, selectedSeats, scheduleId, tripType, flights } = location.state || {};
+  const { flight, fare, selectedSeats, scheduleId, tripType, flights, selectedMeals } = location.state || {};
 
-  // Initialize passenger details array based on selected seats
   const [passengers, setPassengers] = useState(
-    selectedSeats?.map((seat, index) => ({
+    selectedSeats?.map((seat) => ({
       name: "",
       age: "",
-      gender: "", // No default - must be selected
+      gender: "",
       seatNumber: seat.seatNumber,
-      seatFare: seat.isExtraLegroom || seat.seatType === "extra-legroom" 
-        ? (fare?.price || 0) + 100 
+      seatFare: seat.isExtraLegroom || seat.seatType === "extra-legroom"
+        ? (fare?.price || 0) + 100
         : (fare?.price || 0),
     })) || []
   );
 
   const [errors, setErrors] = useState({});
-  const [formTouched, setFormTouched] = useState(false);
+  const [formTouched, setFormTouched] = useState(false); // eslint-disable-line no-unused-vars
 
-  // Update passenger field
+  const validateField = (index, field, value) => {
+    if (field === "name") {
+      if (!value.trim()) return "Name is required";
+      if (value.trim().length < 2) return "Name must be at least 2 characters";
+      if (!/^[a-zA-Z\s]+$/.test(value.trim())) return "Name can only contain letters";
+      return "";
+    }
+    if (field === "age") {
+      if (!value || value === "") return "Age is required";
+      const ageNum = parseInt(value);
+      if (isNaN(ageNum)) return "Age must be a number";
+      if (ageNum < 1) return "Age cannot be less than 1";
+      if (ageNum > 120) return "Age cannot be more than 120";
+      return "";
+    }
+    if (field === "gender") {
+      if (!value || value === "") return "Gender is required";
+      return "";
+    }
+    return "";
+  };
+
+  const sanitizeName = (value) => value.replace(/[^a-zA-Z\s]/g, "");
+
+  const sanitizeAge = (value) => value.replace(/\D/g, "");
+
   const updatePassenger = (index, field, value) => {
+    if (field === "name") value = sanitizeName(value);
+    if (field === "age") value = sanitizeAge(value);
+
     setPassengers(prev => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [field]: value };
       return updated;
     });
-    // Clear error for this field
-    if (errors[index]?.[field]) {
-      setErrors(prev => {
-        const updated = { ...prev };
+
+    const error = validateField(index, field, value);
+    setErrors(prev => {
+      const updated = { ...prev };
+      if (error) {
+        updated[index] = { ...updated[index], [field]: error };
+      } else {
         if (updated[index]) {
           delete updated[index][field];
           if (Object.keys(updated[index]).length === 0) {
             delete updated[index];
           }
         }
-        return updated;
-      });
-    }
+      }
+      return updated;
+    });
   };
 
-  // Validate all passengers
   const validatePassengers = () => {
     const newErrors = {};
     let isValid = true;
 
-    // Check if any passengers exist
     if (!passengers || passengers.length === 0) {
       return false;
     }
 
     passengers.forEach((p, index) => {
       const passengerErrors = {};
-      
-      // Name validation - required, minimum 2 characters
-      if (!p.name || !p.name.trim()) {
-        passengerErrors.name = "Name is required";
-        isValid = false;
-      } else if (p.name.trim().length < 2) {
-        passengerErrors.name = "Name must be at least 2 characters";
-        isValid = false;
-      }
-      
-      // Age validation - required, must be a valid number between 1-120
-      if (!p.age || p.age === "") {
-        passengerErrors.age = "Age is required";
-        isValid = false;
-      } else {
-        const ageNum = parseInt(p.age);
-        if (isNaN(ageNum) || ageNum < 1 || ageNum > 120) {
-          passengerErrors.age = "Age must be between 1 and 120";
-          isValid = false;
-        }
-      }
-      
-      // Gender validation - required, must be selected
-      if (!p.gender || p.gender === "") {
-        passengerErrors.gender = "Gender is required";
-        isValid = false;
-      }
-      
+
+      const nameErr = validateField(index, "name", p.name);
+      if (nameErr) { passengerErrors.name = nameErr; isValid = false; }
+
+      const ageErr = validateField(index, "age", p.age);
+      if (ageErr) { passengerErrors.age = ageErr; isValid = false; }
+
+      const genderErr = validateField(index, "gender", p.gender);
+      if (genderErr) { passengerErrors.gender = genderErr; isValid = false; }
+
       if (Object.keys(passengerErrors).length > 0) {
         newErrors[index] = passengerErrors;
       }
@@ -95,26 +106,23 @@ export default function FlightPassengerDetails() {
     return isValid;
   };
 
-  // Check if passenger form is valid (all fields filled correctly)
   const isPassengerFormValid = () => {
     if (!passengers || passengers.length === 0) return false;
     return passengers.every(p => {
-      const hasValidName = p.name && p.name.trim() && p.name.trim().length >= 2;
-      const hasValidAge = p.age && p.age !== "" && !isNaN(parseInt(p.age)) && parseInt(p.age) >= 1 && parseInt(p.age) <= 120;
-      const hasValidGender = p.gender && p.gender !== "";
-      return hasValidName && hasValidAge && hasValidGender;
+      const nameErr = validateField(0, "name", p.name);
+      const ageErr = validateField(0, "age", p.age);
+      const genderErr = validateField(0, "gender", p.gender);
+      return !nameErr && !ageErr && !genderErr;
     });
   };
 
   const hasErrors = !isPassengerFormValid();
 
-  // Handle continue to checkout
   const handleContinue = () => {
-    setFormTouched(true); // Mark form as touched to show errors
+    setFormTouched(true);
     const isValid = validatePassengers();
-    
+
     if (!isValid) {
-      // Scroll to first error
       setTimeout(() => {
         const firstError = document.querySelector('.border-red-500');
         if (firstError) {
@@ -124,7 +132,6 @@ export default function FlightPassengerDetails() {
       return;
     }
 
-    // Navigate to checkout with passenger details
     navigate('/flight-checkout', {
       state: {
         flight,
@@ -133,13 +140,16 @@ export default function FlightPassengerDetails() {
         selectedSeats,
         scheduleId,
         tripType,
+        selectedMeals,
         passengerDetails: passengers,
       }
     });
   };
 
-  // Calculate total fare
-  const totalFare = passengers.reduce((sum, p) => sum + (p.seatFare || 0), 0);
+  const totalFare = passengers.reduce((sum, p) => {
+    const mealPrice = selectedMeals?.[p.seatNumber]?.price || 0;
+    return sum + (p.seatFare || 0) + mealPrice;
+  }, 0);
 
   if (!selectedSeats || selectedSeats.length === 0) {
     return (
@@ -163,7 +173,6 @@ export default function FlightPassengerDetails() {
       <Nav />
 
       <div className="max-w-4xl mx-auto px-4 py-8 mt-16">
-        {/* Header */}
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 mb-6">
           <div className="flex items-center gap-2 mb-4">
             <button
@@ -181,7 +190,6 @@ export default function FlightPassengerDetails() {
           </p>
         </div>
 
-        {/* Selected Seats Summary */}
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-4 mb-6">
           <h3 className="text-sm font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wider mb-3">
             Selected Seats ({selectedSeats.length})
@@ -194,8 +202,8 @@ export default function FlightPassengerDetails() {
               >
                 {seat.seatNumber}
                 <span className="text-xs font-normal opacity-70">
-                  ₹{seat.isExtraLegroom || seat.seatType === "extra-legroom" 
-                    ? (fare?.price || 0) + 100 
+                  ₹{seat.isExtraLegroom || seat.seatType === "extra-legroom"
+                    ? (fare?.price || 0) + 100
                     : (fare?.price || 0)}
                 </span>
               </span>
@@ -203,120 +211,19 @@ export default function FlightPassengerDetails() {
           </div>
         </div>
 
-        {/* Passenger Forms */}
         <div className="space-y-4 mb-6">
           {passengers.map((passenger, index) => (
-            <div
+            <PassengerForm
               key={index}
-              className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-6"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
-                    <User size={20} className="text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-gray-900 dark:text-slate-100">
-                      Passenger {index + 1}
-                    </h3>
-                    <p className="text-xs text-gray-500 dark:text-slate-400">
-                      Seat: <span className="font-bold text-blue-600 dark:text-blue-400">{passenger.seatNumber}</span>
-                    </p>
-                  </div>
-                </div>
-                <span className="text-lg font-bold text-gray-900 dark:text-slate-100">
-                  ₹{passenger.seatFare.toLocaleString()}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Name */}
-                <div className="md:col-span-2">
-                  <label className="block text-xs font-bold text-gray-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">
-                    Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={passenger.name}
-                    onChange={(e) => updatePassenger(index, "name", e.target.value)}
-                    placeholder="Enter full name"
-                    className={`w-full px-4 py-2.5 rounded-lg border ${
-                      errors[index]?.name
-                        ? "border-red-500 dark:border-red-500"
-                        : "border-gray-300 dark:border-slate-600"
-                    } bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400`}
-                  />
-                  {errors[index]?.name && (
-                    <p className="mt-1 text-xs text-red-500">{errors[index].name}</p>
-                  )}
-                </div>
-
-                {/* Age */}
-                <div>
-                  <label className="block text-xs font-bold text-gray-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">
-                    Age *
-                  </label>
-                  <input
-                    type="number"
-                    value={passenger.age}
-                    onChange={(e) => updatePassenger(index, "age", e.target.value)}
-                    placeholder="Age"
-                    min="1"
-                    max="120"
-                    className={`w-full px-4 py-2.5 rounded-lg border ${
-                      errors[index]?.age
-                        ? "border-red-500 dark:border-red-500"
-                        : "border-gray-300 dark:border-slate-600"
-                    } bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400`}
-                  />
-                  {errors[index]?.age && (
-                    <p className="mt-1 text-xs text-red-500">{errors[index].age}</p>
-                  )}
-                </div>
-
-                {/* Gender */}
-                <div className="md:col-span-3">
-                  <label className="block text-xs font-bold text-gray-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">
-                    Gender *
-                  </label>
-                  <div className="flex gap-4">
-                    {["male", "female", "other"].map((gender) => (
-                      <label
-                        key={gender}
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border cursor-pointer transition-all ${
-                          passenger.gender === gender
-                            ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 dark:border-blue-400"
-                            : "border-gray-300 dark:border-slate-600 hover:border-gray-400 dark:hover:border-slate-500"
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name={`gender-${index}`}
-                          value={gender}
-                          checked={passenger.gender === gender}
-                          onChange={(e) => updatePassenger(index, "gender", e.target.value)}
-                          className="sr-only"
-                        />
-                        <span className={`text-sm font-medium capitalize ${
-                          passenger.gender === gender
-                            ? "text-blue-700 dark:text-blue-300"
-                            : "text-gray-700 dark:text-slate-300"
-                        }`}>
-                          {gender}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                  {errors[index]?.gender && (
-                    <p className="mt-1 text-xs text-red-500">{errors[index].gender}</p>
-                  )}
-                </div>
-              </div>
-            </div>
+              passenger={passenger}
+              index={index}
+              errors={errors[index]}
+              selectedMeals={selectedMeals}
+              onUpdate={updatePassenger}
+            />
           ))}
         </div>
 
-        {/* Summary & Continue */}
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 sticky bottom-4">
           <div className="flex items-center justify-between">
             <div>
@@ -333,8 +240,8 @@ export default function FlightPassengerDetails() {
               onClick={handleContinue}
               disabled={hasErrors}
               className={`px-8 py-3 rounded-lg font-bold transition-colors flex items-center gap-2 ${
-                hasErrors 
-                  ? "bg-gray-400 cursor-not-allowed" 
+                hasErrors
+                  ? "bg-gray-400 cursor-not-allowed"
                   : "bg-blue-600 hover:bg-blue-700 text-white"
               }`}
             >

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ChevronRight, ChevronLeft, Check, Clock } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronRight, Clock } from 'lucide-react';
 
 export default function TrainBookingCard({
   trainName = "Shram Shkti Exp",
@@ -20,10 +20,6 @@ export default function TrainBookingCard({
   ]
 }) {
   const [selectedClass, setSelectedClass] = useState('sl');
-  const [scrollOffset, setScrollOffset] = useState(0);
-
-  // Simple tracking days formatter array
-  const dayLabels = runsOn.split('');
 
   return (
     <div className="w-full max-w-5xl mx-auto bg-white border border-gray-200 rounded-2xl p-5 shadow-2xs font-sans text-gray-900 select-none space-y-5 transition-all hover:shadow-xs">

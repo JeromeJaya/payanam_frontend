@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Tag, Check } from "lucide-react";
+import { Tag } from "lucide-react";
 
 export default function CouponsOffers() {
   const [couponCode, setCouponCode] = useState("");
@@ -14,11 +14,6 @@ export default function CouponsOffers() {
       color: "blue"
     }
   ];
-
-  const handleApplyCoupon = () => {
-    console.log("Applying coupon:", couponCode);
-    // TODO: Implement coupon validation logic
-  };
 
   return (
     <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-orange-200 rounded-lg p-5 mb-6">

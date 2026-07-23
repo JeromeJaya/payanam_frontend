@@ -1,11 +1,8 @@
-import React from "react";
 import { ArrowLeft, Plane, Calendar, Plus, X } from "lucide-react";
 
 export default function VendorFlightSchedule({
   flightSchedules,
   flightSchedulesLoading,
-  showFlightScheduleForm,
-  setShowFlightScheduleForm,
   onFetchFlightSchedules,
   onCancelSchedule,
   onBack,

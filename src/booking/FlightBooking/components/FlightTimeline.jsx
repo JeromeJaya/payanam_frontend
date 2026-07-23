@@ -7,7 +7,7 @@ function formatTime(timeValue) {
   return timeValue;
 }
 
-export default function FlightTimeline({ departureTime, departureLocation, departureIATA, arrivalTime, arrivalLocation, arrivalIATA, durationText, stopsCount, layovers }) {
+export default function FlightTimeline({ departureTime, departureLocation, departureIATA, arrivalTime, arrivalLocation, arrivalIATA, durationText, stopsCount }) {
   return (
     <div className="border border-gray-200 rounded-lg p-4 mb-4">
       <div className="flex items-center justify-between mb-4">

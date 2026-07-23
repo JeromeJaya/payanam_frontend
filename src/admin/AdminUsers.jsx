@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Search, Users, Ban, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import api from "../api/axios";
 

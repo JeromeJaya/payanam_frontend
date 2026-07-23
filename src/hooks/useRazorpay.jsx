@@ -53,7 +53,6 @@ export const useRazorpay = () => {
   const initiatePayment = useCallback(async (options) => {
     const {
       bookingMongoId,
-      amount,
       customerName,
       customerEmail,
       customerContact,

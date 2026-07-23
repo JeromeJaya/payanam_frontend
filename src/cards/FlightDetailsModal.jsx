@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { X, Clock, Luggage, ShieldAlert, Receipt } from 'lucide-react';
 
 export default function FlightDetailsModal({ isOpen, onClose, flightData }) {

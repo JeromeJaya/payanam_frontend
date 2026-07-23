@@ -1,4 +1,3 @@
-import React from "react";
 import { X, Route } from "lucide-react";
 
 export default function ViewFlightRoutesModal({

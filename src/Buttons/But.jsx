@@ -1,4 +1,4 @@
-export function But({text="hihgggggggggggggggggggg", color=500, size ="600"}){
+export function But({text="hihgggggggggggggggggggg", color=500}){
     const colors ={
         50:"bg-emerald-50",
 100:"bg-emerald-100",

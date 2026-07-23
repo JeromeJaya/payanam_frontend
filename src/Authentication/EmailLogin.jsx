@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import {But3} from "../Buttons/But3.jsx";
 import bgImage from "../assets/bg3.png";
 import Nav from "../NavComponent.jsx";
-import {But} from "../Buttons/But.jsx";
+
 import {Link,Outlet, useLocation} from "react-router-dom";
 import {useNavigate} from "react-router-dom";
 import api from "../api/axios";
@@ -12,7 +12,7 @@ import PasswordInput from "./PasswordInput.jsx";
 
 export function EmailLogin() {
     const [show, setShow] = useState(false);
-    const [showMobileLogin, setShowMobileLogin] = useState(false);
+    const [showMobileLogin] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
     const [email, setEmail] = useState("");
@@ -148,14 +148,7 @@ export function EmailLogin() {
                   {emailError}
                 </p>
               )}
-              {!emailError && email.length > 0 && (
-                <p className="mt-2 text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  Valid email address
-                </p>
-              )}
+
             </div>
 
             <div>

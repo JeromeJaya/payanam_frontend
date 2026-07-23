@@ -12,7 +12,7 @@ export default function Nav() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const [pnrQuery, setPnrQuery] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
+  const [, setIsSearching] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -28,7 +28,7 @@ export default function Nav() {
         localStorage.removeItem("payanam_user");
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
-      } catch (e) {}
+      } catch {}
       navigate("/login");
     }
   };

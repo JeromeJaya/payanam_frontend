@@ -91,7 +91,7 @@ export default function BusSeatLayout({ busName = "Bus", seats = [], seatLayoutT
         <div className="mb-1 text-center">
           <h2 className="text-xs font-bold text-gray-700">{busName}</h2>
         </div>
-        <div className="flex justify-start w-full mb-2"><SteeringWheel /></div>
+        {busName !== "Upper Deck" && <div className="flex justify-start w-full mb-2"><SteeringWheel /></div>}
         <div className="flex flex-col gap-1">
           {grid.map((row, rowIndex) => (
             <div key={rowIndex} className="grid items-center"

@@ -39,7 +39,7 @@ export default function BusReviewForm({ busId, busName, onReviewAdded }) {
       setError("Please select a rating between 1 and 5 stars");
       return;
     }
-    if (review.trim().length < 10) {
+    if (review.trim() && review.trim().length < 10) {
       setError("Review must be at least 10 characters long");
       return;
     }
@@ -160,7 +160,7 @@ export default function BusReviewForm({ busId, busName, onReviewAdded }) {
 
         <div>
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-            Your Review *
+            Your Review
           </label>
           <textarea
             value={review}
@@ -173,7 +173,7 @@ export default function BusReviewForm({ busId, busName, onReviewAdded }) {
             <span className="text-xs text-slate-400">
               {review.length}/1000 characters
             </span>
-            {review.length < 10 && review.length > 0 && (
+            {review.length > 0 && review.length < 10 && (
               <span className="text-xs text-red-500">Minimum 10 characters required</span>
             )}
           </div>
@@ -181,7 +181,7 @@ export default function BusReviewForm({ busId, busName, onReviewAdded }) {
 
         <button
           type="submit"
-          disabled={loading || !selectedBookingId || rating === 0 || review.trim().length < 10}
+          disabled={loading || !selectedBookingId || rating === 0}
           className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-lime-600 hover:bg-lime-700 text-white text-sm font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading ? (

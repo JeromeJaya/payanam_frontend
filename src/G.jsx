@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
 import { MapPin, Calendar, Heart, Share2 } from 'lucide-react';
 
@@ -107,7 +107,7 @@ export function JournalCard({ card, isTop, index, total, onSwipe }) {
   const opacity = useTransform(x, [-200, -150, 0, 150, 200], [0.5, 1, 1, 1, 0.5]);
 
   // Handle drag completion to trigger the shuffle action
-  const handleDragEnd = (event, info) => {
+  const handleDragEnd = (_event, info) => {
     const swipeThreshold = 120;
     if (Math.abs(info.offset.x) > swipeThreshold || Math.abs(info.offset.y) > swipeThreshold) {
       onSwipe();

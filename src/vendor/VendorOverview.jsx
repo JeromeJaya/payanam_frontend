@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Calendar, Bus, Plane, TrendingUp, BarChart3 } from "lucide-react";
 import api from "../api/axios";
 
@@ -53,45 +53,6 @@ export default function VendorOverview() {
       </div>
     );
   }
-
-  const stats = [
-    { 
-      label: "Total Buses", 
-      value: dashboardData.buses.total.toString(), 
-      change: `${dashboardData.buses.active} active`, 
-      icon: Bus, 
-      color: "lime" 
-    },
-    { 
-      label: "Total Flights", 
-      value: dashboardData.flights.total.toString(), 
-      change: `${dashboardData.flights.active} active`, 
-      icon: Plane, 
-      color: "sky" 
-    },
-    { 
-      label: "Confirmed Bookings", 
-      value: dashboardData.bookings.confirmed.toString(), 
-      change: "", 
-      icon: Calendar, 
-      color: "green" 
-    },
-    { 
-      label: "Total Revenue", 
-      value: `₹${dashboardData.revenue.total.toLocaleString('en-IN')}`, 
-      change: "", 
-      icon: TrendingUp, 
-      color: "teal" 
-    },
-  ];
-
-  const colorClasses = {
-    lime: "from-lime-500 to-lime-600",
-    emerald: "from-emerald-500 to-emerald-600",
-    green: "from-green-500 to-green-600",
-    teal: "from-teal-500 to-teal-600",
-    sky: "from-sky-500 to-sky-600",
-  };
 
   return (
     <div className="space-y-6">

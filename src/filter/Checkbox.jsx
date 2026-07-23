@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 export default function SingleSeaterFilter({ title, text, value = {}, onChange, type = "multiple" }) {
   // Memoize items to prevent the useEffect from re-running on every render 

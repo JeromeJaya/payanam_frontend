@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { X, ArrowLeft } from "lucide-react";
 import FlightTimeline from "./FlightTimeline";
 import CancellationPolicy from "./CancellationPolicy";

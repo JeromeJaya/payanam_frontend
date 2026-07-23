@@ -1,4 +1,3 @@
-import React from "react";
 import { X } from "lucide-react";
 
 export default function FlightRouteFormModal({
@@ -9,7 +8,6 @@ export default function FlightRouteFormModal({
   flightRouteSuccess,
   flightRouteError,
   airportSuggestions,
-  airportSearchLoading,
   showSourceSuggestions,
   setShowSourceSuggestions,
   showDestSuggestions,

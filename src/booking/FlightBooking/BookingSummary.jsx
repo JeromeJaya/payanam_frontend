@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { IndianRupee, X, ShieldCheck, Armchair, ChevronDown, ChevronUp } from "lucide-react";
+import { X, ShieldCheck, Armchair, ChevronDown, ChevronUp } from "lucide-react";
 import api from "../../api/axios.js";
 import BookingSuccess from "./BookingSuccess.jsx";
 

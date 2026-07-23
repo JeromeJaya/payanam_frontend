@@ -119,7 +119,15 @@ export default function FlightDetailModal({ flightId, onClose }) {
                 </div>
                 <div className="bg-slate-50 rounded-xl p-4">
                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Cabin Classes</p>
-                  <p className="text-sm font-bold text-slate-900">{(flight.cabinClasses || []).join(", ") || "—"}</p>
+                  <p className="text-sm font-bold text-slate-900">{(() => {
+                    const cabinClasses = flight.cabinClasses || flight?.flight?.cabinClasses || [];
+                    const cabinClass = flight.cabinClass || flight?.cabin?.class || "";
+                    if (Array.isArray(cabinClasses) && cabinClasses.length > 0) {
+                      return cabinClasses.map(cc => String(cc).replace(/_/g, " ")).join(", ");
+                    }
+                    if (cabinClass) return String(cabinClass).replace(/_/g, " ");
+                    return "—";
+                  })()}</p>
                 </div>
               </div>
 

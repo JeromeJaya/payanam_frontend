@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { EmailLogin } from "./EmailLogin.jsx";
 import {But2} from "../Buttons/But2.jsx";
 import bgImage from "../assets/bg3.png";
-import {But} from "../Buttons/But.jsx";
+
 import Nav from "../NavComponent.jsx"
 import {Link} from "react-router-dom"
 
@@ -59,7 +59,7 @@ export function MobileLogin() {
     try {
       // Proceed with OTP request
       alert(`OTP sent to ${phoneNumber}`);
-    } catch (err) {
+    } catch {
       alert("Failed to send OTP");
     } finally {
       setLoading(false);

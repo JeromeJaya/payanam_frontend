@@ -20,7 +20,7 @@ export default function Category({ icon, title, onClick, active }) {
     >
       <div className={`
         w-7 h-7 xs:w-8 xs:h-8 sm:w-10 sm:h-10 md:w-11 md:h-11 lg:w-12 lg:h-12
-        flex items-center justify-center rounded-lg
+        flex items-center justify-center
         ${active ? "bg-white/20" : "bg-slate-50 dark:bg-slate-700"}
         transition-colors duration-200
       `}>
@@ -30,7 +30,7 @@ export default function Category({ icon, title, onClick, active }) {
             {icon}
           </span>
         ) : (
-          <span className="w-4.5 h-4.5 xs:w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 text-current">
+          <span className="w-8 h-8 xs:w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 text-current">
             {icon}
           </span>
         )}

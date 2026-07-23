@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Nav from "../../NavComponent.jsx";
 import { useAuth } from "../../context/AuthContext";
 import { useRazorpay } from "../../hooks/useRazorpay.jsx";
-import { ShieldCheck, Loader2, CheckCircle, CreditCard } from "lucide-react";
 import api from "../../api/axios";
 import FlightTimeline from "../../components/flightComponents/FlightTimeline.jsx";
 import BaggageInfo from "../../components/flightComponents/BaggageInfo";
@@ -11,105 +10,71 @@ import CouponsOffers from "../../components/flightComponents/CouponsOffers";
 import CancellationPolicy from "../../components/flightComponents/CancellationPolicy";
 import ImportantInfo from "../../components/flightComponents/ImportantInfo";
 import TravellerDetails from "../../components/flightComponents/TravellerDetails";
+import CheckoutHeader from "./components/CheckoutHeader";
+import PriceLockBanner from "./components/PriceLockBanner";
+import SelectedMealsSummary from "./components/SelectedMealsSummary";
+import PaymentSection from "./components/PaymentSection";
+import PriceSummary from "./components/PriceSummary";
 
 export default function FlightCheckoutPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { 
-    flight, 
-    flights, // Array of flights for round-trip/multi-city
-    tripType = 'One Way',
-    fare, 
-    selectedSeats, 
-    scheduleId: routeScheduleId,
-    passengerDetails: passedPassengerDetails, // Passenger details from passenger details page
-  } = location.state || {};
+  const { flight, flights, tripType = 'One Way', fare, selectedSeats, scheduleId: routeScheduleId, passengerDetails: passedPassengerDetails, selectedMeals } = location.state || {};
   const { isAuthenticated, user } = useAuth();
 
-  // Determine if this is a multi-leg booking
   const isMultiLeg = tripType === 'Round Trip' || tripType === 'Multi City';
   const flightList = flights || (flight ? [flight] : []);
   const primaryFlight = flight || flightList[0];
 
   const [booking, setBooking] = useState({ status: "idle", message: "", data: null });
-
-  // Extra baggage state
   const [extraBaggage, setExtraBaggage] = useState({ items: [], totalCost: 0, totalExtraKg: 0 });
-  
-  // Contact details validation state
-  const [contactValidation, setContactValidation] = useState({
-    isValid: false,
-    mobile: "",
-    email: "",
-    countryCode: "91",
-    errors: {}
-  });
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [contactValidation, setContactValidation] = useState({ isValid: false, mobile: "", email: "", countryCode: "91", errors: {} });
 
-  // Handle contact validation from TravellerDetails component
   const handleContactValidation = useCallback((validation) => {
-    setContactValidation(prev => {
-      // Only update if values actually changed to prevent unnecessary re-renders
-      if (
-        prev.isValid === validation.isValid &&
-        prev.mobile === validation.mobile &&
-        prev.email === validation.email &&
-        prev.countryCode === validation.countryCode
-      ) {
-        return prev;
-      }
-      return validation;
-    });
+    setContactValidation(prev => (
+      prev.isValid === validation.isValid && prev.mobile === validation.mobile &&
+      prev.email === validation.email && prev.countryCode === validation.countryCode
+        ? prev : validation
+    ));
   }, []);
 
-  // Razorpay hook
-  const {
-    initiatePayment,
-    isProcessing: isPaymentProcessing,
-    paymentStatus,
-    paymentData,
-    error: paymentError,
-    resetPayment,
-  } = useRazorpay();
+  const handleCouponApplied = useCallback((coupon) => {
+    setCouponDiscount(coupon ? coupon.discount : 0);
+  }, []);
 
-  // Determine if we're in "payment mode" (returned from seat selection with seats picked)
+  const { initiatePayment, isProcessing: isPaymentProcessing, paymentStatus, paymentData, error: paymentError } = useRazorpay();
+
   const hasSelectedSeats = selectedSeats && selectedSeats.length > 0;
-  
-  // Calculate total amount based on trip type + extra baggage
+
   const calculateTotalAmount = () => {
     let base = 0;
     if (isMultiLeg) {
       base = flightList.reduce((sum, f) => {
         const flightFare = f?.pricing?.calculatedFare || f?.pricing?.baseFare || 0;
-        if (hasSelectedSeats) {
-          return sum + selectedSeats.reduce((seatSum, seat) => 
-            seatSum + ((seat.isExtraLegroom || seat.seatType === "extra-legroom") ? flightFare + 100 : flightFare), 0
-          );
-        }
-        return sum + flightFare;
+        return hasSelectedSeats
+          ? sum + selectedSeats.reduce((s, seat) => s + ((seat.isExtraLegroom || seat.seatType === "extra-legroom") ? flightFare + 100 : flightFare), 0)
+          : sum + flightFare;
       }, 0);
     } else {
-      // One-way
       const singleFare = fare?.price || primaryFlight?.pricing?.calculatedFare || primaryFlight?.pricing?.baseFare || 0;
       base = hasSelectedSeats
         ? selectedSeats.reduce((sum, seat) => sum + ((seat.isExtraLegroom || seat.seatType === "extra-legroom") ? singleFare + 100 : singleFare), 0)
         : singleFare;
     }
-    return base + (extraBaggage.totalCost || 0);
+    const mealTotal = selectedMeals ? Object.values(selectedMeals).reduce((sum, m) => sum + (m.price || 0), 0) : 0;
+    return Math.max(0, base + mealTotal + (extraBaggage.totalCost || 0) - (couponDiscount || 0));
   };
-  
+
   const totalAmount = calculateTotalAmount();
 
-  // Handle payment result from Razorpay
   useEffect(() => {
     if (paymentStatus === "success" && paymentData) {
       setBooking({ status: "success", message: "Flight booking confirmed!", data: paymentData });
-      
-      // Extract IATA codes from journey source/destination (e.g., "Delhi (DEL)" -> "DEL")
-      const sourceIATA = primaryFlight?.journey?.source?.match(/\(([^)]+)\)/)?.[1] || "";
-      const destIATA = primaryFlight?.journey?.destination?.match(/\(([^)]+)\)/)?.[1] || "";
-      const sourceCity = primaryFlight?.journey?.source?.split('(')[0]?.trim() || "";
-      const destCity = primaryFlight?.journey?.destination?.split('(')[0]?.trim() || "";
-      
+      const srcIATA = primaryFlight?.journey?.source?.match(/\(([^)]+)\)/)?.[1] || "";
+      const dstIATA = primaryFlight?.journey?.destination?.match(/\(([^)]+)\)/)?.[1] || "";
+      const srcCity = primaryFlight?.journey?.source?.split('(')[0]?.trim() || "";
+      const dstCity = primaryFlight?.journey?.destination?.split('(')[0]?.trim() || "";
       setTimeout(() => {
         navigate("/TicketDetails", {
           state: {
@@ -118,37 +83,13 @@ export default function FlightCheckoutPage() {
               flightName: primaryFlight?.flight?.airlineName || "Akasa Air",
               flightNumber: primaryFlight?.flight?.flightNumber || "",
               aircraftType: primaryFlight?.flight?.aircraftType || "",
-              boarding: {
-                city: sourceCity,
-                name: primaryFlight?.journey?.departureTerminal || "Terminal",
-                time: primaryFlight?.journey?.departureTime || "",
-                iata: sourceIATA,
-                date: primaryFlight?.journey?.departureDate,
-              },
-              dropping: {
-                city: destCity,
-                name: primaryFlight?.journey?.arrivalTerminal || "Terminal",
-                time: primaryFlight?.journey?.arrivalTime || "",
-                iata: destIATA,
-                date: primaryFlight?.journey?.arrivalDate,
-              },
+              boarding: { city: srcCity, name: primaryFlight?.journey?.departureTerminal || "Terminal", time: primaryFlight?.journey?.departureTime || "", iata: srcIATA, date: primaryFlight?.journey?.departureDate },
+              dropping: { city: dstCity, name: primaryFlight?.journey?.arrivalTerminal || "Terminal", time: primaryFlight?.journey?.arrivalTime || "", iata: dstIATA, date: primaryFlight?.journey?.arrivalDate },
               passengers: passedPassengerDetails && passedPassengerDetails.length > 0
-                ? passedPassengerDetails.map(p => ({
-                    name: p.name,
-                    seatNumber: p.seatNumber,
-                    age: p.age,
-                    gender: p.gender,
-                  }))
-                : selectedSeats?.map((seat, i) => ({
-                    name: `Passenger ${i + 1}`,
-                    seatNumber: seat.seatNumber,
-                    age: 28,
-                    gender: "male",
-                  })) || [],
+                ? passedPassengerDetails.map(p => ({ name: p.name, seatNumber: p.seatNumber, age: p.age, gender: p.gender, meal: selectedMeals?.[p.seatNumber] || null }))
+                : selectedSeats?.map((seat, i) => ({ name: `Passenger ${i + 1}`, seatNumber: seat.seatNumber, age: 28, gender: "male", meal: selectedMeals?.[seat.seatNumber] || null })) || [],
               payment: paymentData.payment,
-              tripType,
-              serviceType: "flight",
-              allFlights: flightList,
+              tripType, serviceType: "flight", allFlights: flightList,
               extraBaggage: extraBaggage.items.length > 0 ? extraBaggage : null,
             },
           },
@@ -157,150 +98,86 @@ export default function FlightCheckoutPage() {
     } else if (paymentStatus === "failed") {
       setBooking({ status: "error", message: paymentError || "Payment failed. Please try again." });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paymentStatus, paymentData, paymentError]);
 
   const handlePayAndBook = async () => {
     if (!hasSelectedSeats) return;
+    if (!isAuthenticated) { navigate("/login"); return; }
 
-    if (!isAuthenticated) {
-      navigate("/login");
-      return;
-    }
-
-    // Validate passenger details if provided
-    if (passedPassengerDetails && passedPassengerDetails.length > 0) {
-      const invalidPassengers = passedPassengerDetails.filter(p => {
-        return !p.name || !p.name.trim() || p.name.trim().length < 2 ||
-               !p.age || parseInt(p.age) < 1 || parseInt(p.age) > 120 ||
-               !p.gender || p.gender === "";
-      });
-      
-      if (invalidPassengers.length > 0) {
-        setBooking({ 
-          status: "error", 
-          message: "Please fill in all passenger details correctly. Go back to passenger details page.", 
-          data: null 
-        });
+    if (passedPassengerDetails?.length > 0) {
+      const invalid = passedPassengerDetails.filter(p => !p.name?.trim() || p.name.trim().length < 2 || !p.age || parseInt(p.age) < 1 || parseInt(p.age) > 120 || !p.gender);
+      if (invalid.length > 0) {
+        setBooking({ status: "error", message: "Please fill in all passenger details correctly. Go back to passenger details page.", data: null });
         return;
       }
     }
 
-    // Validate contact details (mobile and email)
     if (!contactValidation.isValid) {
-      let errorMessage = "Please provide valid contact details.";
-      if (contactValidation.errors.mobile) {
-        errorMessage = `Mobile: ${contactValidation.errors.mobile}`;
-      } else if (contactValidation.errors.email) {
-        errorMessage = `Email: ${contactValidation.errors.email}`;
-      } else if (!contactValidation.mobile.trim()) {
-        errorMessage = "Mobile number is required.";
-      } else if (!contactValidation.email.trim()) {
-        errorMessage = "Email is required.";
-      }
-      setBooking({ 
-        status: "error", 
-        message: errorMessage, 
-        data: null 
-      });
+      let msg = "Please provide valid contact details.";
+      if (contactValidation.errors.mobile) msg = `Mobile: ${contactValidation.errors.mobile}`;
+      else if (contactValidation.errors.email) msg = `Email: ${contactValidation.errors.email}`;
+      else if (!contactValidation.mobile.trim()) msg = "Mobile number is required.";
+      else if (!contactValidation.email.trim()) msg = "Email is required.";
+      setBooking({ status: "error", message: msg, data: null });
       return;
     }
 
     setBooking({ status: "loading", message: "Creating booking...", data: null });
 
+    const mkPassenger = (p) => ({ seatNumber: p.seatNumber, name: p.name.trim(), age: parseInt(p.age), gender: p.gender, meal: selectedMeals?.[p.seatNumber] ? { id: selectedMeals[p.seatNumber].id, name: selectedMeals[p.seatNumber].name, category: selectedMeals[p.seatNumber].category, price: selectedMeals[p.seatNumber].price } : undefined });
+
     try {
-      // Use passenger details from passenger details page
-      const passengerDetails = passedPassengerDetails && passedPassengerDetails.length > 0
-        ? passedPassengerDetails.map(p => ({
-            seatNumber: p.seatNumber,
-            name: p.name.trim(),
-            age: parseInt(p.age),
-            gender: p.gender,
-          }))
-        : selectedSeats.map((seat, i) => ({
-            seatNumber: seat.seatNumber,
-            name: user?.name || `Passenger ${i + 1}`,
-            age: 28,
-            gender: "male",
-          }));
+      const passengerDetails = passedPassengerDetails?.length > 0
+        ? passedPassengerDetails.map(mkPassenger)
+        : selectedSeats.map((seat, i) => ({ seatNumber: seat.seatNumber, name: user?.name || `Passenger ${i + 1}`, age: 28, gender: "male", meal: selectedMeals?.[seat.seatNumber] ? { id: selectedMeals[seat.seatNumber].id, name: selectedMeals[seat.seatNumber].name, category: selectedMeals[seat.seatNumber].category, price: selectedMeals[seat.seatNumber].price } : undefined }));
 
-      // For multi-leg, create bookings for each leg
       if (isMultiLeg && flightList.length > 1) {
-        const bookingResults = [];
+        const results = [];
         for (const f of flightList) {
-          const schedId = f.scheduleId || f._id;
-          const bookingRes = await api.post("/api/v1/flights/bookings", {
-            scheduleId: schedId,
-            passengerDetails,
-          });
-          if (bookingRes.data?.success) {
-            bookingResults.push(bookingRes.data.data);
-          }
+          const res = await api.post("/api/v1/flights/bookings", { scheduleId: f.scheduleId || f._id, passengerDetails });
+          if (res.data?.success) results.push(res.data.data);
         }
-
-        if (bookingResults.length > 0) {
-          const primaryBooking = bookingResults[0];
-          const mongoId = primaryBooking._id || primaryBooking.bookingMongoId;
-
+        if (results.length > 0) {
+          const b = results[0];
           setBooking({ status: "loading", message: "Initializing payment...", data: null });
-
-          await initiatePayment({
-            bookingMongoId: mongoId,
-            amount: totalAmount,
-            customerName: user?.name || "",
-            customerEmail: contactValidation.email || user?.email || "",
-            customerContact: contactValidation.mobile || user?.phoneNo || user?.mobile || "",
-            description: `Flight Ticket (${tripType}) - ${primaryBooking.bookingId || primaryFlight.flight?.airlineName || "Flight"}`,
-          });
+          await initiatePayment({ bookingMongoId: b._id || b.bookingMongoId, amount: totalAmount, customerName: user?.name || "", customerEmail: contactValidation.email || user?.email || "", customerContact: contactValidation.mobile || user?.phoneNo || user?.mobile || "", description: `Flight Ticket (${tripType}) - ${b.bookingId || primaryFlight.flight?.airlineName || "Flight"}` });
         }
       } else {
-        // One-way booking
         const schedId = routeScheduleId || primaryFlight.scheduleId || primaryFlight._id;
-
-        const bookingRes = await api.post("/api/v1/flights/bookings", {
-          scheduleId: schedId,
-          passengerDetails,
-          extraBaggage: extraBaggage.items.length > 0 ? {
-            items: extraBaggage.items,
-            totalCost: extraBaggage.totalCost,
-            totalExtraKg: extraBaggage.totalExtraKg,
-          } : undefined,
-        });
-
-        if (bookingRes.data?.success) {
-          const bookingData = bookingRes.data.data;
-          const mongoId = bookingData._id || bookingData.bookingMongoId;
-
+        const res = await api.post("/api/v1/flights/bookings", { scheduleId: schedId, passengerDetails, extraBaggage: extraBaggage.items.length > 0 ? { items: extraBaggage.items, totalCost: extraBaggage.totalCost, totalExtraKg: extraBaggage.totalExtraKg } : undefined });
+        if (res.data?.success) {
+          const b = res.data.data;
           setBooking({ status: "loading", message: "Initializing payment...", data: null });
-
-          await initiatePayment({
-            bookingMongoId: mongoId,
-            amount: totalAmount,
-            customerName: user?.name || "",
-            customerEmail: contactValidation.email || user?.email || "",
-            customerContact: contactValidation.mobile || user?.phoneNo || user?.mobile || "",
-            description: `Flight Ticket - ${bookingData.bookingId || primaryFlight.flight?.airlineName || "Flight"}`,
-          });
+          await initiatePayment({ bookingMongoId: b._id || b.bookingMongoId, amount: totalAmount, customerName: user?.name || "", customerEmail: contactValidation.email || user?.email || "", customerContact: contactValidation.mobile || user?.phoneNo || user?.mobile || "", description: `Flight Ticket - ${b.bookingId || primaryFlight.flight?.airlineName || "Flight"}` });
         }
       }
     } catch (err) {
       console.error("Booking error:", err);
-      const errorMessage = err.response?.data?.message || err.message || "Booking failed. Please try again.";
-      setBooking({ status: "error", message: errorMessage });
+      setBooking({ status: "error", message: err.response?.data?.message || err.message || "Booking failed. Please try again." });
     }
   };
+
+  const handleSelectSeat = useCallback(() => {
+    if (!contactValidation.isValid) {
+      let msg = "Please provide valid contact details before selecting seats.";
+      if (!contactValidation.mobile.trim()) msg = "Mobile number is required.";
+      else if (contactValidation.errors.mobile) msg = `Mobile: ${contactValidation.errors.mobile}`;
+      else if (!contactValidation.email.trim()) msg = "Email is required.";
+      else if (contactValidation.errors.email) msg = `Email: ${contactValidation.errors.email}`;
+      setBooking({ status: "error", message: msg, data: null });
+      return;
+    }
+    navigate('/flight-seat-selection', {
+      state: { flight: primaryFlight, flights: flightList, tripType, fare: { price: primaryFlight?.pricing?.baseFare || fare?.price || 0 }, scheduleId: routeScheduleId || primaryFlight.scheduleId || primaryFlight._id }
+    });
+  }, [contactValidation, primaryFlight, flightList, tripType, fare, routeScheduleId, navigate]);
 
   if (flightList.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-4">No booking information found</h2>
-          <button
-            onClick={() => navigate('/flightbooking')}
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700"
-          >
-            Back to Flight Search
-          </button>
+          <button onClick={() => navigate('/flightbooking')} className="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700">Back to Flight Search</button>
         </div>
       </div>
     );
@@ -309,81 +186,10 @@ export default function FlightCheckoutPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
       <Nav />
-
       <div className="w-full px-6 md:px-12 py-8">
-        {/* Header */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 mb-6">
-          <div className="flex items-center gap-2 mb-4">
-            <button
-              onClick={() => navigate(-1)}
-              className="text-blue-600 hover:text-blue-700 font-medium text-sm"
-            >
-              ← Back
-            </button>
-          </div>
+        <CheckoutHeader tripType={tripType} isMultiLeg={isMultiLeg} flightList={flightList} primaryFlight={primaryFlight} />
+        {!isAuthenticated && <PriceLockBanner onLoginClick={() => navigate('/login')} />}
 
-          {isMultiLeg ? (
-            <>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-2">
-                {tripType === 'Round Trip' ? 'Round Trip' : 'Multi-City'} Itinerary
-              </h1>
-              <div className="space-y-2 mt-3">
-                {flightList.map((f, idx) => (
-                  <div key={idx} className="flex items-center gap-3 text-sm text-gray-600 dark:text-slate-400 bg-gray-50 dark:bg-slate-700 rounded-lg p-2">
-                    <span className="font-bold text-blue-600 dark:text-blue-400">
-                      {tripType === 'Multi City' ? `Leg ${idx + 1}` : idx === 0 ? 'Outbound' : 'Return'}:
-                    </span>
-                    <span className="font-medium">
-                      {f.journey?.source?.split('(')[0]?.trim()} → {f.journey?.destination?.split('(')[0]?.trim()}
-                    </span>
-                    <span className="text-gray-400">|</span>
-                    <span>{f.flight?.airlineName || "Flight"}</span>
-                    <span className="text-gray-400">|</span>
-                    <span>{f.journey?.departureDate ? new Date(f.journey.departureDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : ""}</span>
-                  </div>
-                ))}
-              </div>
-            </>
-          ) : (
-            <>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-2">
-                {primaryFlight.journey?.source?.split('(')[0]?.trim()} → {primaryFlight.journey?.destination?.split('(')[0]?.trim()}
-              </h1>
-
-              <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-slate-400">
-                <span className="font-medium">{primaryFlight.flight?.airlineName || "Akasa Air"}</span>
-                <span>•</span>
-                <span>{primaryFlight.journey?.departureDate ? new Date(primaryFlight.journey.departureDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : ""}</span>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Price Lock Banner - Show only if not authenticated */}
-        {!isAuthenticated && (
-          <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-800 rounded-full flex items-center justify-center flex-shrink-0">
-                <svg className="w-6 h-6 text-blue-600 dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">
-                  Still unsure about this trip? <span className="text-teal-600 dark:text-teal-400">Lock this price!</span>
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => navigate('/login')}
-              className="bg-white dark:bg-slate-700 border border-blue-300 dark:border-blue-700 text-blue-600 dark:text-blue-300 px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-50 dark:hover:bg-slate-600 transition-colors whitespace-nowrap"
-            >
-              LOGIN NOW
-            </button>
-          </div>
-        )}
-
-        {/* Flight Timeline */}
         <FlightTimeline
           departureTime={primaryFlight.journey?.departureTime}
           departureLocation={primaryFlight.journey?.source?.split('(')[0]?.trim()}
@@ -396,7 +202,6 @@ export default function FlightCheckoutPage() {
           layovers={[]}
         />
 
-        {/* Baggage Info with Extra Baggage Promotion */}
         <BaggageInfo
           cabin="7 Kgs (1 piece only)"
           checkIn="15 Kgs (1 piece only)"
@@ -404,184 +209,16 @@ export default function FlightCheckoutPage() {
           onBaggageChange={setExtraBaggage}
         />
 
-        {/* Traveller Details */}
+        {selectedMeals && Object.keys(selectedMeals).length > 0 && <SelectedMealsSummary selectedMeals={selectedMeals} />}
+
         <TravellerDetails onContactValidation={handleContactValidation} />
-        {/* Cancellation Policy */}
-        <CancellationPolicy
-          cancellation="Cancellation fee starts at MYR 213.80 (up to 3 hours before departure)"
-          dateChange="Date Change fee starts at MYR 128.26 up to 3 hrs before departure"
-        />
-
-        {/* Important Info */}
+        <CancellationPolicy cancellation="Cancellation fee starts at MYR 213.80 (up to 3 hours before departure)" dateChange="Date Change fee starts at MYR 128.26 up to 3 hrs before departure" />
         <ImportantInfo />
+        <CouponsOffers onCouponApplied={handleCouponApplied} totalAmount={totalAmount + couponDiscount} />
 
+        <PaymentSection hasSelectedSeats={hasSelectedSeats} selectedSeats={selectedSeats} fare={fare} primaryFlight={primaryFlight} booking={booking} handlePayAndBook={handlePayAndBook} />
 
-        {/* Coupons and Offers */}
-        <CouponsOffers />
-
-        {/* Selected Seats Payment Section (shown when returning from seat selection) */}
-        {hasSelectedSeats && (
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 mb-6">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-slate-100 mb-4 flex items-center gap-2">
-              <CreditCard size={20} className="text-blue-600" />
-              Payment Method
-            </h2>
-
-            {/* Razorpay Option */}
-            <div className="flex items-center p-4 border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/30 dark:border-blue-600 rounded-xl mb-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center flex-shrink-0">
-                <ShieldCheck size={20} className="text-white" />
-              </div>
-              <div className="ml-3 flex-1">
-                <p className="font-semibold text-gray-900 dark:text-slate-100">Pay with Razorpay</p>
-                <p className="text-xs text-gray-500 dark:text-slate-400">UPI, Cards, Wallets, Netbanking</p>
-              </div>
-              <div className="flex gap-1.5">
-                <div className="w-8 h-5 bg-blue-600 rounded text-white text-[8px] flex items-center justify-center font-bold">VISA</div>
-                <div className="w-8 h-5 bg-red-600 rounded text-white text-[8px] flex items-center justify-center font-bold">MC</div>
-                <div className="w-8 h-5 bg-purple-600 rounded text-white text-[8px] flex items-center justify-center font-bold">UPI</div>
-              </div>
-            </div>
-
-            {/* Selected Seats Summary */}
-            <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-3 mb-4">
-              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-2">Selected Seats</p>
-              <div className="flex flex-wrap gap-2">
-                {selectedSeats.map((seat) => {
-                  const seatFare = seat.isExtraLegroom || seat.seatType === "extra-legroom"
-                    ? (fare?.price || primaryFlight?.pricing?.baseFare || 0) + 100
-                    : (fare?.price || primaryFlight?.pricing?.baseFare || 0);
-                  return (
-                    <span key={seat.seatNumber} className="inline-flex items-center gap-1 rounded-md border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/40 px-2 py-0.5 text-xs font-bold text-blue-800 dark:text-blue-300">
-                      Seat {seat.seatNumber} — ₹{seatFare}
-                    </span>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Payment Status Messages */}
-            {booking.status === "error" && (
-              <div className="space-y-3">
-                <div className="rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-800 p-3 text-center text-sm font-medium text-red-600 dark:text-red-400">
-                  ⚠️ {booking.message}
-                </div>
-                <button
-                  onClick={handlePayAndBook}
-                  className="w-full rounded-lg bg-blue-600 py-2.5 text-sm font-bold text-white hover:bg-blue-700 transition"
-                >
-                  Retry Payment
-                </button>
-              </div>
-            )}
-
-            {booking.status === "success" && (
-              <div className="rounded-lg bg-green-50 dark:bg-green-900/30 border border-green-100 dark:border-green-800 p-3 text-center text-sm font-medium text-green-600 dark:text-green-400 flex items-center justify-center gap-2 animate-pulse">
-                <CheckCircle size={18} />
-                {booking.message} Redirecting to ticket...
-              </div>
-            )}
-
-            {booking.status === "loading" && (
-              <div className="rounded-lg bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 p-3 text-center text-sm font-medium text-blue-600 dark:text-blue-400 flex items-center justify-center gap-2">
-                <Loader2 size={18} className="animate-spin" />
-                {booking.message}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Price Summary & Action Button */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 sticky bottom-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-slate-400 mb-1">Total Amount</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-slate-100">₹{totalAmount.toLocaleString()}</p>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1">
-                <p className="text-xs text-gray-500 dark:text-slate-500">Inclusive of all taxes</p>
-                {extraBaggage.totalCost > 0 && (
-                  <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                    + ₹{extraBaggage.totalCost.toLocaleString()} extra baggage ({extraBaggage.totalExtraKg} Kg)
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {hasSelectedSeats ? (
-              <button
-                onClick={handlePayAndBook}
-                disabled={booking.status === "loading" || booking.status === "success" || isPaymentProcessing}
-                className="bg-lime-500 text-white px-8 py-3 rounded-lg font-bold hover:bg-lime-600 transition-colors disabled:opacity-50 flex items-center gap-2"
-              >
-                {booking.status === "loading" ? (
-                  <>
-                    <Loader2 size={18} className="animate-spin" />
-                    Processing...
-                  </>
-                ) : booking.status === "success" ? (
-                  <>
-                    <CheckCircle size={18} />
-                    Confirmed!
-                  </>
-                ) : (
-                  <>
-                    <ShieldCheck size={18} />
-                    Pay & Book
-                  </>
-                )}
-              </button>
-            ) : (
-              <button
-                onClick={() => {
-                  // Validate contact details before proceeding to seat selection
-                  if (!contactValidation.isValid) {
-                    let errorMessage = "Please provide valid contact details before selecting seats.";
-                    if (!contactValidation.mobile.trim()) {
-                      errorMessage = "Mobile number is required.";
-                    } else if (contactValidation.errors.mobile) {
-                      errorMessage = `Mobile: ${contactValidation.errors.mobile}`;
-                    } else if (!contactValidation.email.trim()) {
-                      errorMessage = "Email is required.";
-                    } else if (contactValidation.errors.email) {
-                      errorMessage = `Email: ${contactValidation.errors.email}`;
-                    }
-                    setBooking({ 
-                      status: "error", 
-                      message: errorMessage, 
-                      data: null 
-                    });
-                    return;
-                  }
-
-                  const seatSelectionState = {
-                    flight: primaryFlight,
-                    flights: flightList,
-                    tripType,
-                    fare: { price: primaryFlight?.pricing?.baseFare || fare?.price || 0 },
-                    scheduleId: routeScheduleId || primaryFlight.scheduleId || primaryFlight._id
-                  };
-                  console.log("Navigating to seat selection with state:", seatSelectionState);
-                  navigate('/flight-seat-selection', { state: seatSelectionState });
-                }}
-                disabled={!contactValidation.isValid}
-                className={`px-8 py-3 rounded-lg font-bold transition-colors flex items-center gap-2 ${
-                  !contactValidation.isValid 
-                    ? "bg-gray-400 cursor-not-allowed" 
-                    : "bg-blue-600 text-white hover:bg-blue-700"
-                }`}
-              >
-                SELECT SEAT
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Error message for contact validation before seat selection */}
-        {!hasSelectedSeats && booking.status === "error" && (
-          <div className="max-w-lg mx-auto mt-4 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-800 p-4 text-center text-base font-medium text-red-700 dark:text-red-300">
-            ⚠️ {booking.message}
-          </div>
-        )}
+        <PriceSummary totalAmount={totalAmount} extraBaggage={extraBaggage} selectedMeals={selectedMeals} couponDiscount={couponDiscount} hasSelectedSeats={hasSelectedSeats} contactValidation={contactValidation} booking={booking} isPaymentProcessing={isPaymentProcessing} handlePayAndBook={handlePayAndBook} handleSelectSeat={handleSelectSeat} />
       </div>
     </div>
   );

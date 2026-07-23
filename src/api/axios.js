@@ -38,8 +38,7 @@ api.interceptors.response.use(
       originalRequest.url !== "/api/auth/refresh" &&
       originalRequest.url !== "/api/auth/login" &&
       originalRequest.url !== "/api/auth/forgot-password" &&
-      originalRequest.url !== "/api/auth/reset-password" &&
-      originalRequest.url !== "/api/users/profile"
+      originalRequest.url !== "/api/auth/reset-password"
     ) {
       originalRequest._retry = true;
 
