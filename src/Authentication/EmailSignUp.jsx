@@ -73,7 +73,7 @@ export function EmailSignUp() {
         navigate("/login");
       }
     } catch (err) {
-      alert(err.response?.data?.errors || "Registration failed");
+      setEmailError(err.response?.data?.message || err.response?.data?.error || "Registration failed");
     } finally {
       setLoading(false);
     }

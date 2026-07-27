@@ -15,6 +15,7 @@ export default function BusResultsList({
   onSortSelect,
   onClearFilters,
   onNextDaySearch,
+  maxSeats,
 }) {
   const hasBuses = sortedAndFilteredBuses.length > 0;
 
@@ -52,6 +53,7 @@ export default function BusResultsList({
               scheduleId={schedule.scheduleId}
               boardingPoints={schedule.boardingPoints}
               droppingPoints={schedule.droppingPoints}
+              maxSeats={maxSeats}
             />
           </div>
         ))

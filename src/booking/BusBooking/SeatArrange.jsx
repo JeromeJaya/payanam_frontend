@@ -48,7 +48,7 @@ const SteeringWheel = () => (
   </svg>
 );
 
-export default function BusSeatLayout({ busName = "Bus", seats = [], seatLayoutType, onChange }) {
+export default function BusSeatLayout({ busName = "Bus", seats = [], seatLayoutType, onChange, maxSeats }) {
   const [selectedSeats, setSelectedSeats] = useState([]);
   const { columns, grid } = buildGrid(seats, seatLayoutType);
   const size = getSeatSize(columns);
@@ -70,9 +70,11 @@ export default function BusSeatLayout({ busName = "Bus", seats = [], seatLayoutT
 
   const handleSeatClick = (seat) => {
     if (seat.status === "male_booked" || seat.status === "female_booked") return;
-    setSelectedSeats((prev) =>
-      prev.includes(seat.id) ? prev.filter((id) => id !== seat.id) : [...prev, seat.id]
-    );
+    setSelectedSeats((prev) => {
+      if (prev.includes(seat.id)) return prev.filter((id) => id !== seat.id);
+      if (maxSeats && prev.length >= Number(maxSeats)) return prev;
+      return [...prev, seat.id];
+    });
   };
 
   useEffect(() => {

@@ -8,6 +8,7 @@ export default function SeatSelection({
   scheduleId,
   boardingPoints = [],
   droppingPoints = [],
+  maxSeats,
 }) {
   const [busSelections, setBusSelections] = useState({});
   const [seatData, setSeatData] = useState(null);
@@ -109,6 +110,7 @@ export default function SeatSelection({
               seats={lowerSeats} 
               seatLayoutType={seatLayoutType} 
               onChange={handleSelectionChange} 
+              maxSeats={maxSeats}
             />
           </div>
         )}
@@ -120,6 +122,7 @@ export default function SeatSelection({
               seats={upperSeats} 
               seatLayoutType={seatLayoutType} 
               onChange={handleSelectionChange} 
+              maxSeats={maxSeats}
             />
           </div>
         )}

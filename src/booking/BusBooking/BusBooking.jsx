@@ -191,11 +191,13 @@ export default function BusBooking() {
       <Nav />
       <div className="pt-16 md:pt-20">
         <WhereToWhere
-          className="shadow-xl sticky top-16 md:top-20 mx-0 md:mx-10"
-          from={from} setFrom={setFrom}
-          to={to} setTo={setTo}
-          date={date} setDate={setDate}
-          handleFetchBus={() => handleFetchBus(date)}
+          from={from}
+          to={to}
+          date={date}
+          onFromChange={setFrom}
+          onToChange={setTo}
+          onDateChange={setDate}
+          onSearch={() => handleFetchBus(date)}
           passengerCount={passengerCount}
           onPassengerCountChange={setPassengerCount}
         />
@@ -236,6 +238,7 @@ export default function BusBooking() {
             onSortSelect={setSortBy}
             onClearFilters={handleClearFilters}
             onNextDaySearch={handleNextDaySearch}
+            maxSeats={passengerCount}
           />
         </div>
       </div>

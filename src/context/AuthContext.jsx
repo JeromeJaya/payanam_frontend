@@ -52,7 +52,6 @@ export function AuthProvider({ children }) {
         setIsAuthenticated(Boolean(payload));
       } catch (error) {
         const status = error.response?.status;
-        // 403 = account suspended/banned — do NOT fall back to cache
         if (status === 403) {
           setUser(null);
           setIsAuthenticated(false);

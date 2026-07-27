@@ -126,7 +126,7 @@ export default function AdminDashboard() {
         <div className="flex-1 flex flex-col min-h-screen">
           <AdminHeader user={user} onLogout={handleLogout} />
 
-          <main className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20">
+          <main className="px-4 sm:px-6 lg:px-8 py-8 pb-20">
             {loading && <div className="flex items-center justify-center py-20"><div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div></div>}
             {error && !loading && (
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 mb-8">

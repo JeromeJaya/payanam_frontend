@@ -16,6 +16,8 @@ export default function SearchBar({ input, service }) {
   const [showToDropdown, setShowToDropdown] = useState(false);
   const [fromAirportSuggestions, setFromAirportSuggestions] = useState([]);
   const [toAirportSuggestions, setToAirportSuggestions] = useState([]);
+  const [fromActiveIndex, setFromActiveIndex] = useState(-1);
+  const [toActiveIndex, setToActiveIndex] = useState(-1);
 
   const fromRef = useRef(null);
   const toRef = useRef(null);
@@ -31,6 +33,8 @@ export default function SearchBar({ input, service }) {
     setTo("");
     setShowFromDropdown(false);
     setShowToDropdown(false);
+    setFromActiveIndex(-1);
+    setToActiveIndex(-1);
   }, [service]);
 
   useEffect(() => {
@@ -46,6 +50,46 @@ export default function SearchBar({ input, service }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const fromItems = service === 'flight'
+    ? fromAirportSuggestions
+    : from.trim().length > 1
+      ? allDestinations.filter(d => d.toLowerCase().includes(from.toLowerCase())).slice(0, 5)
+      : [];
+
+  const toItems = service === 'flight'
+    ? toAirportSuggestions
+    : to.trim().length > 1
+      ? allDestinations.filter(d => d.toLowerCase().includes(to.toLowerCase())).slice(0, 5)
+      : [];
+
+  const handleFromKeyDown = (e) => {
+    if (!showFromDropdown || fromItems.length === 0) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setFromActiveIndex(prev => (prev < fromItems.length - 1 ? prev + 1 : 0));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setFromActiveIndex(prev => (prev > 0 ? prev - 1 : fromItems.length - 1));
+    } else if (e.key === 'Enter' && fromActiveIndex >= 0) {
+      e.preventDefault();
+      selectFrom(fromItems[fromActiveIndex]);
+    }
+  };
+
+  const handleToKeyDown = (e) => {
+    if (!showToDropdown || toItems.length === 0) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setToActiveIndex(prev => (prev < toItems.length - 1 ? prev + 1 : 0));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setToActiveIndex(prev => (prev > 0 ? prev - 1 : toItems.length - 1));
+    } else if (e.key === 'Enter' && toActiveIndex >= 0) {
+      e.preventDefault();
+      selectTo(toItems[toActiveIndex]);
+    }
+  };
+
   const searchAirports = async (query) => {
     if (!query || query.length < 2 || service !== 'flight') return [];
     try {
@@ -60,6 +104,7 @@ export default function SearchBar({ input, service }) {
   const handleFromChange = async (e) => {
     const val = e.target.value;
     setFrom(val);
+    setFromActiveIndex(-1);
     if (val.trim().length > 1 && service === 'flight') {
       const results = await searchAirports(val);
       setFromAirportSuggestions(results);
@@ -78,6 +123,7 @@ export default function SearchBar({ input, service }) {
   const handleToChange = async (e) => {
     const val = e.target.value;
     setTo(val);
+    setToActiveIndex(-1);
     if (val.trim().length > 1 && service === 'flight') {
       const results = await searchAirports(val);
       setToAirportSuggestions(results);
@@ -141,16 +187,23 @@ export default function SearchBar({ input, service }) {
     if (formData.from && formData.to && formData.from.trim().toLowerCase() === formData.to.trim().toLowerCase()) {
       errors.push("Departure and destination cannot be the same");
     }
-    if (formData.NoOfSeats !== undefined && formData.NoOfSeats !== "") {
-      const passengerCount = parseInt(formData.NoOfSeats, 10);
-      if (isNaN(passengerCount)) {
-        errors.push("Please enter a valid number for passenger count");
-      } else if (passengerCount < 1) {
-        errors.push("Passenger count must be at least 1");
-      } else if (passengerCount > 35) {
-        errors.push("Maximum 35 passengers allowed per booking");
+    const numberFields = [
+      { key: "NoOfSeats", label: "passenger count", max: 35 },
+      { key: "travellers", label: "travellers", max: 35 },
+      { key: "guests", label: "guests", max: 20 },
+    ];
+    numberFields.forEach(({ key, label, max }) => {
+      if (formData[key] !== undefined && formData[key] !== "") {
+        const count = parseInt(formData[key], 10);
+        if (isNaN(count)) {
+          errors.push(`Please enter a valid number for ${label}`);
+        } else if (count < 1) {
+          errors.push(`${label.charAt(0).toUpperCase() + label.slice(1)} count must be at least 1`);
+        } else if (count > max) {
+          errors.push(`Maximum ${max} ${label} allowed per booking`);
+        }
       }
-    }
+    });
 
     if (errors.length > 0) {
       alert(errors[0]);
@@ -168,17 +221,27 @@ export default function SearchBar({ input, service }) {
     const isFromField = field.name === "from" || field.name === "city";
     const isToField = field.name === "to";
 
-    let value, onChange, wrapperRef, showDropdown;
+    let value, onChange, wrapperRef, showDropdown, onKeyDown, items, activeIndex, setActiveIndex, onSelect;
     if (isFromField) {
       value = from;
       onChange = handleFromChange;
       wrapperRef = fromRef;
       showDropdown = showFromDropdown;
+      onKeyDown = handleFromKeyDown;
+      items = fromItems;
+      activeIndex = fromActiveIndex;
+      setActiveIndex = setFromActiveIndex;
+      onSelect = selectFrom;
     } else if (isToField) {
       value = to;
       onChange = handleToChange;
       wrapperRef = toRef;
       showDropdown = showToDropdown;
+      onKeyDown = handleToKeyDown;
+      items = toItems;
+      activeIndex = toActiveIndex;
+      setActiveIndex = setToActiveIndex;
+      onSelect = selectTo;
     }
 
     return (
@@ -191,18 +254,13 @@ export default function SearchBar({ input, service }) {
           if (isFromField && from.length > 1) setShowFromDropdown(true);
           if (isToField && to.length > 1) setShowToDropdown(true);
         }}
+        onKeyDown={onKeyDown}
         wrapperRef={wrapperRef}
         showDropdown={showDropdown}
-        service={service}
-        from={from}
-        to={to}
-        selectFrom={selectFrom}
-        selectTo={selectTo}
-        fromAirportSuggestions={fromAirportSuggestions}
-        toAirportSuggestions={toAirportSuggestions}
-        allDestinations={allDestinations}
-        isFromField={isFromField}
-        isToField={isToField}
+        items={items}
+        activeIndex={activeIndex}
+        setActiveIndex={setActiveIndex}
+        onSelect={onSelect}
         registerInput={registerInput(field.name)}
         today={today}
       />

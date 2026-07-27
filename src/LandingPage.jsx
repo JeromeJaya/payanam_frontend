@@ -173,7 +173,7 @@ export default function LandingPage() {
           100% { transform: translateX(-50%); }
         }
         .animate-marquee {
-          animation: marquee 30s linear infinite;
+          animation: marquee 3ms linear infinite;
         }
       `}</style>
     </div>

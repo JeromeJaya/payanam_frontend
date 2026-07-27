@@ -27,6 +27,7 @@ export default function BusCard({
   boardingPoints = [],
   droppingPoints = [],
   busId,
+  maxSeats,
 }) {
   const [showLayout, setShowLayout] = useState(false);
   const [showReviewForm, setShowReviewForm] = useState(false);
@@ -157,6 +158,7 @@ export default function BusCard({
             scheduleId={scheduleId}
             boardingPoints={boardingPoints}
             droppingPoints={droppingPoints}
+            maxSeats={maxSeats}
           />
         </div>
       )}

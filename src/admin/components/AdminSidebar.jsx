@@ -12,7 +12,7 @@ const tabs = [
 
 export default function AdminSidebar({ activeTab, onTabChange }) {
   return (
-    <aside className="w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex-shrink-0">
+    <aside className="w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex-shrink-0 min-h-screen sticky top-0">
       <div className="p-5 border-b border-slate-200 dark:border-slate-700">
         <h2 className="text-lg font-bold text-slate-900 dark:text-white">Admin Panel</h2>
       </div>

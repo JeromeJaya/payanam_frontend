@@ -5,18 +5,13 @@ export default function SearchInputField({
   value,
   onChange,
   onFocus,
+  onKeyDown,
   wrapperRef,
   showDropdown,
-  service,
-  from,
-  to,
-  selectFrom,
-  selectTo,
-  fromAirportSuggestions,
-  toAirportSuggestions,
-  allDestinations,
-  isFromField,
-  isToField,
+  items,
+  activeIndex,
+  setActiveIndex,
+  onSelect,
   registerInput,
   today,
 }) {
@@ -38,25 +33,28 @@ export default function SearchInputField({
         value={value}
         onChange={(e) => {
           if (field.type === "date" && e.target.value < today) return;
+          if (field.type === "number") {
+            const val = e.target.value;
+            if (val !== "" && !/^\d+$/.test(val)) {
+              e.target.value = val.replace(/\D/g, "");
+              if (onChange) onChange(e);
+              return;
+            }
+          }
           if (onChange) onChange(e);
         }}
         onFocus={onFocus}
+        onKeyDown={onKeyDown}
         ref={registerInput}
         autoComplete="off"
       />
 
       {showDropdown && (
         <FlightPlace
-          service={service}
-          from={from}
-          to={to}
-          selectFrom={selectFrom}
-          selectTo={selectTo}
-          fromAirportSuggestions={fromAirportSuggestions}
-          toAirportSuggestions={toAirportSuggestions}
-          allDestinations={allDestinations}
-          isFromField={isFromField}
-          isToField={isToField}
+          items={items}
+          activeIndex={activeIndex}
+          setActiveIndex={setActiveIndex}
+          onSelect={onSelect}
         />
       )}
     </div>
