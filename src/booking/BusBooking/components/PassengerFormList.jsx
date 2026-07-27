@@ -1,6 +1,11 @@
+import { useState } from "react";
 import { User, Calendar } from "lucide-react";
 
 export default function PassengerFormList({ seats, passengers, setPassengers }) {
+  const [errors, setErrors] = useState({});
+
+  const err = (seatId, field) => errors[`${seatId}-${field}`] || "";
+
   return (
     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg dark:shadow-slate-900/30 p-6 animate-fadeInUp" style={{ animationDelay: "200ms" }}>
       <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-4 flex items-center gap-2">
@@ -34,15 +39,26 @@ export default function PassengerFormList({ seats, passengers, setPassengers }) 
                     placeholder="Enter passenger name"
                     value={passengers[seatId]?.name || ""}
                     onChange={(e) => {
+                      const raw = e.target.value;
+                      const filtered = raw.replace(/[^A-Za-z\s]/g, '');
                       setPassengers(p => ({
                         ...p,
-                        [seatId]: { ...p[seatId], seatNumber: seatId, name: e.target.value, gender: p[seatId]?.gender || "male", age: p[seatId]?.age || "" }
+                        [seatId]: { ...p[seatId], seatNumber: seatId, name: filtered, gender: p[seatId]?.gender || "male", age: p[seatId]?.age || "" }
+                      }));
+                      setErrors(prev => ({
+                        ...prev,
+                        [`${seatId}-name`]: filtered !== raw ? "Only alphabetic characters allowed" : ""
                       }));
                     }}
-                    className="w-full pl-10 pr-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-700 placeholder-slate-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-lime-500 focus:border-transparent"
+                    className={`w-full pl-10 pr-4 py-2.5 border rounded-lg text-sm bg-white dark:bg-slate-700 placeholder-slate-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-lime-500 focus:border-transparent ${
+                      err(seatId, 'name') ? 'border-red-500 dark:border-red-400' : 'border-slate-200 dark:border-slate-600'
+                    }`}
                     required
                   />
                 </div>
+                {err(seatId, 'name') && (
+                  <p className="text-xs text-red-500 mt-1">{err(seatId, 'name')}</p>
+                )}
               </div>
 
               <div>
@@ -52,21 +68,32 @@ export default function PassengerFormList({ seats, passengers, setPassengers }) 
                 <div className="relative">
                   <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     placeholder="Age"
-                    min="1"
-                    max="120"
                     value={passengers[seatId]?.age || ""}
                     onChange={(e) => {
+                      const raw = e.target.value;
+                      const digits = raw.replace(/\D/g, '');
                       setPassengers(p => ({
                         ...p,
-                        [seatId]: { ...p[seatId], age: Number(e.target.value) }
+                        [seatId]: { ...p[seatId], age: digits ? Number(digits) : "" }
+                      }));
+                      const tooHigh = digits && Number(digits) >= 120;
+                      setErrors(prev => ({
+                        ...prev,
+                        [`${seatId}-age`]: tooHigh ? "Age must be less than 120" : ""
                       }));
                     }}
-                    className="w-full pl-10 pr-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-700 placeholder-slate-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-lime-500 focus:border-transparent"
+                    className={`w-full pl-10 pr-4 py-2.5 border rounded-lg text-sm bg-white dark:bg-slate-700 placeholder-slate-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-lime-500 focus:border-transparent ${
+                      err(seatId, 'age') ? 'border-red-500 dark:border-red-400' : 'border-slate-200 dark:border-slate-600'
+                    }`}
                     required
                   />
                 </div>
+                {err(seatId, 'age') && (
+                  <p className="text-xs text-red-500 mt-1">{err(seatId, 'age')}</p>
+                )}
               </div>
 
               <div>

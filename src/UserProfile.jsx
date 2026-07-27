@@ -127,7 +127,7 @@ export default function UserProfile() {
         meta: {
           flightName: isFlightBooking ? (b.busId?.airlineName || "Airline") : undefined,
           flightNumber: isFlightBooking ? (b.flightNumber || "") : undefined,
-          busName: !isFlightBooking ? (b.busName || "Payanam Express") : undefined,
+          busName: !isFlightBooking ? (b.busId?.busName || "Payanam Express") : undefined,
           boarding, dropping,
           passengers: Array.isArray(b.passengerDetails) ? b.passengerDetails : seatsArray.map(seat => ({ name: "Passenger", seatNumber: seat, age: "N/A", gender: "N/A" })),
           serviceType: isFlightBooking ? "flight" : "bus",

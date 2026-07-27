@@ -55,7 +55,7 @@ export default function Nav() {
               bookedAt: bookingData.bookedAt || bookingData.createdAt || new Date().toISOString()
             },
             meta: {
-              busName: bookingData.busName || bookingData.scheduleId?.busId?.name || "Payanam Cruiser",
+              busName: bookingData.busId?.busName || "Payanam Cruiser",
               boarding: bookingData.boardingPoint || { city: bookingData.source || "Origin", name: "Main Stand", time: "N/A" },
               dropping: bookingData.droppingPoint || { city: bookingData.destination || "Destination", name: "Terminal Drop", time: "N/A" },
               passengers: bookingData.passengerDetails || []

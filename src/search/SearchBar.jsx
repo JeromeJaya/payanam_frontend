@@ -63,6 +63,15 @@ export default function SearchBar({ input, service }) {
       : [];
 
   const handleFromKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      if (showFromDropdown && fromActiveIndex >= 0) {
+        e.preventDefault();
+        selectFrom(fromItems[fromActiveIndex]);
+      } else {
+        handleSearch();
+      }
+      return;
+    }
     if (!showFromDropdown || fromItems.length === 0) return;
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -70,13 +79,19 @@ export default function SearchBar({ input, service }) {
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setFromActiveIndex(prev => (prev > 0 ? prev - 1 : fromItems.length - 1));
-    } else if (e.key === 'Enter' && fromActiveIndex >= 0) {
-      e.preventDefault();
-      selectFrom(fromItems[fromActiveIndex]);
     }
   };
 
   const handleToKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      if (showToDropdown && toActiveIndex >= 0) {
+        e.preventDefault();
+        selectTo(toItems[toActiveIndex]);
+      } else {
+        handleSearch();
+      }
+      return;
+    }
     if (!showToDropdown || toItems.length === 0) return;
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -84,9 +99,6 @@ export default function SearchBar({ input, service }) {
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setToActiveIndex(prev => (prev > 0 ? prev - 1 : toItems.length - 1));
-    } else if (e.key === 'Enter' && toActiveIndex >= 0) {
-      e.preventDefault();
-      selectTo(toItems[toActiveIndex]);
     }
   };
 
