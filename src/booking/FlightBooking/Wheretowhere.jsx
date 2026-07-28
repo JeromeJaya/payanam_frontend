@@ -241,17 +241,17 @@ export default function Wheretowhere({
   return (
     <div className="mx-2 sm:mx-4 md:mx-8 lg:mx-12 p-3 sm:p-4 md:p-6 bg-white rounded-lg shadow-md font-sans text-gray-800">
       <div className="flex flex-wrap items-center gap-2">
-        <LocationInput
+        {/* <LocationInput
           label="From"
-          value={fromLocation}
-          onChange={handleFromChange}
-          suggestions={fromSuggestions}
-          showSuggestions={showFromSuggestions}
-          onSelectSuggestion={selectFromSuggestion}
+          //value={fromLocation}
+          // onChange={handleFromChange}
+          // suggestions={fromSuggestions}
+          // showSuggestions={showFromSuggestions}
+          // onSelectSuggestion={selectFromSuggestion}
           resolvedIata={fromIata}
           resolvedName={fromAirportName}
           hasError={!!(fromLocation && !fromSelected)}
-        />
+        /> */}
         <SwapButton onClick={handleSwapLocations} />
         <LocationInput
           label="To"

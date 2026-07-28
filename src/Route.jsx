@@ -8,7 +8,8 @@ import ExplorePlace from "./ExplorePlace.jsx";
 import BusBooking from "./booking/BusBooking/BusBooking.jsx"
 import SeatSelection from "./booking/BusBooking/SeatSelection.jsx"
 import ForgotPassword from "./Authentication/ForgotPassword.jsx";
-import ResetPassword from "./Authentication/ResetPassword.jsx";
+import OTPVerification from "./Authentication/OTPVerification.jsx";
+import SetPassword from "./Authentication/SetPassword.jsx";
 import BookingSummary from "./booking/BusBooking/BookingSummary.jsx";
 import UserProfile from "./UserProfile.jsx";
 import FlightBooking from "./booking/FlightBooking/FlightBooking.jsx";
@@ -43,8 +44,10 @@ export function Router (){
     <RouteElement path='/ExplorePlace' element={<ExplorePlace/>}/>
     <RouteElement path='/busbooking' element={<BusBooking/>}/>  
     <RouteElement path='/SeatSelection' element={<SeatSelection/>}/>  
-    <RouteElement path='/ForgotPassword' element={<ForgotPassword/>}/>  
-    <RouteElement path='/ResetPassword' element={<ResetPassword/>}/>  
+<RouteElement path='/ForgotPassword' element={<ForgotPassword/>}/>
+    <RouteElement path='/forgotpassword' element={<ForgotPassword/>}/>
+    <RouteElement path='/verify-otp' element={<OTPVerification/>}/>
+    <RouteElement path='/set-password' element={<SetPassword/>}/>
     <RouteElement path='/BookingSummary' element={<BookingSummary/>}/>  
     <RouteElement path='/flightbooking' element={<FlightBooking/>}/>
     <RouteElement path='/flight-checkout' element={<FlightCheckoutPage/>}/>  

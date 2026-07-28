@@ -16,7 +16,6 @@ export default function SeatSelection({
   const [selectedBoarding, setSelectedBoarding] = useState({});
   const [selectedDropping, setSelectedDropping] = useState({});
 
-  // Fetch seat layout from API
   useEffect(() => {
     if (!scheduleId) return;
     setLoading(true);
@@ -31,15 +30,19 @@ export default function SeatSelection({
       });
   }, [scheduleId]);
 
-  const handleSelectionChange = ({ busName, seats, total }) => {
-    setBusSelections(prev => ({ ...prev, [busName]: { seats, total } }));
+  const realBusName = seatData?.bus?.busName || "Bus";
+
+  const handleSelectionChange = (deckKey) => ({ busName, seats, total }) => {
+    setBusSelections(prev => ({
+      ...prev,
+      [deckKey]: { seats, total, busName: realBusName }
+    }));
   };
 
   const handleClearAll = () => {
     setBusSelections({});
   };
 
-  /* Format a point object -> display string with name, city, time, address & landmark */
   const formatPoint = (pt) => {
     if (!pt) return "";
     let str = pt.name;
@@ -50,17 +53,16 @@ export default function SeatSelection({
     return str;
   };
 
-  /* Derive title city from the first point */
   const pickupCity = boardingPoints[0]?.city || "Pickup Location";
   const dropCity   = droppingPoints[0]?.city || "Drop Location";
 
   const pickupNames  = boardingPoints.map(formatPoint);
   const dropNames    = droppingPoints.map(formatPoint);
 
-  // Split seats by deck
   const lowerSeats = seatData?.seats?.filter((s) => s.deck === "lower") || [];
   const upperSeats = seatData?.seats?.filter((s) => s.deck === "upper") || [];
   const seatLayoutType = seatData?.bus?.seatLayoutType;
+  const hasMultipleDecks = lowerSeats.length > 0 && upperSeats.length > 0;
 
   if (loading) {
     return (
@@ -72,15 +74,14 @@ export default function SeatSelection({
 
   return (
     <div className="w-full flex flex-col lg:flex-row gap-4 sm:gap-6 items-stretch p-2 sm:p-3 lg:p-6">
-      
-      {/* ========== MOBILE ONLY (below md: 768px) ========== */}
-      {/* Pickup & Drop Points - appears at top on mobile */}
-      <div className="md:hidden w-full bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+
+      {/* Pickup & Drop - mobile: top of page */}
+      <div className="lg:hidden w-full bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
         <div className="bg-gray-50 border-b border-gray-100 flex justify-center text-center font-bold text-xs sm:text-sm text-gray-700 p-3 uppercase tracking-wider">
           Select Pickup & Drop Points
         </div>
-        <div className="flex flex-col gap-3 p-3 sm:p-4">
-          <div className="overflow-y-auto rounded-xl border border-gray-50 shadow-inner bg-gray-50/50">
+        <div className="flex flex-col sm:flex-row gap-3 p-3 sm:p-4">
+          <div className="flex-1 overflow-y-auto rounded-xl border border-gray-50 shadow-inner bg-gray-50/50 max-h-[220px] sm:max-h-none">
             <Checkbox
               title={`Pick up - ${pickupCity}`}
               text={pickupNames}
@@ -89,7 +90,7 @@ export default function SeatSelection({
               type="single"
             />
           </div>
-          <div className="max-h-[200px] overflow-y-auto rounded-xl border border-gray-50 shadow-inner bg-gray-50/50">
+          <div className="flex-1 overflow-y-auto rounded-xl border border-gray-50 shadow-inner bg-gray-50/50 max-h-[220px] sm:max-h-none">
             <Checkbox
               title={`Drop - ${dropCity}`}
               text={dropNames}
@@ -101,32 +102,32 @@ export default function SeatSelection({
         </div>
       </div>
 
-      {/* Seat Layout Section - visible on all screens */}
-      <div className="w-full lg:w-[50%] flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center sm:items-start overflow-x-auto pb-3 sm:pb-4 snap-x shrink-0">
+      {/* Seat Layout */}
+      <div className={`flex ${hasMultipleDecks ? 'flex-col md:flex-row' : 'flex-col'} gap-3 sm:gap-4 justify-center items-center lg:items-start w-full lg:w-1/2`}>
         {lowerSeats.length > 0 && (
-          <div className="w-full max-w-[320px] sm:w-64 bg-white rounded-2xl sm:rounded-3xl shadow-lg border border-gray-100 p-2 sm:p-3 shrink-0 snap-center">
-            <SeatArrange 
-              busName={"Lower Deck"} 
-              seats={lowerSeats} 
-              seatLayoutType={seatLayoutType} 
-              onChange={handleSelectionChange} 
+          <div className="w-full max-w-[340px] sm:max-w-[360px] bg-white rounded-2xl sm:rounded-3xl shadow-lg border border-gray-100 p-2 sm:p-3 shrink-0">
+            <SeatArrange
+              busName={hasMultipleDecks ? "Lower Deck" : realBusName}
+              seats={lowerSeats}
+              seatLayoutType={seatLayoutType}
+              onChange={handleSelectionChange("lower")}
               maxSeats={maxSeats}
             />
           </div>
         )}
-        
+
         {upperSeats.length > 0 && (
-          <div className="w-full max-w-[320px] sm:w-64 bg-white rounded-2xl sm:rounded-3xl shadow-lg border border-gray-100 p-2 sm:p-3 shrink-0 snap-center">
-            <SeatArrange 
-              busName={"Upper Deck"} 
-              seats={upperSeats} 
-              seatLayoutType={seatLayoutType} 
-              onChange={handleSelectionChange} 
+          <div className="w-full max-w-[340px] sm:max-w-[360px] bg-white rounded-2xl sm:rounded-3xl shadow-lg border border-gray-100 p-2 sm:p-3 shrink-0">
+            <SeatArrange
+              busName="Upper Deck"
+              seats={upperSeats}
+              seatLayoutType={seatLayoutType}
+              onChange={handleSelectionChange("upper")}
               maxSeats={maxSeats}
             />
           </div>
         )}
-        
+
         {lowerSeats.length === 0 && upperSeats.length === 0 && (
           <div className="flex items-center justify-center h-60 w-full sm:w-60 bg-gray-50 border border-dashed border-gray-200 rounded-2xl text-gray-400 text-sm">
             No seats available
@@ -134,33 +135,27 @@ export default function SeatSelection({
         )}
       </div>
 
-      {/* ========== DESKTOP ONLY (lg and above) ========== */}
-      <div className="hidden lg:block lg:w-[50%] min-w-[550px] flex flex-col rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-        
-        {/* Header Title */}
+      {/* Right panel - desktop/tablet: pickup/drop + booking summary */}
+      <div className="hidden lg:flex lg:w-1/2 flex-col rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
         <div className="bg-gray-50 border-b border-gray-100 flex justify-center text-center font-bold text-sm text-gray-700 p-4 uppercase tracking-wider shrink-0">
           Select Pickup & Drop Points
         </div>
-
-        {/* Checkbox Point Grid */}
         <div className="flex flex-row min-h-[500px] gap-4 p-4 flex-1">
-            <Checkbox
-              title={`Pick up - ${pickupCity}`}
-              text={pickupNames}
-              value={selectedBoarding}
-              onChange={setSelectedBoarding}
-              type="single"
-            />
-             <Checkbox
-              title={`Drop - ${dropCity}`}
-              text={dropNames}
-              value={selectedDropping}
-              onChange={setSelectedDropping}
-              type="single"
-            />
+          <Checkbox
+            title={`Pick up - ${pickupCity}`}
+            text={pickupNames}
+            value={selectedBoarding}
+            onChange={setSelectedBoarding}
+            type="single"
+          />
+          <Checkbox
+            title={`Drop - ${dropCity}`}
+            text={dropNames}
+            value={selectedDropping}
+            onChange={setSelectedDropping}
+            type="single"
+          />
         </div>
-
-        {/* ── Booking Summary Footer Area ── */}
         <div className="px-4 pb-4 shrink-0 border-t border-gray-50 pt-4">
           <BookingSummary
             busSelections={busSelections}
@@ -172,10 +167,9 @@ export default function SeatSelection({
             selectedDroppingText={Object.keys(selectedDropping).find((k) => selectedDropping[k])}
           />
         </div>
-
       </div>
 
-      {/* Booking Summary - MOBILE ONLY (below seats) */}
+      {/* Booking Summary - below everything on tablet, below seats on mobile */}
       <div className="md:hidden w-full shrink-0">
         <BookingSummary
           busSelections={busSelections}
@@ -188,46 +182,17 @@ export default function SeatSelection({
         />
       </div>
 
-      
-      {/* ========== TABLET ONLY (md to lg) ========== */}
+      {/* Booking Summary - tablet only (between mobile and desktop) */}
       <div className="hidden md:block lg:hidden w-full">
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-          <div className="bg-gray-50 border-b border-gray-100 flex justify-center text-center font-bold text-xs sm:text-sm text-gray-700 p-4 uppercase tracking-wider shrink-0">
-            Select Pickup & Drop Points
-          </div>
-          <div className="flex flex-col sm:flex-row gap-4 p-4 flex-1">
-            <div className="w-full sm:w-1/2 max-h-[250px] overflow-y-auto rounded-xl border border-gray-50 shadow-inner bg-gray-50/50">
-              <Checkbox
-                title={`Pick up - ${pickupCity}`}
-                text={pickupNames}
-                value={selectedBoarding}
-                onChange={setSelectedBoarding}
-                type="single"
-              />
-            </div>
-            <div className="w-full sm:w-1/2 max-h-[220px] overflow-y-auto rounded-xl border border-gray-50 shadow-inner bg-gray-50/50">
-              <Checkbox
-                title={`Drop - ${dropCity}`}
-                text={dropNames}
-                value={selectedDropping}
-                onChange={setSelectedDropping}
-                type="single"
-              />
-            </div>
-          </div>
-        </div>
-        
-        <div className="w-full mt-4">
-          <BookingSummary
-            busSelections={busSelections}
-            onClear={handleClearAll}
-            scheduleId={scheduleId}
-            boardingPoints={boardingPoints}
-            droppingPoints={droppingPoints}
-            selectedBoardingText={Object.keys(selectedBoarding).find((k) => selectedBoarding[k])}
-            selectedDroppingText={Object.keys(selectedDropping).find((k) => selectedDropping[k])}
-          />
-        </div>
+        <BookingSummary
+          busSelections={busSelections}
+          onClear={handleClearAll}
+          scheduleId={scheduleId}
+          boardingPoints={boardingPoints}
+          droppingPoints={droppingPoints}
+          selectedBoardingText={Object.keys(selectedBoarding).find((k) => selectedBoarding[k])}
+          selectedDroppingText={Object.keys(selectedDropping).find((k) => selectedDropping[k])}
+        />
       </div>
     </div>
   );

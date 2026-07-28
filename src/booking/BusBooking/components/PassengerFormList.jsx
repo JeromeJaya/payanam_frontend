@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { User, Calendar } from "lucide-react";
+import { User, Cake } from "lucide-react";
 
 export default function PassengerFormList({ seats, passengers, setPassengers }) {
   const [errors, setErrors] = useState({});
@@ -66,7 +66,6 @@ export default function PassengerFormList({ seats, passengers, setPassengers }) 
                   Age
                 </label>
                 <div className="relative">
-                  <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
                   <input
                     type="text"
                     inputMode="numeric"

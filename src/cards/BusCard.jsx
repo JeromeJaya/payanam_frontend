@@ -13,6 +13,7 @@ function formatDuration(minutes) {
 
 export default function BusCard({
   busName = "Unknown Bus",
+  busNumber,
   busType = "Standard",
   departureTime = "--:--",
   arrivalTime = "--:--",
@@ -47,7 +48,9 @@ export default function BusCard({
                 <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-slate-100 tracking-tight leading-snug break-words">
                   {busName}
                 </h2>
-                <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-slate-400 mt-0.5">{busType}</p>
+                <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-slate-400 mt-0.5">
+                  {busType}{busNumber ? <span className="ml-2 text-slate-400 dark:text-slate-500">({busNumber})</span> : null}
+                </p>
                 <p className="text-xs text-slate-400 dark:text-slate-500">{operatorName}</p>
               </div>
 

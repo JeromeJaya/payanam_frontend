@@ -35,6 +35,7 @@ export default function BusBooking() {
   const [loading, setLoading] = useState(false)
   const [sortBy, setSortBy] = useState("Relevance")
   const [showMobileFilters, setShowMobileFilters] = useState(false)
+  const [busNumberSearch, setBusNumberSearch] = useState("")
 
   const getStorageKey = (searchFrom, searchTo, searchDate) =>
     `bus_search_${(searchFrom || from).trim()}_${(searchTo || to).trim()}_${(searchDate || date)}`
@@ -82,12 +83,16 @@ export default function BusBooking() {
     if (selectedOperators.length > 0) {
       results = results.filter((s) => selectedOperators.includes(s.operator?.name))
     }
+    if (busNumberSearch.trim()) {
+      const q = busNumberSearch.trim().toLowerCase()
+      results = results.filter((s) => s.bus?.number?.toLowerCase() === q)
+    }
     if (passengerCount && passengerCount !== "ANY" && passengerCount !== "") {
       const required = parseInt(passengerCount, 10)
       if (!isNaN(required) && required >= 1) results = results.filter((s) => (s.seats?.available ?? 0) >= required)
     }
     return results
-  }, [allBuses, acFilter, seatType, pickupTimeFilter, dropTimeFilter, selectedPickupPoints, selectedDropPoints, selectedOperators, passengerCount, singleSeatsFilter])
+  }, [allBuses, acFilter, seatType, pickupTimeFilter, dropTimeFilter, selectedPickupPoints, selectedDropPoints, selectedOperators, passengerCount, singleSeatsFilter, busNumberSearch])
 
   const sortedAndFilteredBuses = useMemo(() => {
     const sorted = [...filteredBuses]
@@ -141,6 +146,7 @@ export default function BusBooking() {
     setSelectedDropPoints([])
     setSelectedOperators([])
     setSingleSeatsFilter({})
+    setBusNumberSearch("")
   }
 
   useEffect(() => {
@@ -224,6 +230,7 @@ export default function BusBooking() {
               from={from} to={to}
               showMobileFilters={showMobileFilters}
               onCloseMobile={() => setShowMobileFilters(false)}
+              onClearAll={handleClearFilters}
             />
           )}
           <BusResultsList
@@ -239,6 +246,8 @@ export default function BusBooking() {
             onClearFilters={handleClearFilters}
             onNextDaySearch={handleNextDaySearch}
             maxSeats={passengerCount}
+            busNumberSearch={busNumberSearch}
+            onBusNumberSearchChange={setBusNumberSearch}
           />
         </div>
       </div>

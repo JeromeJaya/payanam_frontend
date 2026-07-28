@@ -17,7 +17,7 @@ export default function BookingSummary({
   const { isAuthenticated } = useAuth();
   const entries = Object.entries(busSelections).filter(([ , data]) => data.seats.length > 0);
   const grandTotal = entries.reduce((sum, [ , data]) => sum + (data.total || 0), 0);
-  const busName = entries[0]?.[0] || "Payanam Express";
+  const busName = entries[0]?.[1]?.busName || "Payanam Express";
   
   const [booking, setBooking] = useState({ status: "idle", message: "", data: null });
   const [lockStatus, setLockStatus] = useState({ status: "idle", message: "" });

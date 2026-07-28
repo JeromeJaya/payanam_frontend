@@ -13,13 +13,25 @@ export default function BusFilterPanel({
   selectedOperators, setSelectedOperators,
   pickupPointOptions, dropPointOptions, operatorOptions,
   from, to,
-  showMobileFilters, onCloseMobile,
+  showMobileFilters, onCloseMobile, onClearAll,
 }) {
   return (
     <div
       className={`filter bg-white dark:bg-slate-800 w-full lg:w-[25%] h-auto rounded-lg shadow-xl dark:shadow-slate-900/30 ${showMobileFilters ? 'block' : 'hidden lg:block'} sticky top-16 lg:top-20 max-h-[calc(100vh-80px)] overflow-y-auto`}
     >
-      <div className="flex justify-center mt-5 font-bold text-slate-800 dark:text-slate-200">FILTERS</div>
+      <div className="flex justify-center mt-5 text-xl font-bold text-slate-800 dark:text-slate-200">FILTERS</div>
+
+      {onClearAll && (
+        <div className="px-4 py-2">
+          <button
+            type="button"
+            onClick={onClearAll}
+            className="w-full bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-200 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-300 dark:hover:bg-slate-600 transition-colors"
+          >
+            Clear All
+          </button>
+        </div>
+      )}
       <SelectBox
         title="AC type"
         text={['ALL', 'AC', 'NON-AC']}

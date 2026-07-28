@@ -23,9 +23,9 @@ function buildGrid(seats, seatLayoutType) {
 }
 
 function getSeatSize(columns) {
-  if (columns >= 4) return { w: 22, h: 40, sleeperH: 50, gap: 1, rowGap: 3, price: "text-[9px]" };
-  if (columns === 3) return { w: 30, h: 46, sleeperH: 56, gap: 2, rowGap: 4, price: "text-[10px]" };
-  return { w: 40, h: 52, sleeperH: 62, gap: 3, rowGap: 5, price: "text-[11px]" };
+  if (columns >= 4) return { w: 22, h: 40, sleeperH: 48, gap: 1, rowGap: 3, price: "text-[9px]" };
+  if (columns === 3) return { w: 28, h: 44, sleeperH: 52, gap: 2, rowGap: 4, price: "text-[9px] sm:text-[10px]" };
+  return { w: 36, h: 48, sleeperH: 58, gap: 3, rowGap: 5, price: "text-[10px] sm:text-[11px]" };
 }
 
 function mapStatus(seat) {
@@ -88,16 +88,16 @@ export default function BusSeatLayout({ busName = "Bus", seats = [], seatLayoutT
   }
 
   return (
-    <div className="flex flex-col items-center bg-gray-100 rounded-3xl shadow-3xl p-3 h-auto overflow-y-auto">
+    <div className="flex flex-col items-center bg-gray-100 rounded-2xl sm:rounded-3xl shadow-sm sm:shadow-3xl p-2 sm:p-3 h-auto overflow-y-auto">
       <div className="flex flex-col items-center w-full">
         <div className="mb-1 text-center">
-          <h2 className="text-md font-bold text-gray-700">{busName}</h2>
+          <h2 className="text-sm sm:text-md font-bold text-gray-700">{busName}</h2>
         </div>
-        {busName !== "Upper Deck"? <div className="flex justify-start w-full  mb-2"><SteeringWheel /></div>:<div className="flex justify-start w-full  mb-2 mt-5"></div>}
+        {busName !== "Upper Deck"? <div className="flex justify-start w-full mb-1 sm:mb-2"><SteeringWheel /></div>:<div className="flex justify-start w-full mb-1 sm:mb-2 mt-3 sm:mt-5"></div>}
         <div className="flex flex-col gap-1">
           {grid.map((row, rowIndex) => (
             <div key={rowIndex} className="grid items-center"
-              style={{ gap: `${size.gap+35}px`, gridTemplateColumns: `repeat(${columns}, ${size.w}px)` }}>
+              style={{ gap: `${size.gap + (columns >= 4 ? 20 : 25)}px`, gridTemplateColumns: `repeat(${columns}, ${size.w}px)` }}>
               {(() => {
                 const rowByCol = {};
                 row.forEach((seat) => { rowByCol[seat.column || 1] = seat; });

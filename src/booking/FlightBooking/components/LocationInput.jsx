@@ -30,7 +30,7 @@ export default function LocationInput({
         </div>
       )}
       {value && hasError && (
-        <div className="text-[9px] md:text-[10px] text-red-500 font-medium mt-0.5">Select from suggestions above</div>
+        <div className="text-[9px] md:text-[10px] text-red-500 font-medium mt-0.5">Select from suggestions below</div>
       )}
       {showSuggestions && (
         <AirportSuggestions suggestions={suggestions} onSelect={onSelectSuggestion} />
