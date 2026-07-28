@@ -62,3 +62,21 @@ html {
 .animate-fadeIn {
   animation: fadeIn 0.5s ease-out forwards;
 }
+
+/* Increase calendar icon size */
+.date-picker-icon::-webkit-calendar-picker-indicator {
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  padding: 2px;
+}
+
+/* Dark mode calendar icon */
+.dark .date-picker-icon::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+/* Hover effect */
+.date-picker-icon::-webkit-calendar-picker-indicator:hover {
+  opacity: 0.7;
+}

@@ -17,7 +17,7 @@ export default function SearchInputField({
   registerInput,
   today,
 }) {
-const isDateField = field.type === "date";
+  const isDateField = field.type === "date";
   const isNumberField = field.type === "number";
   const [dateError, setDateError] = useState("");
   const [localDateValue, setLocalDateValue] = useState(isDateField ? (value ?? today) : "");

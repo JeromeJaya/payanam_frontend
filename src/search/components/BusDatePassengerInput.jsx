@@ -17,6 +17,23 @@ export default function BusDatePassengerInput({
             className="w-full text-xs sm:text-sm md:text-base font-bold text-slate-800 dark:text-slate-200 focus:outline-none bg-transparent mt-0.5 cursor-pointer accent-lime-600 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
             value={date || ""}
             onChange={onDateChange}
+            onClick={(e) => {
+              try {
+                if (typeof e.target.showPicker === "function") {
+                  e.target.showPicker();
+                }
+              } catch (err) {}
+            }}
+            onKeyDown={(e) => {
+              if (e.key !== "Tab" && e.key !== "Escape") {
+                e.preventDefault();
+                try {
+                  if (typeof e.target.showPicker === "function") {
+                    e.target.showPicker();
+                  }
+                } catch (err) {}
+              }
+            }}
             min={new Date().toISOString().slice(0, 10)}
             required
           />
